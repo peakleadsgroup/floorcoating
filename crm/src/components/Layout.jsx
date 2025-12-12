@@ -24,6 +24,12 @@ function Layout() {
             >
               Project Board
             </Link>
+            <Link 
+              to="/reps" 
+              className={location.pathname === '/reps' ? 'nav-link active' : 'nav-link'}
+            >
+              Reps
+            </Link>
           </nav>
         </div>
       </header>

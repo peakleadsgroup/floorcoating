@@ -31,6 +31,17 @@ CREATE TABLE lead_activities (
   created_by TEXT
 );
 
+-- Messages table
+CREATE TABLE messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
+  message_type TEXT NOT NULL CHECK (message_type IN ('Text', 'Email', 'Call')),
+  content TEXT,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Contracts table
 CREATE TABLE contracts (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -57,13 +68,23 @@ CREATE TABLE payments (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Reps table
+CREATE TABLE reps (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('Sales', 'Project Management', 'Installer')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Projects table
 CREATE TABLE projects (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
   contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
   project_stage TEXT NOT NULL DEFAULT 'scheduled',
-  installer TEXT,
+  installer_id UUID REFERENCES reps(id) ON DELETE SET NULL,
+  installer TEXT, -- Keep for backward compatibility, but prefer installer_id
   install_date DATE,
   internal_notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -78,7 +99,11 @@ CREATE INDEX idx_contracts_status ON contracts(status);
 CREATE INDEX idx_payments_contract_id ON payments(contract_id);
 CREATE INDEX idx_payments_status ON payments(status);
 CREATE INDEX idx_projects_project_stage ON projects(project_stage);
+CREATE INDEX idx_projects_installer_id ON projects(installer_id);
 CREATE INDEX idx_lead_activities_lead_id ON lead_activities(lead_id);
+CREATE INDEX idx_reps_role ON reps(role);
+CREATE INDEX idx_messages_lead_id ON messages(lead_id);
+CREATE INDEX idx_messages_is_read ON messages(is_read);
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -97,6 +122,12 @@ CREATE TRIGGER update_contracts_updated_at BEFORE UPDATE ON contracts
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_reps_updated_at BEFORE UPDATE ON reps
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_messages_updated_at BEFORE UPDATE ON messages
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Function to automatically create project when deposit is paid

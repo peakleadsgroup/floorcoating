@@ -9,6 +9,7 @@ function LeadDetail() {
   const [lead, setLead] = useState(null)
   const [activities, setActivities] = useState([])
   const [contract, setContract] = useState(null)
+  const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
   const [isNew, setIsNew] = useState(id === 'new')
   
@@ -84,8 +85,20 @@ Date: _______________`,
       fetchLead()
       fetchActivities()
       fetchContract()
+      fetchMessages()
     }
   }, [id])
+
+  // Poll for new messages every 30 seconds
+  useEffect(() => {
+    if (!isNew) {
+      const interval = setInterval(() => {
+        fetchMessages()
+      }, 30000) // 30 seconds
+
+      return () => clearInterval(interval)
+    }
+  }, [id, isNew])
 
   const fetchLead = async () => {
     try {
@@ -131,6 +144,52 @@ Date: _______________`,
     }
   }
 
+  const fetchMessages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('lead_id', id)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setMessages(data || [])
+    } catch (error) {
+      console.error('Error fetching messages:', error)
+    }
+  }
+
+  const markMessageAsRead = async (messageId) => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_read: true, updated_at: new Date().toISOString() })
+        .eq('id', messageId)
+
+      if (error) throw error
+      await fetchMessages() // Refresh messages
+    } catch (error) {
+      console.error('Error marking message as read:', error)
+    }
+  }
+
+  const markAllAsRead = async () => {
+    try {
+      const unreadIds = messages.filter(m => !m.is_read).map(m => m.id)
+      if (unreadIds.length === 0) return
+
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_read: true, updated_at: new Date().toISOString() })
+        .in('id', unreadIds)
+
+      if (error) throw error
+      await fetchMessages()
+    } catch (error) {
+      console.error('Error marking all as read:', error)
+    }
+  }
+
   const fetchContract = async () => {
     try {
       const { data, error } = await supabase
@@ -155,20 +214,40 @@ Date: _______________`,
   }
 
   const handleSave = async () => {
+    // Validate phone number - must be 10 digits (only numbers)
+    const phoneDigits = formData.phone.replace(/\D/g, '') // Remove non-digits
+    if (phoneDigits.length !== 10) {
+      alert('Phone number must be exactly 10 digits')
+      return
+    }
+
+    // Validate email - must be a valid email format (contains @ and .something)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!formData.email || !emailRegex.test(formData.email)) {
+      alert('Please enter a valid email address (must contain @ and end with .something)')
+      return
+    }
+
+    // Format phone with digits only for storage
+    const formattedData = {
+      ...formData,
+      phone: phoneDigits,
+    }
+
     try {
       if (isNew) {
         const { data, error } = await supabase
           .from('leads')
-          .insert([formData])
+          .insert([formattedData])
           .select()
           .single()
 
         if (error) throw error
-        navigate(`/leads/${data.id}`)
+        navigate('/') // Go back to sales board
       } else {
         const { error } = await supabase
           .from('leads')
-          .update(formData)
+          .update(formattedData)
           .eq('id', id)
 
         if (error) throw error
@@ -376,6 +455,48 @@ Date: _______________`,
 
       <div className="lead-detail-content">
         <div className="lead-detail-main">
+          {!isNew && (
+            <div className="card messages-card">
+              <div className="messages-header">
+                <h2>Messages</h2>
+                {messages.filter(m => !m.is_read).length > 0 && (
+                  <div className="messages-actions">
+                    <span className="unread-badge">
+                      {messages.filter(m => !m.is_read).length} unread
+                    </span>
+                    <button className="btn-secondary" onClick={markAllAsRead}>
+                      Mark all as read
+                    </button>
+                  </div>
+                )}
+              </div>
+              {messages.length === 0 ? (
+                <p className="no-messages">No messages yet</p>
+              ) : (
+                <div className="messages-list">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`message-item ${!message.is_read ? 'unread' : ''}`}
+                      onClick={() => !message.is_read && markMessageAsRead(message.id)}
+                    >
+                      <div className="message-header">
+                        <span className="message-type">{message.message_type}</span>
+                        <span className="message-time">
+                          {new Date(message.created_at).toLocaleString()}
+                        </span>
+                        {!message.is_read && <span className="unread-dot"></span>}
+                      </div>
+                      <div className="message-content">
+                        {message.content || '(No content)'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          
           <div className="card">
             <h2>Contact Information</h2>
             <div className="form-grid">
@@ -388,19 +509,25 @@ Date: _______________`,
                 />
               </div>
               <div className="form-group">
-                <label>Phone</label>
+                <label>Phone *</label>
                 <input
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="1234567890"
+                  maxLength={10}
                 />
+                <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  Enter 10 digits only
+                </small>
               </div>
               <div className="form-group">
-                <label>Email</label>
+                <label>Email *</label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="example@domain.com"
                 />
               </div>
               <div className="form-group">

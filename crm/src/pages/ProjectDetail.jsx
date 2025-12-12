@@ -8,10 +8,12 @@ function ProjectDetail() {
   const navigate = useNavigate()
   const [project, setProject] = useState(null)
   const [lead, setLead] = useState(null)
+  const [installers, setInstallers] = useState([])
   const [loading, setLoading] = useState(true)
   
   const [formData, setFormData] = useState({
     project_stage: 'scheduled',
+    installer_id: '',
     installer: '',
     install_date: '',
     internal_notes: '',
@@ -19,7 +21,23 @@ function ProjectDetail() {
 
   useEffect(() => {
     fetchProject()
+    fetchInstallers()
   }, [id])
+
+  const fetchInstallers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('reps')
+        .select('*')
+        .eq('role', 'Installer')
+        .order('name', { ascending: true })
+
+      if (error) throw error
+      setInstallers(data || [])
+    } catch (error) {
+      console.error('Error fetching installers:', error)
+    }
+  }
 
   const fetchProject = async () => {
     try {
@@ -38,6 +56,7 @@ function ProjectDetail() {
       setLead(projectData.leads)
       setFormData({
         project_stage: projectData.project_stage || 'scheduled',
+        installer_id: projectData.installer_id || '',
         installer: projectData.installer || '',
         install_date: projectData.install_date || '',
         internal_notes: projectData.internal_notes || '',
@@ -52,12 +71,17 @@ function ProjectDetail() {
 
   const handleSave = async () => {
     try {
+      const updateData = {
+        project_stage: formData.project_stage,
+        installer_id: formData.installer_id || null,
+        install_date: formData.install_date || null,
+        internal_notes: formData.internal_notes || '',
+        updated_at: new Date().toISOString(),
+      }
+
       const { error } = await supabase
         .from('projects')
-        .update({
-          ...formData,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', id)
 
       if (error) throw error
@@ -117,12 +141,21 @@ function ProjectDetail() {
             </div>
             <div className="form-group">
               <label>Installer</label>
-              <input
-                type="text"
-                value={formData.installer}
-                onChange={(e) => setFormData({ ...formData, installer: e.target.value })}
-                placeholder="Installer name"
-              />
+              <select
+                value={formData.installer_id || ''}
+                onChange={(e) => setFormData({ 
+                  ...formData, 
+                  installer_id: e.target.value,
+                  installer: installers.find(i => i.id === e.target.value)?.name || ''
+                })}
+              >
+                <option value="">Select an installer</option>
+                {installers.map(installer => (
+                  <option key={installer.id} value={installer.id}>
+                    {installer.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="form-group">
               <label>Install Date</label>

@@ -6,6 +6,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
 } from '@dnd-kit/core'
 import {
   arrayMove,
@@ -18,6 +19,10 @@ import { CSS } from '@dnd-kit/utilities'
 import './KanbanBoard.css'
 
 function KanbanColumn({ id, title, items, onItemClick }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `column-${id}`,
+  })
+
   return (
     <div className="kanban-column">
       <div className="kanban-column-header">
@@ -25,7 +30,13 @@ function KanbanColumn({ id, title, items, onItemClick }) {
         <span className="kanban-count">{items.length}</span>
       </div>
       <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
-        <div className="kanban-column-content">
+        <div 
+          ref={setNodeRef} 
+          className={`kanban-column-content ${isOver ? 'kanban-column-drop-zone' : ''}`}
+        >
+          {items.length === 0 && (
+            <div className="kanban-column-empty">Drop items here</div>
+          )}
           {items.map((item) => (
             <KanbanCard key={item.id} item={item} onClick={() => onItemClick(item)} />
           ))}
@@ -115,9 +126,32 @@ function KanbanBoard({ columns, items, onItemMove, onItemClick, separatorAfter }
     }
 
     const activeItem = localItems.find(item => item.id === active.id)
+    if (!activeItem) {
+      return
+    }
+
+    // Check if dropping on a column
+    const columnIdMatch = over.id.toString().match(/^column-(.+)$/)
+    if (columnIdMatch) {
+      const targetColumnId = columnIdMatch[1]
+      const activeColumn = columns.find(col => 
+        localItems.filter(item => item.stage === col.id).some(item => item.id === active.id)
+      )
+      
+      if (activeColumn && activeColumn.id !== targetColumnId) {
+        // Item moved to different column - update stage
+        const updatedItems = localItems.map(item =>
+          item.id === active.id ? { ...item, stage: targetColumnId } : item
+        )
+        setLocalItems(updatedItems)
+        onItemMove(active.id, targetColumnId)
+      }
+      return
+    }
+
+    // Check if dropping on another item
     const overItem = localItems.find(item => item.id === over.id)
-    
-    if (!activeItem || !overItem) {
+    if (!overItem) {
       return
     }
 

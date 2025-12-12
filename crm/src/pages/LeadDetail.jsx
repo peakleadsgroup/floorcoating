@@ -586,7 +586,6 @@ Date: _______________`,
         })
       await fetchAppointments()
       await fetchActivities()
-      alert('Appointment created successfully')
     } catch (error) {
       console.error('Error creating appointment:', error)
       alert('Error creating appointment')

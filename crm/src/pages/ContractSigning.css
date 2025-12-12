@@ -1,0 +1,181 @@
+.contract-signing-page {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.contract-container {
+  max-width: 800px;
+  width: 100%;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 3rem;
+  margin: 2rem 0;
+}
+
+.contract-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.contract-header h1 {
+  font-size: 2rem;
+  color: #1a365d;
+  margin-bottom: 0.5rem;
+}
+
+.contract-header h2 {
+  font-size: 1.25rem;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.contract-content {
+  margin-bottom: 2rem;
+}
+
+.contract-text {
+  line-height: 1.8;
+  color: #475569;
+  white-space: pre-wrap;
+  font-size: 0.95rem;
+}
+
+.contract-summary {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.summary-item:last-child {
+  border-bottom: none;
+}
+
+.summary-item.total {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 2px solid #1a365d;
+  font-size: 1.1rem;
+}
+
+.summary-item strong {
+  color: #1a365d;
+  font-size: 1.1rem;
+}
+
+.summary-item.total strong {
+  font-size: 1.3rem;
+}
+
+.signing-section {
+  border-top: 2px solid #e2e8f0;
+  padding-top: 2rem;
+}
+
+.signing-section h3 {
+  color: #1a365d;
+  margin-bottom: 1.5rem;
+}
+
+.signing-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.signing-form .form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.signing-form .form-group label {
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 0.5rem;
+}
+
+.signing-form .form-group input[type="text"] {
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.signing-form .form-group input[type="text"]:focus {
+  outline: none;
+  border-color: #1a365d;
+  box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-weight: 400;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.btn-sign-pay {
+  background: #1a365d;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-sign-pay:hover:not(:disabled) {
+  background: #2d4a6b;
+}
+
+.btn-sign-pay:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.payment-note {
+  font-size: 0.875rem;
+  color: #64748b;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 3rem;
+  color: #64748b;
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .contract-container {
+    padding: 2rem 1.5rem;
+  }
+}
+

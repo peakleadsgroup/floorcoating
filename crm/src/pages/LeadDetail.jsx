@@ -11,6 +11,7 @@ function LeadDetail() {
   const [contract, setContract] = useState(null)
   const [messages, setMessages] = useState([])
   const [appointments, setAppointments] = useState([])
+  const [reps, setReps] = useState([])
   const [loading, setLoading] = useState(true)
   const [isNew, setIsNew] = useState(id === 'new')
   
@@ -90,9 +91,25 @@ Date: _______________`,
   const [newAppointment, setNewAppointment] = useState({
     appointment_date: '',
     appointment_time: '',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     location_type: 'In Person',
+    rep_id: '',
     notes: '',
   })
+
+  const fetchReps = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('reps')
+        .select('*')
+        .order('name', { ascending: true })
+
+      if (error) throw error
+      setReps(data || [])
+    } catch (error) {
+      console.error('Error fetching reps:', error)
+    }
+  }
 
   const fetchAppointments = async () => {
     if (!id || id === 'new') return
@@ -100,7 +117,14 @@ Date: _______________`,
     try {
       const { data, error } = await supabase
         .from('appointments')
-        .select('*')
+        .select(`
+          *,
+          reps:rep_id (
+            id,
+            name,
+            role
+          )
+        `)
         .eq('lead_id', id)
         .order('appointment_date', { ascending: true })
         .order('appointment_time', { ascending: true })
@@ -140,6 +164,7 @@ Date: _______________`,
         markAllUnreadAsRead()
       })
       fetchAppointments()
+      fetchReps()
     }
   }, [id])
 
@@ -481,7 +506,9 @@ Date: _______________`,
           lead_id: id,
           appointment_date: newAppointment.appointment_date,
           appointment_time: newAppointment.appointment_time,
+          timezone: newAppointment.timezone,
           location_type: newAppointment.location_type,
+          rep_id: newAppointment.rep_id || null,
           notes: newAppointment.notes || null,
         }])
 
@@ -493,7 +520,7 @@ Date: _______________`,
         .insert({
           lead_id: id,
           activity_type: 'appointment_scheduled',
-          content: `Appointment scheduled: ${new Date(newAppointment.appointment_date).toLocaleDateString()} at ${newAppointment.appointment_time} (${newAppointment.location_type})`,
+          content: `Appointment scheduled: ${new Date(newAppointment.appointment_date).toLocaleDateString()} at ${newAppointment.appointment_time} ${newAppointment.timezone ? `(${newAppointment.timezone.replace('America/', '').replace('_', ' ')})` : ''} (${newAppointment.location_type})`,
         })
 
       // Always move to "Appointment Set" stage when appointment is created
@@ -525,12 +552,14 @@ Date: _______________`,
           })
       }
 
-      setNewAppointment({
-        appointment_date: '',
-        appointment_time: '',
-        location_type: 'In Person',
-        notes: '',
-      })
+        setNewAppointment({
+          appointment_date: '',
+          appointment_time: '',
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          location_type: 'In Person',
+          rep_id: '',
+          notes: '',
+        })
       await fetchAppointments()
       await fetchActivities()
       alert('Appointment created successfully')
@@ -880,10 +909,20 @@ Date: _______________`,
                         <div className="appointment-date-time">
                           <strong>{new Date(appointment.appointment_date).toLocaleDateString()}</strong>
                           <span> at {appointment.appointment_time}</span>
+                          {appointment.timezone && (
+                            <span className="appointment-timezone">
+                              {' '}({appointment.timezone.replace('America/', '').replace('_', ' ')})
+                            </span>
+                          )}
                         </div>
                         <div className="appointment-location">
                           <span className="appointment-location-badge">{appointment.location_type}</span>
                         </div>
+                        {appointment.reps && (
+                          <div className="appointment-rep">
+                            <strong>Rep:</strong> {appointment.reps.name}
+                          </div>
+                        )}
                         {appointment.notes && (
                           <div className="appointment-notes">{appointment.notes}</div>
                         )}
@@ -922,100 +961,56 @@ Date: _______________`,
                     />
                   </div>
                   <div className="form-group">
+                    <label>Time Zone *</label>
+                    <select
+                      value={newAppointment.timezone}
+                      onChange={(e) => setNewAppointment({ ...newAppointment, timezone: e.target.value })}
+                      required
+                    >
+                      <option value="America/New_York">Eastern Time (ET)</option>
+                      <option value="America/Chicago">Central Time (CT)</option>
+                      <option value="America/Denver">Mountain Time (MT)</option>
+                      <option value="America/Phoenix">Arizona Time (MST)</option>
+                      <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                      <option value="America/Anchorage">Alaska Time (AKT)</option>
+                      <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
                     <label>Location *</label>
                     <select
                       value={newAppointment.location_type}
-                      onChange={(e) => setNewAppointment({ ...newAppointment, location_type: e.target.value })}
+                      onChange={(e) => {
+                        setNewAppointment({ 
+                          ...newAppointment, 
+                          location_type: e.target.value,
+                          rep_id: '' // Clear rep selection when location changes
+                        })
+                      }}
                       required
                     >
                       <option value="In Person">In Person</option>
                       <option value="Virtual">Virtual</option>
                     </select>
                   </div>
-                </div>
-                <div className="form-group">
-                  <label>Notes</label>
-                  <textarea
-                    rows="2"
-                    value={newAppointment.notes}
-                    onChange={(e) => setNewAppointment({ ...newAppointment, notes: e.target.value })}
-                    placeholder="Additional notes about the appointment..."
-                  />
-                </div>
-                <button type="submit" className="btn-primary">
-                  Create Appointment
-                </button>
-              </form>
-            </div>
-          )}
-
-          {!isNew && (
-            <div className="card appointments-card">
-              <div className="appointments-header">
-                <h2>Appointments</h2>
-              </div>
-
-              {/* Appointments List */}
-              <div className="appointments-list">
-                {appointments.length === 0 ? (
-                  <p className="no-appointments">No appointments scheduled</p>
-                ) : (
-                  appointments.map((appointment) => (
-                    <div key={appointment.id} className="appointment-item">
-                      <div className="appointment-content">
-                        <div className="appointment-date-time">
-                          <strong>{new Date(appointment.appointment_date).toLocaleDateString()}</strong>
-                          <span> at {appointment.appointment_time}</span>
-                        </div>
-                        <div className="appointment-location">
-                          <span className="appointment-location-badge">{appointment.location_type}</span>
-                        </div>
-                        {appointment.notes && (
-                          <div className="appointment-notes">{appointment.notes}</div>
-                        )}
-                      </div>
-                      <button 
-                        className="btn-cancel-appointment"
-                        onClick={() => handleCancelAppointment(appointment.id)}
-                        title="Cancel Appointment"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* New Appointment Form */}
-              <form onSubmit={handleCreateAppointment} className="new-appointment-form">
-                <div className="form-grid">
                   <div className="form-group">
-                    <label>Date *</label>
-                    <input
-                      type="date"
-                      value={newAppointment.appointment_date}
-                      onChange={(e) => setNewAppointment({ ...newAppointment, appointment_date: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Time *</label>
-                    <input
-                      type="time"
-                      value={newAppointment.appointment_time}
-                      onChange={(e) => setNewAppointment({ ...newAppointment, appointment_time: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Location *</label>
+                    <label>Rep {newAppointment.location_type === 'Virtual' ? '(Sales)' : '(Installer)'}</label>
                     <select
-                      value={newAppointment.location_type}
-                      onChange={(e) => setNewAppointment({ ...newAppointment, location_type: e.target.value })}
-                      required
+                      value={newAppointment.rep_id}
+                      onChange={(e) => setNewAppointment({ ...newAppointment, rep_id: e.target.value })}
                     >
-                      <option value="In Person">In Person</option>
-                      <option value="Virtual">Virtual</option>
+                      <option value="">Select a rep...</option>
+                      {reps
+                        .filter(rep => newAppointment.location_type === 'Virtual' 
+                          ? rep.role === 'Sales' 
+                          : rep.role === 'Installer'
+                        )
+                        .map(rep => (
+                          <option key={rep.id} value={rep.id}>
+                            {rep.name}
+                          </option>
+                        ))
+                      }
                     </select>
                   </div>
                 </div>

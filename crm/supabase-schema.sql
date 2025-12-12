@@ -76,8 +76,10 @@ CREATE TABLE payments (
 CREATE TABLE appointments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
+  rep_id UUID REFERENCES reps(id) ON DELETE SET NULL,
   appointment_date DATE NOT NULL,
   appointment_time TIME NOT NULL,
+  timezone TEXT DEFAULT 'America/New_York',
   location_type TEXT NOT NULL CHECK (location_type IN ('In Person', 'Virtual')),
   notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

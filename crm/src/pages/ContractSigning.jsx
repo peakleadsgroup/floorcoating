@@ -91,6 +91,31 @@ function ContractSigning() {
 
       if (paymentError) throw paymentError
 
+      // Move lead to "Sold" stage
+      if (lead?.id) {
+        const { error: leadUpdateError } = await supabase
+          .from('leads')
+          .update({ 
+            sales_stage: 'sold',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', lead.id)
+
+        if (leadUpdateError) {
+          console.error('Error updating lead stage:', leadUpdateError)
+          // Don't throw - contract is signed and payment is done, so continue
+        } else {
+          // Add activity log for stage change
+          await supabase
+            .from('lead_activities')
+            .insert({
+              lead_id: lead.id,
+              activity_type: 'stage_change',
+              content: 'Moved to Sold (contract signed and deposit paid)',
+            })
+        }
+      }
+
       // Redirect to success page
       navigate('/success')
     } catch (error) {

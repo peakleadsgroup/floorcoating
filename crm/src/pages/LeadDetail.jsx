@@ -777,6 +777,32 @@ Date: _______________`,
           content: `Contract sent via text and email - Total: $${totalPrice.toFixed(2)}, Deposit: $${depositAmount.toFixed(2)}`,
         })
 
+      // Move lead to "Quoted" stage
+      const { error: updateError } = await supabase
+        .from('leads')
+        .update({ 
+          sales_stage: 'quoted',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+
+      if (updateError) throw updateError
+
+      // Update local state
+      setFormData({ ...formData, sales_stage: 'quoted' })
+      if (lead) {
+        setLead({ ...lead, sales_stage: 'quoted' })
+      }
+
+      // Add activity log for stage change
+      await supabase
+        .from('lead_activities')
+        .insert({
+          lead_id: id,
+          activity_type: 'stage_change',
+          content: 'Moved to Quoted (contract sent)',
+        })
+
       // Refresh messages to show the new sent messages
       await fetchMessages()
     } catch (error) {
@@ -1071,9 +1097,6 @@ Date: _______________`,
                   placeholder="1234567890"
                   maxLength={10}
                 />
-                <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                  Enter 10 digits only
-                </small>
               </div>
               <div className="form-group">
                 <label>Email *</label>

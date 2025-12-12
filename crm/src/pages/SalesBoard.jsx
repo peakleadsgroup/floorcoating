@@ -4,15 +4,20 @@ import { supabase } from '../lib/supabase'
 import KanbanBoard from '../components/KanbanBoard'
 import './SalesBoard.css'
 
-const SALES_STAGES = [
+const ACTIVE_STAGES = [
   { id: 'new', title: 'New' },
   { id: 'follow_up', title: 'Follow Up' },
   { id: 'appointment_set', title: 'Appointment Set' },
   { id: 'quoted', title: 'Quoted' },
-  { id: 'sold', title: 'Sold' },
-  { id: 'lost', title: 'Lost' },
   { id: 'not_interested', title: 'Not Interested' },
 ]
+
+const COMPLETED_STAGES = [
+  { id: 'sold', title: 'Sold' },
+  { id: 'lost', title: 'Lost' },
+]
+
+const ALL_STAGES = [...ACTIVE_STAGES, ...COMPLETED_STAGES]
 
 function SalesBoard() {
   const [leads, setLeads] = useState([])
@@ -78,6 +83,16 @@ function SalesBoard() {
   }
 
   const handleItemMove = async (leadId, newStage) => {
+    // Show warning if moving to "Lost"
+    if (newStage === 'lost') {
+      const confirmed = window.confirm(
+        'Important! Only move someone to Lost if they rejected a quote or if they have asked us to stop contacting them. Anyone else should go in Not Interested for a slow drip.\n\nDo you want to continue?'
+      )
+      if (!confirmed) {
+        return // Cancel the move
+      }
+    }
+
     try {
       const { error } = await supabase
         .from('leads')
@@ -92,7 +107,7 @@ function SalesBoard() {
         .insert({
           lead_id: leadId,
           activity_type: 'stage_change',
-          content: `Moved to ${SALES_STAGES.find(s => s.id === newStage)?.title || newStage}`,
+          content: `Moved to ${ALL_STAGES.find(s => s.id === newStage)?.title || newStage}`,
         })
 
       // Update local state
@@ -132,12 +147,27 @@ function SalesBoard() {
           + New Lead
         </button>
       </div>
-      <KanbanBoard
-        columns={SALES_STAGES}
-        items={leadsWithStage}
-        onItemMove={handleItemMove}
-        onItemClick={handleItemClick}
-      />
+      <div className="sales-pipeline-container">
+        <div className="active-pipeline">
+          <KanbanBoard
+            columns={ACTIVE_STAGES}
+            items={leadsWithStage}
+            onItemMove={handleItemMove}
+            onItemClick={handleItemClick}
+          />
+        </div>
+        <div className="completed-section">
+          <div className="completed-header">
+            <h2>Completed</h2>
+          </div>
+          <KanbanBoard
+            columns={COMPLETED_STAGES}
+            items={leadsWithStage}
+            onItemMove={handleItemMove}
+            onItemClick={handleItemClick}
+          />
+        </div>
+      </div>
     </div>
   )
 }

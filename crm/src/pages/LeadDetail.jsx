@@ -263,6 +263,16 @@ Date: _______________`,
   }
 
   const handleSave = async () => {
+    // Show warning if setting stage to "Lost"
+    if (formData.sales_stage === 'lost' && (!lead || lead.sales_stage !== 'lost')) {
+      const confirmed = window.confirm(
+        'Important! Only move someone to Lost if they rejected a quote or if they have asked us to stop contacting them. Anyone else should go in Not Interested for a slow drip.\n\nDo you want to continue?'
+      )
+      if (!confirmed) {
+        return // Cancel the save
+      }
+    }
+
     // Validate phone number - must be 10 digits (only numbers)
     const phoneDigits = formData.phone.replace(/\D/g, '') // Remove non-digits
     if (phoneDigits.length !== 10) {

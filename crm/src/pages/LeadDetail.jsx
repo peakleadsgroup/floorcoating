@@ -10,6 +10,7 @@ function LeadDetail() {
   const [activities, setActivities] = useState([])
   const [contract, setContract] = useState(null)
   const [messages, setMessages] = useState([])
+  const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [isNew, setIsNew] = useState(id === 'new')
   
@@ -86,6 +87,30 @@ Date: _______________`,
     message_type: 'Text',
     content: '',
   })
+  const [newAppointment, setNewAppointment] = useState({
+    appointment_date: '',
+    appointment_time: '',
+    location_type: 'In Person',
+    notes: '',
+  })
+
+  const fetchAppointments = async () => {
+    if (!id || id === 'new') return
+    
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('lead_id', id)
+        .order('appointment_date', { ascending: true })
+        .order('appointment_time', { ascending: true })
+
+      if (error) throw error
+      setAppointments(data || [])
+    } catch (error) {
+      console.error('Error fetching appointments:', error)
+    }
+  }
 
   const markAllUnreadAsRead = async () => {
     if (!id || id === 'new') return
@@ -114,6 +139,7 @@ Date: _______________`,
         // Mark all unread inbound messages as read when opening the lead
         markAllUnreadAsRead()
       })
+      fetchAppointments()
     }
   }, [id])
 
@@ -250,6 +276,34 @@ Date: _______________`,
 
       if (error) throw error
 
+      // Move lead to "follow_up" stage if currently in "new" stage
+      if (formData.sales_stage === 'new') {
+        const { error: updateError } = await supabase
+          .from('leads')
+          .update({ 
+            sales_stage: 'follow_up',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id)
+
+        if (updateError) throw updateError
+
+        // Update local state
+        setFormData({ ...formData, sales_stage: 'follow_up' })
+        if (lead) {
+          setLead({ ...lead, sales_stage: 'follow_up' })
+        }
+
+        // Add activity log
+        await supabase
+          .from('lead_activities')
+          .insert({
+            lead_id: id,
+            activity_type: 'stage_change',
+            content: 'Moved to Follow Up (message sent)',
+          })
+      }
+
       setNewMessage({ message_type: 'Text', content: '' })
       await fetchMessages()
       
@@ -377,6 +431,115 @@ Date: _______________`,
     }
   }
 
+  const handleCancelAppointment = async (appointmentId) => {
+    if (!confirm('Are you sure you want to cancel this appointment?')) {
+      return
+    }
+
+    try {
+      const appointment = appointments.find(a => a.id === appointmentId)
+      
+      const { error } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', appointmentId)
+
+      if (error) throw error
+
+      // Add activity log
+      if (appointment) {
+        await supabase
+          .from('lead_activities')
+          .insert({
+            lead_id: id,
+            activity_type: 'appointment_cancelled',
+            content: `Appointment cancelled: ${new Date(appointment.appointment_date).toLocaleDateString()} at ${appointment.appointment_time}`,
+          })
+      }
+
+      await fetchAppointments()
+      await fetchActivities()
+      alert('Appointment cancelled successfully')
+    } catch (error) {
+      console.error('Error cancelling appointment:', error)
+      alert('Error cancelling appointment')
+    }
+  }
+
+  const handleCreateAppointment = async (e) => {
+    e.preventDefault()
+    
+    if (!newAppointment.appointment_date || !newAppointment.appointment_time || !id || id === 'new') {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .insert([{
+          lead_id: id,
+          appointment_date: newAppointment.appointment_date,
+          appointment_time: newAppointment.appointment_time,
+          location_type: newAppointment.location_type,
+          notes: newAppointment.notes || null,
+        }])
+
+      if (error) throw error
+
+      // Add activity log
+      await supabase
+        .from('lead_activities')
+        .insert({
+          lead_id: id,
+          activity_type: 'appointment_scheduled',
+          content: `Appointment scheduled: ${new Date(newAppointment.appointment_date).toLocaleDateString()} at ${newAppointment.appointment_time} (${newAppointment.location_type})`,
+        })
+
+      // Always move to "Appointment Set" stage when appointment is created
+      const stagesToUpdate = ['new', 'follow_up', 'quoted', 'not_interested']
+      if (stagesToUpdate.includes(formData.sales_stage)) {
+        const { error: updateError } = await supabase
+          .from('leads')
+          .update({ 
+            sales_stage: 'appointment_set',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id)
+
+        if (updateError) throw updateError
+
+        // Update local state
+        setFormData({ ...formData, sales_stage: 'appointment_set' })
+        if (lead) {
+          setLead({ ...lead, sales_stage: 'appointment_set' })
+        }
+
+        // Add activity log for stage change
+        await supabase
+          .from('lead_activities')
+          .insert({
+            lead_id: id,
+            activity_type: 'stage_change',
+            content: 'Moved to Appointment Set',
+          })
+      }
+
+      setNewAppointment({
+        appointment_date: '',
+        appointment_time: '',
+        location_type: 'In Person',
+        notes: '',
+      })
+      await fetchAppointments()
+      await fetchActivities()
+      alert('Appointment created successfully')
+    } catch (error) {
+      console.error('Error creating appointment:', error)
+      alert('Error creating appointment')
+    }
+  }
+
   const handleArchive = async () => {
     if (!confirm('Are you sure you want to archive this lead? It will be hidden from the sales board.')) {
       return
@@ -441,7 +604,7 @@ Date: _______________`,
     }
   }
 
-  const generateContractLink = async () => {
+  const sendContractLink = async () => {
     if (!contractForm.total_price) {
       alert('Please enter a total price')
       return
@@ -471,38 +634,103 @@ Date: _______________`,
       .replace('[Balance Amount]', depositAmount.toFixed(2))
 
     try {
-      // Generate unique token
-      const token = crypto.randomUUID()
+      let contractData = contract
+      
+      // Generate contract if it doesn't exist
+      if (!contractData) {
+        // Generate unique token
+        const token = crypto.randomUUID()
 
-      const { data, error } = await supabase
-        .from('contracts')
-        .insert({
+        const { data, error } = await supabase
+          .from('contracts')
+          .insert({
+            lead_id: id,
+            public_token: token,
+            contract_content: contractContent,
+            total_price: totalPrice,
+            deposit_amount: depositAmount,
+            status: 'sent',
+          })
+          .select()
+          .single()
+
+        if (error) throw error
+        contractData = data
+        setContract(data)
+      } else {
+        // Update existing contract with new content and status
+        const { data, error } = await supabase
+          .from('contracts')
+          .update({ 
+            status: 'sent',
+            contract_content: contractContent,
+            total_price: totalPrice,
+            deposit_amount: depositAmount,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', contractData.id)
+          .select()
+          .single()
+
+        if (error) throw error
+        contractData = data
+        setContract(data)
+      }
+
+      // Generate contract link
+      const contractLink = `${window.location.origin}/contract/${contractData.public_token}`
+      
+      // Get lead's first name
+      const leadFirstName = formData.first_name || 'there'
+
+      // Create text message
+      const textMessage = `Hey ${leadFirstName}, here is the service agreement and deposit link to upgrade your floors! ${contractLink} - let me know if there's anything at all I can do to make this super easy for you!`
+
+      // Create email message
+      const emailMessage = `Hey ${leadFirstName}, I figured I'd send this link over email as well so you'll have it in both places. Here is the service agreement to upgrade your floors: ${contractLink} - happy to help in any way I can! Just let me know!`
+
+      // Insert text message
+      const { error: textError } = await supabase
+        .from('messages')
+        .insert([{
           lead_id: id,
-          public_token: token,
-          contract_content: contractContent,
-          total_price: totalPrice,
-          deposit_amount: depositAmount,
-          status: 'draft',
-        })
-        .select()
-        .single()
+          message_type: 'Text',
+          content: textMessage,
+          is_read: true,
+          is_outbound: true,
+        }])
 
-      if (error) throw error
+      if (textError) throw textError
+
+      // Insert email message
+      const { error: emailError } = await supabase
+        .from('messages')
+        .insert([{
+          lead_id: id,
+          message_type: 'Email',
+          content: emailMessage,
+          is_read: true,
+          is_outbound: true,
+        }])
+
+      if (emailError) throw emailError
 
       // Add activity
       await supabase
         .from('lead_activities')
         .insert({
           lead_id: id,
-          activity_type: 'contract_generated',
-          content: `Contract generated - Total: $${totalPrice.toFixed(2)}, Deposit: $${depositAmount.toFixed(2)}`,
+          activity_type: 'contract_sent',
+          content: `Contract sent via text and email - Total: $${totalPrice.toFixed(2)}, Deposit: $${depositAmount.toFixed(2)}`,
         })
 
-      setContract(data)
-      alert('Contract created! Use the link below to share with customer.')
+      // Refresh messages to show the new sent messages
+      await fetchMessages()
+
+      alert('Contract link sent via text and email!')
     } catch (error) {
-      console.error('Error creating contract:', error)
-      alert('Error creating contract')
+      console.error('Error sending contract:', error)
+      alert('Error sending contract')
     }
   }
 
@@ -634,7 +862,179 @@ Date: _______________`,
               </form>
             </div>
           )}
-          
+
+          {!isNew && (
+            <div className="card appointments-card">
+              <div className="appointments-header">
+                <h2>Appointments</h2>
+              </div>
+
+              {/* Appointments List */}
+              <div className="appointments-list">
+                {appointments.length === 0 ? (
+                  <p className="no-appointments">No appointments scheduled</p>
+                ) : (
+                  appointments.map((appointment) => (
+                    <div key={appointment.id} className="appointment-item">
+                      <div className="appointment-content">
+                        <div className="appointment-date-time">
+                          <strong>{new Date(appointment.appointment_date).toLocaleDateString()}</strong>
+                          <span> at {appointment.appointment_time}</span>
+                        </div>
+                        <div className="appointment-location">
+                          <span className="appointment-location-badge">{appointment.location_type}</span>
+                        </div>
+                        {appointment.notes && (
+                          <div className="appointment-notes">{appointment.notes}</div>
+                        )}
+                      </div>
+                      <button 
+                        className="btn-cancel-appointment"
+                        onClick={() => handleCancelAppointment(appointment.id)}
+                        title="Cancel Appointment"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* New Appointment Form */}
+              <form onSubmit={handleCreateAppointment} className="new-appointment-form">
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>Date *</label>
+                    <input
+                      type="date"
+                      value={newAppointment.appointment_date}
+                      onChange={(e) => setNewAppointment({ ...newAppointment, appointment_date: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Time *</label>
+                    <input
+                      type="time"
+                      value={newAppointment.appointment_time}
+                      onChange={(e) => setNewAppointment({ ...newAppointment, appointment_time: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Location *</label>
+                    <select
+                      value={newAppointment.location_type}
+                      onChange={(e) => setNewAppointment({ ...newAppointment, location_type: e.target.value })}
+                      required
+                    >
+                      <option value="In Person">In Person</option>
+                      <option value="Virtual">Virtual</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Notes</label>
+                  <textarea
+                    rows="2"
+                    value={newAppointment.notes}
+                    onChange={(e) => setNewAppointment({ ...newAppointment, notes: e.target.value })}
+                    placeholder="Additional notes about the appointment..."
+                  />
+                </div>
+                <button type="submit" className="btn-primary">
+                  Create Appointment
+                </button>
+              </form>
+            </div>
+          )}
+
+          {!isNew && (
+            <div className="card appointments-card">
+              <div className="appointments-header">
+                <h2>Appointments</h2>
+              </div>
+
+              {/* Appointments List */}
+              <div className="appointments-list">
+                {appointments.length === 0 ? (
+                  <p className="no-appointments">No appointments scheduled</p>
+                ) : (
+                  appointments.map((appointment) => (
+                    <div key={appointment.id} className="appointment-item">
+                      <div className="appointment-content">
+                        <div className="appointment-date-time">
+                          <strong>{new Date(appointment.appointment_date).toLocaleDateString()}</strong>
+                          <span> at {appointment.appointment_time}</span>
+                        </div>
+                        <div className="appointment-location">
+                          <span className="appointment-location-badge">{appointment.location_type}</span>
+                        </div>
+                        {appointment.notes && (
+                          <div className="appointment-notes">{appointment.notes}</div>
+                        )}
+                      </div>
+                      <button 
+                        className="btn-cancel-appointment"
+                        onClick={() => handleCancelAppointment(appointment.id)}
+                        title="Cancel Appointment"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* New Appointment Form */}
+              <form onSubmit={handleCreateAppointment} className="new-appointment-form">
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>Date *</label>
+                    <input
+                      type="date"
+                      value={newAppointment.appointment_date}
+                      onChange={(e) => setNewAppointment({ ...newAppointment, appointment_date: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Time *</label>
+                    <input
+                      type="time"
+                      value={newAppointment.appointment_time}
+                      onChange={(e) => setNewAppointment({ ...newAppointment, appointment_time: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Location *</label>
+                    <select
+                      value={newAppointment.location_type}
+                      onChange={(e) => setNewAppointment({ ...newAppointment, location_type: e.target.value })}
+                      required
+                    >
+                      <option value="In Person">In Person</option>
+                      <option value="Virtual">Virtual</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Notes</label>
+                  <textarea
+                    rows="2"
+                    value={newAppointment.notes}
+                    onChange={(e) => setNewAppointment({ ...newAppointment, notes: e.target.value })}
+                    placeholder="Additional notes about the appointment..."
+                  />
+                </div>
+                <button type="submit" className="btn-primary">
+                  Create Appointment
+                </button>
+              </form>
+            </div>
+          )}
+
           <div className="card">
             <h2>Contact Information</h2>
             <div className="form-grid">
@@ -810,8 +1210,8 @@ Date: _______________`,
                       onChange={(e) => setContractForm({ ...contractForm, contract_content: e.target.value })}
                     />
                   </div>
-                  <button className="btn-primary" onClick={generateContractLink}>
-                    Generate Contract Link
+                  <button className="btn-primary" onClick={sendContractLink}>
+                    Send Contract Link
                   </button>
                 </div>
               )}

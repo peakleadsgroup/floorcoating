@@ -72,6 +72,18 @@ CREATE TABLE payments (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Appointments table
+CREATE TABLE appointments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
+  appointment_date DATE NOT NULL,
+  appointment_time TIME NOT NULL,
+  location_type TEXT NOT NULL CHECK (location_type IN ('In Person', 'Virtual')),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Reps table
 CREATE TABLE reps (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -109,6 +121,8 @@ CREATE INDEX idx_lead_activities_lead_id ON lead_activities(lead_id);
 CREATE INDEX idx_reps_role ON reps(role);
 CREATE INDEX idx_messages_lead_id ON messages(lead_id);
 CREATE INDEX idx_messages_is_read ON messages(is_read);
+CREATE INDEX idx_appointments_lead_id ON appointments(lead_id);
+CREATE INDEX idx_appointments_date ON appointments(appointment_date);
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -133,6 +147,9 @@ CREATE TRIGGER update_reps_updated_at BEFORE UPDATE ON reps
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_messages_updated_at BEFORE UPDATE ON messages
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_appointments_updated_at BEFORE UPDATE ON appointments
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Function to automatically create project when lead is marked as sold

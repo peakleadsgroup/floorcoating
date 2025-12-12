@@ -363,6 +363,11 @@
   border-left: 3px solid #1a365d;
 }
 
+.activity-item.activity-note {
+  background: #fef3c7;
+  border-left-color: #f59e0b;
+}
+
 .activity-header {
   display: flex;
   justify-content: space-between;
@@ -505,6 +510,30 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.new-appointment-form .form-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.new-appointment-form .form-grid .form-group:nth-child(1) {
+  grid-column: 1 / -1; /* Date spans full width */
+}
+
+.new-appointment-form .form-grid .form-group:nth-child(2) {
+  grid-column: 1; /* Time on left */
+}
+
+.new-appointment-form .form-grid .form-group:nth-child(3) {
+  grid-column: 2; /* Time Zone on right of Time */
+}
+
+.new-appointment-form .form-grid .form-group:nth-child(4) {
+  grid-column: 1; /* Location on left */
+}
+
+.new-appointment-form .form-grid .form-group:nth-child(5) {
+  grid-column: 2; /* Rep on right of Location */
 }
 
 @media (max-width: 1024px) {

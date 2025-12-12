@@ -509,7 +509,6 @@ Date: _______________`,
           timezone: newAppointment.timezone,
           location_type: newAppointment.location_type,
           rep_id: newAppointment.rep_id || null,
-          notes: newAppointment.notes || null,
         }])
 
       if (error) throw error
@@ -558,7 +557,6 @@ Date: _______________`,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           location_type: 'In Person',
           rep_id: '',
-          notes: '',
         })
       await fetchAppointments()
       await fetchActivities()
@@ -1014,15 +1012,6 @@ Date: _______________`,
                     </select>
                   </div>
                 </div>
-                <div className="form-group">
-                  <label>Notes</label>
-                  <textarea
-                    rows="2"
-                    value={newAppointment.notes}
-                    onChange={(e) => setNewAppointment({ ...newAppointment, notes: e.target.value })}
-                    placeholder="Additional notes about the appointment..."
-                  />
-                </div>
                 <button type="submit" className="btn-primary">
                   Create Appointment
                 </button>
@@ -1217,10 +1206,10 @@ Date: _______________`,
         {!isNew && (
           <div className="lead-detail-sidebar">
             <div className="card">
-              <h2>Activity History</h2>
+              <h2>Activity/Notes</h2>
               <div className="activity-list">
                 {activities.map((activity) => (
-                  <div key={activity.id} className="activity-item">
+                  <div key={activity.id} className={`activity-item ${activity.activity_type === 'note' ? 'activity-note' : ''}`}>
                     <div className="activity-header">
                       <span className="activity-type">
                         {activity.activity_type

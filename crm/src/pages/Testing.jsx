@@ -2,6 +2,42 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import './Testing.css'
 
+// Function to convert URLs to clickable links and render HTML for emails
+const renderMessageContent = (content) => {
+  if (!content) return '(No content)'
+  
+  // Check if content contains HTML (like email messages with hyperlinks)
+  if (content.includes('<a href=')) {
+    // For HTML content (emails), render as HTML
+    return <div dangerouslySetInnerHTML={{ __html: content.replace(/\n/g, '<br />') }} />
+  }
+  
+  // For plain text, convert URLs to clickable links
+  const urlRegex = /(https?:\/\/[^\s]+)/g
+  const parts = content.split(urlRegex)
+  
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (urlRegex.test(part)) {
+          return (
+            <a 
+              key={index}
+              href={part} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ color: 'inherit', textDecoration: 'underline' }}
+            >
+              {part}
+            </a>
+          )
+        }
+        return <span key={index}>{part}</span>
+      })}
+    </>
+  )
+}
+
 function Testing() {
   const [leads, setLeads] = useState([])
   const [filteredLeads, setFilteredLeads] = useState([])

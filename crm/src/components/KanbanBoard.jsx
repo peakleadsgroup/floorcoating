@@ -67,7 +67,12 @@ function KanbanCard({ item, onClick }) {
       className="kanban-card"
       onClick={handleClick}
     >
-      <div className="kanban-card-title">{item.name || item.title}</div>
+      <div className="kanban-card-title">
+        {item.name || item.title}
+        {item.unreadCount > 0 && (
+          <span className="kanban-card-unread-badge">{item.unreadCount}</span>
+        )}
+      </div>
       {item.address && (
         <div className="kanban-card-subtitle">{item.address}</div>
       )}

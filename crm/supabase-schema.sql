@@ -82,8 +82,8 @@ CREATE TABLE reps (
 CREATE TABLE projects (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
-  contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
-  project_stage TEXT NOT NULL DEFAULT 'scheduled',
+  contract_id UUID REFERENCES contracts(id) ON DELETE SET NULL,
+  project_stage TEXT NOT NULL DEFAULT 'sold',
   installer_id UUID REFERENCES reps(id) ON DELETE SET NULL,
   installer TEXT, -- Keep for backward compatibility, but prefer installer_id
   install_date DATE,
@@ -131,6 +131,33 @@ CREATE TRIGGER update_reps_updated_at BEFORE UPDATE ON reps
 CREATE TRIGGER update_messages_updated_at BEFORE UPDATE ON messages
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- Function to automatically create project when lead is marked as sold
+CREATE OR REPLACE FUNCTION create_project_on_sold()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_contract_id UUID;
+BEGIN
+  -- Only proceed if sales_stage changed to 'sold'
+  IF NEW.sales_stage = 'sold' AND (OLD.sales_stage IS NULL OR OLD.sales_stage != 'sold') THEN
+    -- Check if project already exists for this lead
+    IF NOT EXISTS (SELECT 1 FROM projects WHERE lead_id = NEW.id) THEN
+      -- Get the most recent contract for this lead (if exists)
+      SELECT id INTO v_contract_id 
+      FROM contracts 
+      WHERE lead_id = NEW.id 
+      ORDER BY created_at DESC 
+      LIMIT 1;
+      
+      -- Create project with 'sold' stage
+      INSERT INTO projects (lead_id, contract_id, project_stage)
+      VALUES (NEW.id, v_contract_id, 'sold');
+    END IF;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
+
 -- Function to automatically create project when deposit is paid
 CREATE OR REPLACE FUNCTION create_project_on_payment()
 RETURNS TRIGGER AS $$
@@ -145,9 +172,9 @@ BEGIN
     
     -- Check if project already exists
     IF NOT EXISTS (SELECT 1 FROM projects WHERE contract_id = NEW.contract_id) THEN
-      -- Create project
+      -- Create project with 'sold' stage (will move to scheduled later)
       INSERT INTO projects (lead_id, contract_id, project_stage)
-      VALUES (v_contract.lead_id, NEW.contract_id, 'scheduled');
+      VALUES (v_contract.lead_id, NEW.contract_id, 'sold');
       
       -- Update lead to 'sold' stage
       UPDATE leads SET sales_stage = 'sold' WHERE id = v_contract.lead_id;
@@ -160,6 +187,13 @@ BEGIN
   RETURN NEW;
 END;
 $$ language 'plpgsql';
+
+-- Trigger to create project when lead is marked as sold
+CREATE TRIGGER trigger_create_project_on_sold
+  AFTER UPDATE ON leads
+  FOR EACH ROW
+  WHEN (NEW.sales_stage = 'sold' AND (OLD.sales_stage IS NULL OR OLD.sales_stage != 'sold'))
+  EXECUTE FUNCTION create_project_on_sold();
 
 -- Trigger to create project on payment completion
 CREATE TRIGGER trigger_create_project_on_payment

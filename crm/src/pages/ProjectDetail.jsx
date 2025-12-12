@@ -55,7 +55,7 @@ function ProjectDetail() {
       setProject(projectData)
       setLead(projectData.leads)
       setFormData({
-        project_stage: projectData.project_stage || 'scheduled',
+        project_stage: projectData.project_stage || 'sold',
         installer_id: projectData.installer_id || '',
         installer: projectData.installer || '',
         install_date: projectData.install_date || '',
@@ -132,6 +132,7 @@ function ProjectDetail() {
                 value={formData.project_stage}
                 onChange={(e) => setFormData({ ...formData, project_stage: e.target.value })}
               >
+                <option value="sold">Sold</option>
                 <option value="scheduled">Scheduled</option>
                 <option value="prep">Prep</option>
                 <option value="install_day">Install Day</option>

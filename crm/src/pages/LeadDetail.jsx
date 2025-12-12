@@ -154,10 +154,18 @@ Date: _______________`,
         .from('messages')
         .select('*')
         .eq('lead_id', id)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: true }) // Oldest first, newest at bottom
 
       if (error) throw error
       setMessages(data || [])
+      
+      // Scroll to bottom after messages load
+      setTimeout(() => {
+        const messagesContainer = document.querySelector('.messages-list-container')
+        if (messagesContainer) {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight
+        }
+      }, 100)
     } catch (error) {
       console.error('Error fetching messages:', error)
     }
@@ -217,6 +225,14 @@ Date: _______________`,
 
       setNewMessage({ message_type: 'Text', content: '' })
       await fetchMessages()
+      
+      // Scroll to bottom after sending
+      setTimeout(() => {
+        const messagesContainer = document.querySelector('.messages-list-container')
+        if (messagesContainer) {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight
+        }
+      }, 100)
     } catch (error) {
       console.error('Error sending message:', error)
       alert('Error sending message')
@@ -727,7 +743,12 @@ Date: _______________`,
                 {activities.map((activity) => (
                   <div key={activity.id} className="activity-item">
                     <div className="activity-header">
-                      <span className="activity-type">{activity.activity_type}</span>
+                      <span className="activity-type">
+                        {activity.activity_type
+                          .split('_')
+                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                          .join(' ')}
+                      </span>
                       <span className="activity-date">
                         {new Date(activity.created_at).toLocaleString()}
                       </span>

@@ -5,6 +5,7 @@ import KanbanBoard from '../components/KanbanBoard'
 import './ProjectBoard.css'
 
 const PROJECT_STAGES = [
+  { id: 'sold', title: 'Sold' },
   { id: 'scheduled', title: 'Scheduled' },
   { id: 'prep', title: 'Prep' },
   { id: 'install_day', title: 'Install Day' },

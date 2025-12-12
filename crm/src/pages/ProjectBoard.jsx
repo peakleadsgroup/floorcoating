@@ -35,8 +35,7 @@ function ProjectBoard() {
             street_address,
             city,
             state,
-            zip,
-            address
+            zip
           )
         `)
         .order('created_at', { ascending: false })
@@ -56,7 +55,6 @@ function ProjectBoard() {
         city: project.leads?.city || '',
         state: project.leads?.state || '',
         zip: project.leads?.zip || '',
-        address: project.leads?.address || '', // Keep for backward compatibility
         stage: project.project_stage,
       }))
       

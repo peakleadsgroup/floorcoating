@@ -13,6 +13,8 @@ function Reps() {
   const [formData, setFormData] = useState({
     name: '',
     role: 'Sales',
+    email: '',
+    phone: '',
   })
 
   useEffect(() => {
@@ -52,6 +54,8 @@ function Reps() {
           .update({
             name: formData.name,
             role: formData.role,
+            email: formData.email || null,
+            phone: formData.phone || null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingRep.id)
@@ -64,13 +68,15 @@ function Reps() {
           .insert([{
             name: formData.name,
             role: formData.role,
+            email: formData.email || null,
+            phone: formData.phone || null,
           }])
 
         if (error) throw error
         alert('Rep created successfully')
       }
 
-      setFormData({ name: '', role: 'Sales' })
+      setFormData({ name: '', role: 'Sales', email: '', phone: '' })
       setShowForm(false)
       setEditingRep(null)
       await fetchReps()
@@ -85,6 +91,8 @@ function Reps() {
     setFormData({
       name: rep.name,
       role: rep.role,
+      email: rep.email || '',
+      phone: rep.phone || '',
     })
     setShowForm(true)
   }
@@ -110,7 +118,7 @@ function Reps() {
   }
 
   const handleCancel = () => {
-    setFormData({ name: '', role: 'Sales' })
+    setFormData({ name: '', role: 'Sales', email: '', phone: '' })
     setShowForm(false)
     setEditingRep(null)
   }
@@ -163,6 +171,25 @@ function Reps() {
                   ))}
                 </select>
               </div>
+              <div className="form-group">
+                <label>Email</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="email@example.com"
+                />
+              </div>
+              <div className="form-group">
+                <label>Phone</label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="1234567890"
+                  maxLength={10}
+                />
+              </div>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
               <button type="submit" className="btn-primary">
@@ -189,6 +216,16 @@ function Reps() {
                     <div className="rep-info">
                       <h3>{rep.name}</h3>
                       <span className="rep-role">{rep.role}</span>
+                      {rep.email && (
+                        <div className="rep-contact">
+                          <strong>Email:</strong> {rep.email}
+                        </div>
+                      )}
+                      {rep.phone && (
+                        <div className="rep-contact">
+                          <strong>Phone:</strong> {rep.phone}
+                        </div>
+                      )}
                     </div>
                     <div className="rep-actions">
                       <button 

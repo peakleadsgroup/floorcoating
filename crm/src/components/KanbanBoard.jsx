@@ -7,6 +7,7 @@ import {
   useSensor,
   useSensors,
   useDroppable,
+  DragOverlay,
 } from '@dnd-kit/core'
 import {
   arrayMove,
@@ -59,7 +60,7 @@ function KanbanCard({ item, onClick }) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.3 : 1,
   }
 
   const handleClick = (e) => {
@@ -102,6 +103,7 @@ function KanbanCard({ item, onClick }) {
 
 function KanbanBoard({ columns, items, onItemMove, onItemClick, separatorAfter }) {
   const [localItems, setLocalItems] = useState(items)
+  const [activeId, setActiveId] = useState(null)
   
   useEffect(() => {
     setLocalItems(items)
@@ -118,8 +120,13 @@ function KanbanBoard({ columns, items, onItemMove, onItemClick, separatorAfter }
     })
   )
 
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id)
+  }
+
   const handleDragEnd = (event) => {
     const { active, over } = event
+    setActiveId(null)
 
     if (!over || active.id === over.id) {
       return
@@ -185,10 +192,13 @@ function KanbanBoard({ columns, items, onItemMove, onItemClick, separatorAfter }
     }
   }
 
+  const activeItem = activeId ? localItems.find(item => item.id === activeId) : null
+
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
       <div className="kanban-board">
@@ -209,6 +219,29 @@ function KanbanBoard({ columns, items, onItemMove, onItemClick, separatorAfter }
           )
         })}
       </div>
+      <DragOverlay>
+        {activeItem ? (
+          <div className="kanban-card-drag-preview">
+            <div className="kanban-card-title">
+              {activeItem.name || activeItem.title}
+              {activeItem.unreadCount > 0 && (
+                <span className="kanban-card-unread-badge">{activeItem.unreadCount}</span>
+              )}
+            </div>
+            {(() => {
+              const address = activeItem.street_address || activeItem.city || activeItem.state || activeItem.zip
+                ? [activeItem.street_address, activeItem.city, activeItem.state, activeItem.zip].filter(Boolean).join(', ')
+                : activeItem.address
+              return address && (
+                <div className="kanban-card-subtitle">{address}</div>
+              )
+            })()}
+            {activeItem.install_date && (
+              <div className="kanban-card-subtitle">Install: {new Date(activeItem.install_date).toLocaleDateString()}</div>
+            )}
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   )
 }

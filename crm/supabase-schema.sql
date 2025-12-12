@@ -77,6 +77,8 @@ CREATE TABLE reps (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('Sales', 'Project Management', 'Installer')),
+  email TEXT,
+  phone TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

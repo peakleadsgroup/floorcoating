@@ -11,9 +11,10 @@
     
     /* Navigation */
     .header { background:white; padding:1rem 0; box-shadow:0 2px 10px rgba(0,0,0,0.1); position:sticky; top:0; z-index:1000; }
-    .nav-container { max-width:1400px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; padding:0 2rem; }
-    .logo { height:50px; }
+    .nav-container { max-width:1400px; margin:0 auto; display:flex; justify-content:center; align-items:center; padding:0 2rem; position:relative; }
+    .logo { height:50px; position:absolute; left:2rem; }
     .nav-links { display:flex; list-style:none; gap:2rem; align-items:center; }
+    .nav-right { position:absolute; right:2rem; display:flex; align-items:center; gap:1.5rem; }
     .nav-links a { text-decoration:none; color:#1a365d; font-weight:600; font-size:0.95rem; transition:color .3s; }
     .nav-links a:hover { color:#f97316; }
     .nav-phone { color:#1a365d; font-weight:700; font-size:1rem; }
@@ -29,10 +30,6 @@
     .hero-cta .cta-btn { font-size:1.1rem; padding:1rem 2rem; }
     .hero-cta .phone-btn { background:transparent; border:2px solid white; color:white!important; }
     .hero-cta .phone-btn:hover { background:white; color:#1a365d!important; }
-    .trust-badges { display:flex; justify-content:center; gap:3rem; flex-wrap:wrap; margin-top:3rem; }
-    .trust-badge { text-align:center; }
-    .trust-badge-icon { font-size:2rem; margin-bottom:0.5rem; }
-    .trust-badge-text { font-size:0.9rem; font-weight:600; }
     
     /* Value Proposition */
     .value-prop { padding:5rem 2rem; background:white; }
@@ -118,8 +115,8 @@
     .why-poly-intro h2 { font-size:3rem; margin-bottom:1rem; color:#1a365d; }
     .why-poly-intro p { font-size:1.2rem; color:#666; }
     .comparison { display:grid; grid-template-columns:1fr 1fr; gap:3rem; margin-bottom:3rem; max-width:1200px; margin-left:auto; margin-right:auto; }
-    .comparison-image { border-radius:12px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.15); margin:0 auto 4rem; max-width:1400px; }
-    .comparison-image img { width:100%; height:auto; min-height:500px; object-fit:contain; display:block; }
+    .comparison-image { border-radius:12px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.15); margin:0 auto 4rem; max-width:1000px; display:flex; justify-content:center; }
+    .comparison-image img { width:100%; height:auto; max-width:100%; object-fit:contain; display:block; }
     .comparison-column { background:#f8f9fa; padding:2rem; border-radius:12px; }
     .comparison-column h3 { font-size:1.8rem; margin-bottom:1.5rem; color:#1a365d; }
     .comparison-column ul { list-style:none; }
@@ -198,7 +195,7 @@
       .service-card { grid-template-columns:1fr; }
       .service-card:nth-child(even) { direction:ltr; }
       .comparison { grid-template-columns:1fr; }
-      .comparison-image img { min-height:300px; }
+      .comparison-image { max-width:100%; }
       .about-preview-container { grid-template-columns:1fr; }
       .contact-options { grid-template-columns:1fr; }
       .footer-grid { grid-template-columns:1fr; }
@@ -210,7 +207,7 @@
   <!-- Navigation -->
   <header class="header">
     <div class="nav-container">
-      <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/PeakFloorCoating-1080x1080-NoBack.png?raw=true" alt="Peak Floor Coating" class="logo">
+      <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/PeakFloorCoating-1000x250-NoBack.png?raw=true" alt="Peak Floor Coating" class="logo">
       <nav>
         <ul class="nav-links">
           <li><a href="#home">Home</a></li>
@@ -220,7 +217,7 @@
           <li><a href="#contact">Contact</a></li>
         </ul>
       </nav>
-      <div style="display:flex; align-items:center; gap:1.5rem;">
+      <div class="nav-right">
         <a href="tel:9193634740" class="nav-phone">(919) 363-4740</a>
         <a href="#contact" class="cta-btn">Get Free Quote</a>
       </div>
@@ -235,24 +232,6 @@
       <div class="hero-cta">
         <a href="#contact" class="cta-btn">Get Your Free Quote</a>
         <a href="tel:9193634740" class="cta-btn phone-btn">Call (919) 363-4740</a>
-      </div>
-      <div class="trust-badges">
-        <div class="trust-badge">
-          <div class="trust-badge-icon">🛡️</div>
-          <div class="trust-badge-text">Lifetime Warranty</div>
-        </div>
-        <div class="trust-badge">
-          <div class="trust-badge-icon">⚡</div>
-          <div class="trust-badge-text">One-Day Installation</div>
-        </div>
-        <div class="trust-badge">
-          <div class="trust-badge-icon">👷</div>
-          <div class="trust-badge-text">Professional Crews</div>
-        </div>
-        <div class="trust-badge">
-          <div class="trust-badge-icon">🇺🇸</div>
-          <div class="trust-badge-text">Nationwide Service</div>
-        </div>
       </div>
     </div>
   </section>
@@ -469,22 +448,9 @@
         <p>Not all floor coatings are created equal. Here's why we exclusively use polyaspartic technology.</p>
       </div>
       <div class="comparison-image">
-        <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/20251211_2230_Coating%20Comparison%20Detail_simple_compose_01kc89na1xe8v91sgx6aqfyh3w.png?raw=true" alt="Polyaspartic vs Epoxy Comparison">
+        <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/EPOXYvsPOLY.jpg?raw=true" alt="Polyaspartic vs Epoxy Comparison">
       </div>
       <div class="comparison">
-        <div class="comparison-column">
-          <h3>Polyaspartic Coating (What We Use)</h3>
-          <ul>
-            <li>4x stronger than epoxy</li>
-            <li>Cures in hours, not days</li>
-            <li>UV stable—won't yellow in sunlight</li>
-            <li>Resists hot tire pickup</li>
-            <li>Extreme temperature flexibility (-40°F to 140°F)</li>
-            <li>Superior chemical resistance</li>
-            <li>Can apply in cold weather</li>
-            <li>Virtually zero VOCs</li>
-          </ul>
-        </div>
         <div class="comparison-column">
           <h3>Traditional Epoxy (What Others Use)</h3>
           <ul>
@@ -496,6 +462,19 @@
             <li>Limited chemical resistance</li>
             <li>Requires 50°F+ temperature</li>
             <li>High VOC emissions</li>
+          </ul>
+        </div>
+        <div class="comparison-column">
+          <h3>Polyaspartic Coating (What We Use)</h3>
+          <ul>
+            <li>4x stronger than epoxy</li>
+            <li>Cures in hours, not days</li>
+            <li>UV stable—won't yellow in sunlight</li>
+            <li>Resists hot tire pickup</li>
+            <li>Extreme temperature flexibility (-40°F to 140°F)</li>
+            <li>Superior chemical resistance</li>
+            <li>Can apply in cold weather</li>
+            <li>Virtually zero VOCs</li>
           </ul>
         </div>
       </div>

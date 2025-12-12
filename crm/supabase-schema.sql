@@ -38,6 +38,7 @@ CREATE TABLE messages (
   message_type TEXT NOT NULL CHECK (message_type IN ('Text', 'Email', 'Call')),
   content TEXT,
   is_read BOOLEAN DEFAULT FALSE,
+  is_outbound BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

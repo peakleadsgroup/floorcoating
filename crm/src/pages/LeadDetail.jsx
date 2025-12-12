@@ -209,14 +209,14 @@ Date: _______________`,
           lead_id: id,
           message_type: newMessage.message_type,
           content: newMessage.content.trim(),
-          is_read: false,
+          is_read: true, // Outbound messages are automatically read
+          is_outbound: true, // Mark as outbound message
         }])
 
       if (error) throw error
 
       setNewMessage({ message_type: 'Text', content: '' })
       await fetchMessages()
-      alert('Message sent successfully')
     } catch (error) {
       console.error('Error sending message:', error)
       alert('Error sending message')
@@ -492,14 +492,42 @@ Date: _______________`,
             <div className="card messages-card">
               <div className="messages-header">
                 <h2>Messages</h2>
-                {messages.filter(m => !m.is_read).length > 0 && (
+                {messages.filter(m => !m.is_read && !m.is_outbound).length > 0 && (
                   <div className="messages-actions">
                     <span className="unread-badge">
-                      {messages.filter(m => !m.is_read).length} unread
+                      {messages.filter(m => !m.is_read && !m.is_outbound).length} unread
                     </span>
                     <button className="btn-secondary" onClick={markAllAsRead}>
                       Mark all as read
                     </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Messages List */}
+              <div className="messages-list-container">
+                {messages.length === 0 ? (
+                  <p className="no-messages">No messages yet</p>
+                ) : (
+                  <div className="messages-list">
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`message-bubble ${message.is_outbound ? 'outbound' : 'inbound'} ${!message.is_read && !message.is_outbound ? 'unread' : ''}`}
+                        onClick={() => !message.is_read && !message.is_outbound && markMessageAsRead(message.id)}
+                      >
+                        <div className="message-bubble-header">
+                          <span className="message-type-badge">{message.message_type}</span>
+                          <span className="message-time">
+                            {new Date(message.created_at).toLocaleString()}
+                          </span>
+                          {!message.is_read && !message.is_outbound && <span className="unread-dot"></span>}
+                        </div>
+                        <div className="message-bubble-content">
+                          {message.content || '(No content)'}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -532,31 +560,6 @@ Date: _______________`,
                   </button>
                 </div>
               </form>
-
-              {messages.length === 0 ? (
-                <p className="no-messages">No messages yet</p>
-              ) : (
-                <div className="messages-list">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`message-item ${!message.is_read ? 'unread' : ''}`}
-                      onClick={() => !message.is_read && markMessageAsRead(message.id)}
-                    >
-                      <div className="message-header">
-                        <span className="message-type">{message.message_type}</span>
-                        <span className="message-time">
-                          {new Date(message.created_at).toLocaleString()}
-                        </span>
-                        {!message.is_read && <span className="unread-dot"></span>}
-                      </div>
-                      <div className="message-content">
-                        {message.content || '(No content)'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           )}
           

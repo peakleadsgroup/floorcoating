@@ -39,38 +39,45 @@
 
 .sales-pipeline-container {
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
   align-items: flex-start;
 }
 
 .active-pipeline {
   flex: 1;
+  min-width: 0; /* Allow shrinking */
 }
 
 .completed-section {
-  flex: 0 0 650px;
-  background: #f8fafc;
-  border-left: 3px solid #e2e8f0;
+  flex: 0 0 auto;
+  min-width: 500px;
   padding-left: 2rem;
-  margin-left: 1rem;
-  border-radius: 0 8px 8px 0;
-  padding-top: 1rem;
-  padding-bottom: 1rem;
-  padding-right: 1rem;
+  position: relative;
+}
+
+.completed-section::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, transparent, #cbd5e1 5%, #cbd5e1 95%, transparent);
+  border-radius: 1px;
 }
 
 .completed-header {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   padding-bottom: 0.75rem;
-  border-bottom: 2px solid #e2e8f0;
+  padding-top: 0.5rem;
 }
 
 .completed-header h2 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 0.8125rem;
   font-weight: 600;
-  color: #64748b;
+  color: #94a3b8;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.15em;
 }
 

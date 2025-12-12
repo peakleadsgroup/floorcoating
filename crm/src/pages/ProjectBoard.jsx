@@ -125,6 +125,28 @@ function ProjectBoard() {
     }
   }
 
+  const handleMarkMessageAsRead = async (messageId, e) => {
+    e.stopPropagation() // Prevent navigation when clicking the button
+    
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_read: true, updated_at: new Date().toISOString() })
+        .eq('id', messageId)
+
+      if (error) throw error
+      
+      // Remove the message from the list
+      setUnreadMessages(unreadMessages.filter(msg => msg.id !== messageId))
+      
+      // Refresh projects to update unread counts
+      await fetchProjects()
+    } catch (error) {
+      console.error('Error marking message as read:', error)
+      alert('Error marking message as read')
+    }
+  }
+
   const handleItemMove = async (projectId, newStage) => {
     try {
       const { error } = await supabase
@@ -176,21 +198,34 @@ function ProjectBoard() {
               <div 
                 key={message.id} 
                 className="unread-message-item"
-                onClick={() => {
-                  // Find the project for this lead
-                  const project = projects.find(p => p.leads?.id === message.leadId)
-                  if (project) {
-                    navigate(`/projects/${project.id}`)
-                  }
-                }}
               >
-                <div className="unread-message-lead">{message.leadName}</div>
-                <div className="unread-message-content">
-                  <span className="unread-message-type">{message.message_type}:</span> {message.content || '(No content)'}
+                <div 
+                  className="unread-message-content-wrapper" 
+                  onClick={() => {
+                    // Find the project for this lead
+                    const project = projects.find(p => p.leads?.id === message.leadId)
+                    if (project) {
+                      navigate(`/projects/${project.id}`)
+                    }
+                  }}
+                >
+                  <div className="unread-message-lead">{message.leadName}</div>
+                  <div className="unread-message-content">
+                    <span className="unread-message-type">{message.message_type}:</span> {message.content || '(No content)'}
+                  </div>
+                  <div className="unread-message-time">
+                    {new Date(message.created_at).toLocaleString()}
+                  </div>
                 </div>
-                <div className="unread-message-time">
-                  {new Date(message.created_at).toLocaleString()}
-                </div>
+                <button 
+                  className="mark-read-button"
+                  onClick={(e) => handleMarkMessageAsRead(message.id, e)}
+                  title="Mark as read"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
               </div>
             ))}
           </div>

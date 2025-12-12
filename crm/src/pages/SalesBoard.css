@@ -67,8 +67,16 @@
   border: 1px solid #e2e8f0;
   border-left: 3px solid #3b82f6;
   border-radius: 6px;
-  cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.unread-message-content-wrapper {
+  flex: 1;
+  cursor: pointer;
 }
 
 .unread-message-item:hover {
@@ -76,6 +84,31 @@
   border-color: #3b82f6;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transform: translateX(2px);
+}
+
+.mark-read-button {
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.mark-read-button:hover {
+  background: #059669;
+  transform: scale(1.05);
+}
+
+.mark-read-button:active {
+  transform: scale(0.95);
 }
 
 .unread-message-lead {

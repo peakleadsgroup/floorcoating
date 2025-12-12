@@ -73,9 +73,15 @@ function KanbanCard({ item, onClick }) {
           <span className="kanban-card-unread-badge">{item.unreadCount}</span>
         )}
       </div>
-      {item.address && (
-        <div className="kanban-card-subtitle">{item.address}</div>
-      )}
+      {(() => {
+        // Construct address from new fields if available, otherwise use legacy address field
+        const address = item.street_address || item.city || item.state || item.zip
+          ? [item.street_address, item.city, item.state, item.zip].filter(Boolean).join(', ')
+          : item.address
+        return address && (
+          <div className="kanban-card-subtitle">{address}</div>
+        )
+      })()}
       {item.install_date && (
         <div className="kanban-card-subtitle">Install: {new Date(item.install_date).toLocaleDateString()}</div>
       )}

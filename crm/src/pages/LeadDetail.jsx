@@ -21,14 +21,17 @@ function LeadDetail() {
   
   // Form state
   const [formData, setFormData] = useState({
-    name: '',
+    first_name: '',
+    last_name: '',
     phone: '',
     email: '',
-    address: '',
+    street_address: '',
+    city: '',
+    state: '',
+    zip: '',
     source: '',
     estimated_sqft: '',
     sales_stage: 'new',
-    assigned_rep: '',
     archived: false,
   })
   
@@ -115,14 +118,17 @@ Date: _______________`,
       if (error) throw error
       setLead(data)
       setFormData({
-        name: data.name || '',
+        first_name: data.first_name || '',
+        last_name: data.last_name || '',
         phone: data.phone || '',
         email: data.email || '',
-        address: data.address || '',
+        street_address: data.street_address || '',
+        city: data.city || '',
+        state: data.state || '',
+        zip: data.zip || '',
         source: data.source || '',
         estimated_sqft: data.estimated_sqft || '',
         sales_stage: data.sales_stage || 'new',
-        assigned_rep: data.assigned_rep || '',
         archived: data.archived || false,
       })
     } catch (error) {
@@ -273,6 +279,16 @@ Date: _______________`,
       }
     }
 
+    // Validate first name and last name are required
+    if (!formData.first_name || !formData.first_name.trim()) {
+      alert('First name is required')
+      return
+    }
+    if (!formData.last_name || !formData.last_name.trim()) {
+      alert('Last name is required')
+      return
+    }
+
     // Validate phone number - must be 10 digits (only numbers)
     const phoneDigits = formData.phone.replace(/\D/g, '') // Remove non-digits
     if (phoneDigits.length !== 10) {
@@ -413,10 +429,19 @@ Date: _______________`,
     const totalPrice = parseFloat(contractForm.total_price)
     const depositAmount = totalPrice * 0.5
 
+    // Build full name and address
+    const fullName = `${formData.first_name} ${formData.last_name}`.trim()
+    const fullAddress = [
+      formData.street_address,
+      formData.city,
+      formData.state,
+      formData.zip
+    ].filter(Boolean).join(', ')
+
     // Replace placeholders in contract content
     let contractContent = contractForm.contract_content
-      .replace('[Customer Name]', formData.name)
-      .replace('[Customer Address]', formData.address)
+      .replace('[Customer Name]', fullName)
+      .replace('[Customer Address]', fullAddress)
       .replace('[Customer Phone]', formData.phone)
       .replace('[Customer Email]', formData.email)
       .replace('[Square Footage]', formData.estimated_sqft || 'TBD')
@@ -496,7 +521,7 @@ Date: _______________`,
         <button className="btn-secondary" onClick={() => navigate('/')}>
           ← Back to Sales Board
         </button>
-        <h1>{isNew ? 'New Lead' : lead?.name || 'Lead Details'}</h1>
+        <h1>{isNew ? 'New Lead' : (lead?.first_name && lead?.last_name ? `${lead.first_name} ${lead.last_name}` : lead?.first_name || lead?.last_name || 'Lead Details')}</h1>
         {!isNew && (
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             {lead?.archived ? (
@@ -593,11 +618,19 @@ Date: _______________`,
             <h2>Contact Information</h2>
             <div className="form-grid">
               <div className="form-group">
-                <label>Name *</label>
+                <label>First Name *</label>
                 <input
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.first_name}
+                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Last Name *</label>
+                <input
+                  type="text"
+                  value={formData.last_name}
+                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                 />
               </div>
               <div className="form-group">
@@ -623,11 +656,39 @@ Date: _______________`,
                 />
               </div>
               <div className="form-group">
-                <label>Address</label>
+                <label>Street Address</label>
                 <input
                   type="text"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  value={formData.street_address}
+                  onChange={(e) => setFormData({ ...formData, street_address: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>City</label>
+                <input
+                  type="text"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>State</label>
+                <input
+                  type="text"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  maxLength={2}
+                  placeholder="CA"
+                />
+              </div>
+              <div className="form-group">
+                <label>Zip</label>
+                <input
+                  type="text"
+                  value={formData.zip}
+                  onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
+                  maxLength={10}
+                  placeholder="12345"
                 />
               </div>
               <div className="form-group">
@@ -666,14 +727,6 @@ Date: _______________`,
                   <option value="lost">Lost</option>
                   <option value="not_interested">Not Interested</option>
                 </select>
-              </div>
-              <div className="form-group">
-                <label>Assigned Rep</label>
-                <input
-                  type="text"
-                  value={formData.assigned_rep}
-                  onChange={(e) => setFormData({ ...formData, assigned_rep: e.target.value })}
-                />
               </div>
             </div>
             <button className="btn-primary" onClick={handleSave}>

@@ -107,7 +107,9 @@ function ProjectDetail() {
         <button className="btn-secondary" onClick={() => navigate('/projects')}>
           ← Back to Project Board
         </button>
-        <h1>Project: {lead?.name || 'Unknown'}</h1>
+        <h1>Project: {lead 
+          ? `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'
+          : 'Unknown'}</h1>
       </div>
 
       <div className="project-detail-content">
@@ -115,10 +117,14 @@ function ProjectDetail() {
           <h2>Customer Information</h2>
           {lead && (
             <div className="customer-info">
-              <p><strong>Name:</strong> {lead.name}</p>
+              <p><strong>Name:</strong> {`${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'N/A'}</p>
               <p><strong>Phone:</strong> {lead.phone || 'N/A'}</p>
               <p><strong>Email:</strong> {lead.email || 'N/A'}</p>
-              <p><strong>Address:</strong> {lead.address || 'N/A'}</p>
+              <p><strong>Address:</strong> {
+                [lead.street_address, lead.city, lead.state, lead.zip]
+                  .filter(Boolean)
+                  .join(', ') || lead.address || 'N/A'
+              }</p>
             </div>
           )}
         </div>

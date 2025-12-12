@@ -7,14 +7,17 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Leads table
 CREATE TABLE leads (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name TEXT NOT NULL,
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
   phone TEXT,
   email TEXT,
-  address TEXT,
+  street_address TEXT,
+  city TEXT,
+  state TEXT,
+  zip TEXT,
   source TEXT,
   estimated_sqft INTEGER,
   sales_stage TEXT NOT NULL DEFAULT 'new',
-  assigned_rep TEXT,
   archived BOOLEAN DEFAULT FALSE,
   archived_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -94,7 +97,6 @@ CREATE TABLE projects (
 
 -- Indexes for performance
 CREATE INDEX idx_leads_sales_stage ON leads(sales_stage);
-CREATE INDEX idx_leads_assigned_rep ON leads(assigned_rep);
 CREATE INDEX idx_contracts_public_token ON contracts(public_token);
 CREATE INDEX idx_contracts_status ON contracts(status);
 CREATE INDEX idx_payments_contract_id ON payments(contract_id);

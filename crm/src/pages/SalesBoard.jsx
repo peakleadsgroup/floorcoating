@@ -56,10 +56,11 @@ function SalesBoard() {
           unreadCounts[msg.lead_id] = (unreadCounts[msg.lead_id] || 0) + 1
         })
 
-        // Add unread count to each lead and sort
+        // Add unread count to each lead and construct full name
         const leadsWithUnread = (leadsData || []).map(lead => ({
           ...lead,
           unreadCount: unreadCounts[lead.id] || 0,
+          name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown',
         }))
 
         // Sort: leads with unread messages first, then by date created (newest first)

@@ -41,9 +41,17 @@ function ProjectBoard() {
       // Flatten the data structure for KanbanBoard
       const flattenedProjects = (data || []).map(project => ({
         ...project,
-        name: project.leads?.name || 'Unknown',
-        address: project.leads?.address || '',
-        title: project.leads?.name || 'Unknown',
+        name: project.leads 
+          ? `${project.leads.first_name || ''} ${project.leads.last_name || ''}`.trim() || 'Unknown'
+          : 'Unknown',
+        title: project.leads 
+          ? `${project.leads.first_name || ''} ${project.leads.last_name || ''}`.trim() || 'Unknown'
+          : 'Unknown',
+        street_address: project.leads?.street_address || '',
+        city: project.leads?.city || '',
+        state: project.leads?.state || '',
+        zip: project.leads?.zip || '',
+        address: project.leads?.address || '', // Keep for backward compatibility
         stage: project.project_stage,
       }))
       

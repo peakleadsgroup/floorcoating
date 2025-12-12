@@ -98,3 +98,11 @@
   margin-top: 0.25rem;
 }
 
+.kanban-separator {
+  width: 1px;
+  background: #e2e8f0;
+  align-self: stretch;
+  margin: 0 0.75rem;
+  flex-shrink: 0;
+}
+

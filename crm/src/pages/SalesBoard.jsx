@@ -148,27 +148,13 @@ function SalesBoard() {
           + New Lead
         </button>
       </div>
-      <div className="sales-pipeline-container">
-        <div className="active-pipeline">
-          <KanbanBoard
-            columns={ACTIVE_STAGES}
-            items={leadsWithStage}
-            onItemMove={handleItemMove}
-            onItemClick={handleItemClick}
-          />
-        </div>
-        <div className="completed-section">
-          <div className="completed-header">
-            <h2>Completed</h2>
-          </div>
-          <KanbanBoard
-            columns={COMPLETED_STAGES}
-            items={leadsWithStage}
-            onItemMove={handleItemMove}
-            onItemClick={handleItemClick}
-          />
-        </div>
-      </div>
+      <KanbanBoard
+        columns={ALL_STAGES}
+        items={leadsWithStage}
+        onItemMove={handleItemMove}
+        onItemClick={handleItemClick}
+        separatorAfter={ACTIVE_STAGES.length}
+      />
     </div>
   )
 }

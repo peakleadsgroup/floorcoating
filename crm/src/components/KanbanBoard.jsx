@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -89,7 +89,7 @@ function KanbanCard({ item, onClick }) {
   )
 }
 
-function KanbanBoard({ columns, items, onItemMove, onItemClick }) {
+function KanbanBoard({ columns, items, onItemMove, onItemClick, separatorAfter }) {
   const [localItems, setLocalItems] = useState(items)
   
   useEffect(() => {
@@ -158,16 +158,20 @@ function KanbanBoard({ columns, items, onItemMove, onItemClick }) {
       onDragEnd={handleDragEnd}
     >
       <div className="kanban-board">
-        {columns.map((column) => {
+        {columns.map((column, index) => {
           const columnItems = localItems.filter(item => item.stage === column.id)
           return (
-            <KanbanColumn
-              key={column.id}
-              id={column.id}
-              title={column.title}
-              items={columnItems}
-              onItemClick={onItemClick}
-            />
+            <React.Fragment key={column.id}>
+              <KanbanColumn
+                id={column.id}
+                title={column.title}
+                items={columnItems}
+                onItemClick={onItemClick}
+              />
+              {separatorAfter && index === separatorAfter - 1 && (
+                <div className="kanban-separator"></div>
+              )}
+            </React.Fragment>
           )
         })}
       </div>

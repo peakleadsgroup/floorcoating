@@ -51,6 +51,13 @@ function KanbanCard({ item, onClick }) {
     opacity: isDragging ? 0.5 : 1,
   }
 
+  const handleClick = (e) => {
+    // Only navigate if not dragging
+    if (!isDragging) {
+      onClick(item)
+    }
+  }
+
   return (
     <div
       ref={setNodeRef}
@@ -58,7 +65,7 @@ function KanbanCard({ item, onClick }) {
       {...attributes}
       {...listeners}
       className="kanban-card"
-      onClick={onClick}
+      onClick={handleClick}
     >
       <div className="kanban-card-title">{item.name || item.title}</div>
       {item.address && (
@@ -79,7 +86,11 @@ function KanbanBoard({ columns, items, onItemMove, onItemClick }) {
   }, [items])
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px of movement before drag starts (allows clicks)
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })

@@ -25,43 +25,45 @@
   font-size: 1rem;
 }
 
-.reps-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
+.reps-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
 }
 
-.rep-card {
+.reps-table thead {
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  transition: all 0.2s;
+  border-bottom: 2px solid #e2e8f0;
 }
 
-.rep-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.rep-info {
-  flex: 1;
-}
-
-.rep-info h3 {
-  margin: 0 0 0.25rem 0;
-  font-size: 1rem;
+.reps-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
   color: #1a365d;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.rep-roles {
+.reps-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.reps-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.reps-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.rep-roles-inline {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin: 0.5rem 0;
 }
 
 .rep-role-badge {
@@ -83,18 +85,7 @@
   border: 1px solid #e2e8f0;
 }
 
-.rep-contact {
-  font-size: 0.875rem;
-  color: #64748b;
-  margin-top: 0.5rem;
-}
-
-.rep-contact strong {
-  color: #475569;
-  margin-right: 0.25rem;
-}
-
-.rep-actions {
+.rep-actions-inline {
   display: flex;
   gap: 0.5rem;
 }

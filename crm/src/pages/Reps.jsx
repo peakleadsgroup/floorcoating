@@ -241,52 +241,57 @@ function Reps() {
           </select>
         </div>
         
-        <div className="reps-list">
-          {filteredReps.length === 0 ? (
-            <p className="no-reps">No reps found</p>
-          ) : (
-            filteredReps.map(rep => {
-              const repRoles = rep.roles || (rep.role ? [rep.role] : [])
-              const displayRoles = Array.isArray(repRoles) ? repRoles : [repRoles]
-              return (
-                <div key={rep.id} className="rep-card">
-                  <div className="rep-info">
-                    <h3>{rep.name}</h3>
-                    <div className="rep-roles">
-                      {displayRoles.map((role, idx) => (
-                        <span key={idx} className="rep-role-badge">{role}</span>
-                      ))}
-                    </div>
-                    {rep.email && (
-                      <div className="rep-contact">
-                        <strong>Email:</strong> {rep.email}
+        {filteredReps.length === 0 ? (
+          <p className="no-reps">No reps found</p>
+        ) : (
+          <table className="reps-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Roles</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredReps.map(rep => {
+                const repRoles = rep.roles || (rep.role ? [rep.role] : [])
+                const displayRoles = Array.isArray(repRoles) ? repRoles : [repRoles]
+                return (
+                  <tr key={rep.id}>
+                    <td><strong>{rep.name}</strong></td>
+                    <td>
+                      <div className="rep-roles-inline">
+                        {displayRoles.map((role, idx) => (
+                          <span key={idx} className="rep-role-badge">{role}</span>
+                        ))}
                       </div>
-                    )}
-                    {rep.phone && (
-                      <div className="rep-contact">
-                        <strong>Phone:</strong> {rep.phone}
+                    </td>
+                    <td>{rep.email || '-'}</td>
+                    <td>{rep.phone || '-'}</td>
+                    <td>
+                      <div className="rep-actions-inline">
+                        <button 
+                          className="btn-secondary" 
+                          onClick={() => handleEdit(rep)}
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          className="btn-danger" 
+                          onClick={() => handleDelete(rep)}
+                        >
+                          Delete
+                        </button>
                       </div>
-                    )}
-                  </div>
-                  <div className="rep-actions">
-                    <button 
-                      className="btn-secondary" 
-                      onClick={() => handleEdit(rep)}
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      className="btn-danger" 
-                      onClick={() => handleDelete(rep)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              )
-            })
-          )}
-        </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   )

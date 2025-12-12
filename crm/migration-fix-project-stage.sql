@@ -9,8 +9,6 @@ SET project_stage = 'sold'
 WHERE project_stage = 'scheduled'
   AND (
     inspection_date IS NULL 
-    OR install_date IS NULL 
-    OR inspection_date = '' 
-    OR install_date = ''
+    OR install_date IS NULL
   );
 

@@ -117,6 +117,74 @@ function ProjectDetail() {
     }
   }
 
+  const handleArchive = async () => {
+    if (!confirm('Are you sure you want to archive this project? It will be hidden from the project board.')) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ 
+          archived: true,
+          archived_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+
+      if (error) throw error
+
+      // Add activity log for the associated lead
+      if (lead?.id) {
+        await supabase
+          .from('lead_activities')
+          .insert({
+            lead_id: lead.id,
+            activity_type: 'project_archived',
+            content: 'Project archived',
+          })
+      }
+
+      alert('Project archived successfully')
+      navigate('/projects') // Go back to project board
+    } catch (error) {
+      console.error('Error archiving project:', error)
+      alert('Error archiving project')
+    }
+  }
+
+  const handleUnarchive = async () => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ 
+          archived: false,
+          archived_at: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+
+      if (error) throw error
+
+      // Add activity log for the associated lead
+      if (lead?.id) {
+        await supabase
+          .from('lead_activities')
+          .insert({
+            lead_id: lead.id,
+            activity_type: 'project_unarchived',
+            content: 'Project unarchived',
+          })
+      }
+
+      await fetchProject()
+      alert('Project unarchived successfully')
+    } catch (error) {
+      console.error('Error unarchiving project:', error)
+      alert('Error unarchiving project')
+    }
+  }
+
   const fetchMessages = async () => {
     if (!lead?.id) return
     
@@ -289,6 +357,19 @@ function ProjectDetail() {
         <h1>Project: {lead 
           ? `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'
           : 'Unknown'}</h1>
+        {project && (
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {project.archived ? (
+              <button className="btn-secondary" onClick={handleUnarchive}>
+                Unarchive Project
+              </button>
+            ) : (
+              <button className="btn-secondary" onClick={handleArchive}>
+                Archive Project
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="project-detail-content" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem' }}>

@@ -107,6 +107,8 @@ CREATE TABLE projects (
   installer TEXT, -- Keep for backward compatibility, but prefer installer_id
   install_date DATE,
   internal_notes TEXT,
+  archived BOOLEAN DEFAULT FALSE,
+  archived_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

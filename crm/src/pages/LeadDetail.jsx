@@ -87,12 +87,33 @@ Date: _______________`,
     content: '',
   })
 
+  const markAllUnreadAsRead = async () => {
+    if (!id || id === 'new') return
+    
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_read: true, updated_at: new Date().toISOString() })
+        .eq('lead_id', id)
+        .eq('is_read', false)
+        .eq('is_outbound', false)
+
+      if (error) throw error
+      await fetchMessages() // Refresh messages to show updated read status
+    } catch (error) {
+      console.error('Error marking all unread messages as read:', error)
+    }
+  }
+
   useEffect(() => {
     if (!isNew) {
       fetchLead()
       fetchActivities()
       fetchContract()
-      fetchMessages()
+      fetchMessages().then(() => {
+        // Mark all unread inbound messages as read when opening the lead
+        markAllUnreadAsRead()
+      })
     }
   }, [id])
 

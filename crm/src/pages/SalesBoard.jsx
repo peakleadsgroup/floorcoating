@@ -207,6 +207,7 @@ function SalesBoard() {
     ...lead,
     stage: lead.sales_stage,
     title: lead.name,
+    unreadCount: lead.unreadCount || 0, // Preserve unreadCount
   }))
 
   return (

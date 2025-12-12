@@ -57,6 +57,27 @@ function ProjectBoard() {
 
       if (error) throw error
       
+      // Get lead IDs to fetch unread message counts
+      const leadIds = (data || [])
+        .filter(p => p.leads?.id)
+        .map(p => p.leads.id)
+
+      let unreadCounts = {}
+      if (leadIds.length > 0) {
+        const { data: messagesData, error: messagesError } = await supabase
+          .from('messages')
+          .select('lead_id')
+          .in('lead_id', leadIds)
+          .eq('is_read', false)
+          .eq('is_outbound', false)
+
+        if (!messagesError && messagesData) {
+          messagesData.forEach(msg => {
+            unreadCounts[msg.lead_id] = (unreadCounts[msg.lead_id] || 0) + 1
+          })
+        }
+      }
+
       // Flatten the data structure for KanbanBoard
       const flattenedProjects = (data || []).map(project => ({
         ...project,
@@ -71,6 +92,7 @@ function ProjectBoard() {
         state: project.leads?.state || '',
         zip: project.leads?.zip || '',
         stage: project.project_stage,
+        unreadCount: project.leads?.id ? (unreadCounts[project.leads.id] || 0) : 0,
       }))
       
       setProjects(flattenedProjects)

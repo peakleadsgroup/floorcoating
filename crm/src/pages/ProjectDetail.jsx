@@ -35,10 +35,31 @@ function ProjectDetail() {
   
   useEffect(() => {
     if (lead?.id) {
-      fetchMessages()
+      fetchMessages().then(() => {
+        // Mark all unread inbound messages as read when opening the project
+        markAllUnreadAsRead()
+      })
       fetchActivities()
     }
   }, [lead?.id])
+  
+  const markAllUnreadAsRead = async () => {
+    if (!lead?.id) return
+    
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_read: true, updated_at: new Date().toISOString() })
+        .eq('lead_id', lead.id)
+        .eq('is_read', false)
+        .eq('is_outbound', false)
+
+      if (error) throw error
+      await fetchMessages() // Refresh messages to show updated read status
+    } catch (error) {
+      console.error('Error marking all unread messages as read:', error)
+    }
+  }
   
   // Poll for new messages every 30 seconds
   useEffect(() => {

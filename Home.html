@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Peak Floor Coating - Premium Polyaspartic Floor Coatings | Lifetime Warranty</title>
+  <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/peakleadsgroup/landing-pages/refs/heads/main/Images/Peak%20Leads%20Flattened%20Logo.png">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: 'Arial', sans-serif; line-height:1.6; color:#333; }
+    
+    /* Navigation */
+    .header { background:white; padding:1rem 0; box-shadow:0 2px 10px rgba(0,0,0,0.1); position:sticky; top:0; z-index:1000; }
+    .nav-container { max-width:1400px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; padding:0 2rem; }
+    .logo { height:50px; }
+    .nav-links { display:flex; list-style:none; gap:2rem; align-items:center; }
+    .nav-links a { text-decoration:none; color:#1a365d; font-weight:600; font-size:0.95rem; transition:color .3s; }
+    .nav-links a:hover { color:#f97316; }
+    .nav-phone { color:#1a365d; font-weight:700; font-size:1rem; }
+    .cta-btn { background:#f97316; color:#fff!important; padding:.75rem 1.5rem; border-radius:6px; text-decoration:none; font-weight:700; transition:background .3s; }
+    .cta-btn:hover { background:#ea580c; }
+    
+    /* Hero Section */
+    .hero { background:linear-gradient(rgba(26,54,93,0.7), rgba(26,54,93,0.7)), url('PLACEHOLDER_HERO_BACKGROUND'); background-size:cover; background-position:center; padding:6rem 2rem; color:white; text-align:center; }
+    .hero-container { max-width:1200px; margin:0 auto; }
+    .hero h1 { font-size:3.5rem; margin-bottom:1.5rem; font-weight:700; line-height:1.2; }
+    .hero .subheadline { font-size:1.4rem; margin-bottom:3rem; opacity:0.95; max-width:800px; margin-left:auto; margin-right:auto; }
+    .hero-cta { display:flex; gap:1.5rem; justify-content:center; flex-wrap:wrap; margin-bottom:3rem; }
+    .hero-cta .cta-btn { font-size:1.1rem; padding:1rem 2rem; }
+    .hero-cta .phone-btn { background:transparent; border:2px solid white; color:white!important; }
+    .hero-cta .phone-btn:hover { background:white; color:#1a365d!important; }
+    .trust-badges { display:flex; justify-content:center; gap:3rem; flex-wrap:wrap; margin-top:3rem; }
+    .trust-badge { text-align:center; }
+    .trust-badge-icon { font-size:2rem; margin-bottom:0.5rem; }
+    .trust-badge-text { font-size:0.9rem; font-weight:600; }
+    
+    /* Value Proposition */
+    .value-prop { padding:5rem 2rem; background:white; }
+    .value-prop-container { max-width:1200px; margin:0 auto; text-align:center; }
+    .value-prop h2 { font-size:3rem; margin-bottom:2rem; color:#1a365d; }
+    .value-prop p { font-size:1.2rem; color:#666; max-width:900px; margin:0 auto; line-height:1.8; }
+    
+    /* 4 Pillars */
+    .pillars { padding:5rem 2rem; background:#f8f9fa; }
+    .pillars-container { max-width:1200px; margin:0 auto; }
+    .pillars-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:3rem; margin-top:3rem; }
+    .pillar-card { background:white; padding:2.5rem; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.1); text-align:center; }
+    .pillar-icon { width:80px; height:80px; margin:0 auto 1.5rem; background:#1a365d; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:2.5rem; }
+    .pillar-card h3 { font-size:1.5rem; margin-bottom:1rem; color:#1a365d; }
+    .pillar-card p { color:#666; line-height:1.7; }
+    
+    /* Services */
+    .services { padding:5rem 2rem; background:white; }
+    .services-container { max-width:1400px; margin:0 auto; }
+    .services-intro { text-align:center; margin-bottom:4rem; }
+    .services-intro h2 { font-size:3rem; margin-bottom:1rem; color:#1a365d; }
+    .service-card { display:grid; grid-template-columns:1fr 1fr; gap:4rem; align-items:center; margin-bottom:5rem; }
+    .service-card:nth-child(even) { direction:rtl; }
+    .service-card:nth-child(even) > * { direction:ltr; }
+    .service-image { border-radius:12px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.2); }
+    .service-image img { width:100%; height:400px; object-fit:cover; }
+    .service-content h3 { font-size:2.2rem; margin-bottom:1.5rem; color:#1a365d; }
+    .service-content p { font-size:1.1rem; color:#666; line-height:1.8; margin-bottom:2rem; }
+    .service-list { list-style:none; margin-bottom:2rem; }
+    .service-list li { padding:0.5rem 0; color:#666; position:relative; padding-left:1.5rem; }
+    .service-list li:before { content:"✓"; position:absolute; left:0; color:#f97316; font-weight:700; }
+    .service-cta { display:inline-block; background:#1a365d; color:white!important; padding:0.75rem 1.5rem; border-radius:6px; text-decoration:none; font-weight:600; transition:background .3s; }
+    .service-cta:hover { background:#f97316; }
+    
+    /* Process */
+    .process { padding:5rem 2rem; background:#f8f9fa; }
+    .process-container { max-width:1200px; margin:0 auto; }
+    .process-intro { text-align:center; margin-bottom:4rem; }
+    .process-intro h2 { font-size:3rem; margin-bottom:1rem; color:#1a365d; }
+    .process-steps { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:3rem; }
+    .process-step { background:white; padding:2rem; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.1); }
+    .process-step-image { width:100%; height:200px; object-fit:cover; border-radius:8px; margin-bottom:1.5rem; }
+    .process-step-number { display:inline-block; background:#f97316; color:white; width:40px; height:40px; border-radius:50%; text-align:center; line-height:40px; font-weight:700; margin-bottom:1rem; }
+    .process-step h3 { font-size:1.5rem; margin-bottom:1rem; color:#1a365d; }
+    .process-step p { color:#666; line-height:1.7; }
+    
+    /* Gallery */
+    .gallery { padding:5rem 2rem; background:white; }
+    .gallery-container { max-width:1400px; margin:0 auto; }
+    .gallery-intro { text-align:center; margin-bottom:4rem; }
+    .gallery-intro h2 { font-size:3rem; margin-bottom:1rem; color:#1a365d; }
+    .gallery-intro p { font-size:1.2rem; color:#666; }
+    .gallery-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:2rem; margin-bottom:3rem; }
+    .gallery-item { border-radius:12px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.1); position:relative; }
+    .gallery-item img { width:100%; height:300px; object-fit:cover; transition:transform .3s; }
+    .gallery-item:hover img { transform:scale(1.05); }
+    
+    /* Peak Promise */
+    .promise { padding:5rem 2rem; background:linear-gradient(rgba(26,54,93,0.9), rgba(26,54,93,0.9)), url('PLACEHOLDER_PROMISE_BACKGROUND'); background-size:cover; background-position:center; color:white; }
+    .promise-container { max-width:1000px; margin:0 auto; text-align:center; }
+    .promise h2 { font-size:3rem; margin-bottom:1rem; }
+    .promise-intro { font-size:1.2rem; margin-bottom:3rem; opacity:0.95; }
+    .promise-points { text-align:left; max-width:700px; margin:0 auto 3rem; }
+    .promise-point { display:flex; align-items:start; gap:1rem; margin-bottom:1.5rem; }
+    .promise-point-icon { font-size:1.5rem; color:#f97316; flex-shrink:0; }
+    .promise-point-text { flex:1; }
+    .promise-point-text strong { display:block; margin-bottom:0.5rem; font-size:1.1rem; }
+    
+    /* Why Polyaspartic */
+    .why-poly { padding:5rem 2rem; background:white; }
+    .why-poly-container { max-width:1200px; margin:0 auto; }
+    .why-poly-intro { text-align:center; margin-bottom:4rem; }
+    .why-poly-intro h2 { font-size:3rem; margin-bottom:1rem; color:#1a365d; }
+    .why-poly-intro p { font-size:1.2rem; color:#666; }
+    .comparison { display:grid; grid-template-columns:1fr 1fr; gap:3rem; margin-bottom:3rem; }
+    .comparison-image { border-radius:12px; overflow:hidden; }
+    .comparison-image img { width:100%; height:300px; object-fit:cover; }
+    .comparison-column { background:#f8f9fa; padding:2rem; border-radius:12px; }
+    .comparison-column h3 { font-size:1.8rem; margin-bottom:1.5rem; color:#1a365d; }
+    .comparison-column ul { list-style:none; }
+    .comparison-column li { padding:0.75rem 0; border-bottom:1px solid #ddd; color:#666; position:relative; padding-left:1.5rem; }
+    .comparison-column li:before { content:"✓"; position:absolute; left:0; color:#f97316; font-weight:700; }
+    .comparison-conclusion { background:#1a365d; color:white; padding:2rem; border-radius:12px; text-align:center; }
+    
+    /* Special Offer */
+    .special-offer { padding:5rem 2rem; background:#f97316; color:white; text-align:center; }
+    .special-offer-container { max-width:800px; margin:0 auto; }
+    .special-offer h2 { font-size:2.5rem; margin-bottom:1rem; }
+    .special-offer .offer-headline { font-size:3.5rem; font-weight:700; margin-bottom:1.5rem; }
+    .special-offer p { font-size:1.2rem; margin-bottom:2rem; opacity:0.95; }
+    .special-offer .fine-print { font-size:0.9rem; opacity:0.8; margin-bottom:2rem; }
+    .special-offer .urgency { font-size:1.1rem; font-weight:600; margin-top:1rem; }
+    
+    /* FAQ */
+    .faq { padding:5rem 2rem; background:#f8f9fa; }
+    .faq-container { max-width:900px; margin:0 auto; }
+    .faq-intro { text-align:center; margin-bottom:4rem; }
+    .faq-intro h2 { font-size:3rem; margin-bottom:1rem; color:#1a365d; }
+    .faq-item { background:white; padding:2rem; border-radius:12px; margin-bottom:1.5rem; box-shadow:0 2px 10px rgba(0,0,0,0.1); }
+    .faq-question { font-size:1.3rem; font-weight:700; margin-bottom:1rem; color:#1a365d; }
+    .faq-answer { color:#666; line-height:1.8; }
+    
+    /* About Preview */
+    .about-preview { padding:5rem 2rem; background:white; }
+    .about-preview-container { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:4rem; align-items:center; }
+    .about-preview-image { border-radius:12px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.2); }
+    .about-preview-image img { width:100%; height:400px; object-fit:cover; }
+    .about-preview-content h2 { font-size:2.5rem; margin-bottom:1.5rem; color:#1a365d; }
+    .about-preview-content p { font-size:1.1rem; color:#666; line-height:1.8; margin-bottom:2rem; }
+    
+    /* Instagram Feed */
+    .instagram { padding:5rem 2rem; background:#f8f9fa; text-align:center; }
+    .instagram-container { max-width:1200px; margin:0 auto; }
+    .instagram h2 { font-size:3rem; margin-bottom:1rem; color:#1a365d; }
+    .instagram p { font-size:1.2rem; color:#666; margin-bottom:2rem; }
+    .instagram-handle { font-size:1.3rem; font-weight:700; color:#1a365d; margin-bottom:3rem; }
+    .instagram-widget { background:white; padding:3rem; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.1); min-height:400px; display:flex; align-items:center; justify-content:center; }
+    .instagram-widget-placeholder { color:#999; font-size:1.1rem; }
+    
+    /* Final CTA */
+    .final-cta { padding:6rem 2rem; background:linear-gradient(rgba(26,54,93,0.8), rgba(26,54,93,0.8)), url('PLACEHOLDER_FINAL_CTA_BACKGROUND'); background-size:cover; background-position:center; color:white; text-align:center; }
+    .final-cta-container { max-width:1000px; margin:0 auto; }
+    .final-cta h2 { font-size:3.5rem; margin-bottom:1.5rem; }
+    .final-cta p { font-size:1.3rem; margin-bottom:3rem; opacity:0.95; }
+    .contact-options { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:2rem; margin-bottom:3rem; }
+    .contact-option { background:rgba(255,255,255,0.1); padding:2rem; border-radius:12px; backdrop-filter:blur(10px); }
+    .contact-option h3 { font-size:1.5rem; margin-bottom:1rem; }
+    .contact-option .contact-value { font-size:1.3rem; font-weight:700; margin-bottom:0.5rem; }
+    .contact-option .contact-note { font-size:0.9rem; opacity:0.8; }
+    .guarantee-reminder { margin-top:3rem; font-size:1.1rem; opacity:0.9; }
+    
+    /* Footer */
+    .footer { background:#1a365d; color:white; padding:4rem 2rem 2rem; }
+    .footer-container { max-width:1400px; margin:0 auto; }
+    .footer-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:3rem; margin-bottom:3rem; }
+    .footer-column h3 { font-size:1.2rem; margin-bottom:1.5rem; color:#f97316; }
+    .footer-column ul { list-style:none; }
+    .footer-column li { margin-bottom:0.75rem; }
+    .footer-column a { color:rgba(255,255,255,0.8); text-decoration:none; transition:color .3s; }
+    .footer-column a:hover { color:#f97316; }
+    .footer-bottom { border-top:1px solid rgba(255,255,255,0.2); padding-top:2rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:2rem; }
+    .footer-social { display:flex; gap:1rem; }
+    .footer-social a { color:white; font-size:1.5rem; }
+    .footer-trust { display:flex; gap:2rem; flex-wrap:wrap; }
+    .footer-trust-item { font-size:0.9rem; opacity:0.8; }
+    .footer-copyright { text-align:center; padding-top:2rem; border-top:1px solid rgba(255,255,255,0.2); margin-top:2rem; opacity:0.7; }
+    
+    /* Responsive */
+    @media (max-width:768px) {
+      .nav-links { display:none; }
+      .hero h1 { font-size:2.5rem; }
+      .hero .subheadline { font-size:1.1rem; }
+      .service-card { grid-template-columns:1fr; }
+      .service-card:nth-child(even) { direction:ltr; }
+      .comparison { grid-template-columns:1fr; }
+      .about-preview-container { grid-template-columns:1fr; }
+      .contact-options { grid-template-columns:1fr; }
+      .footer-grid { grid-template-columns:1fr; }
+      .footer-bottom { flex-direction:column; text-align:center; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <header class="header">
+    <div class="nav-container">
+      <img src="PLACEHOLDER_LOGO" alt="Peak Floor Coating" class="logo">
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#home">Home</a></li>
+          <li><a href="#services">Services</a></li>
+          <li><a href="#gallery">Gallery</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </nav>
+      <div style="display:flex; align-items:center; gap:1.5rem;">
+        <a href="tel:9193634740" class="nav-phone">(919) 363-4740</a>
+        <a href="#contact" class="cta-btn">Get Free Quote</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" id="home">
+    <div class="hero-container">
+      <h1>Transform Your Concrete Into Something Extraordinary</h1>
+      <p class="subheadline">Premium polyaspartic floor coatings that turn ordinary garages into showroom-worthy spaces. Installed in one day. Backed for life.</p>
+      <div class="hero-cta">
+        <a href="#contact" class="cta-btn">Get Your Free Quote</a>
+        <a href="tel:9193634740" class="cta-btn phone-btn">Call (919) 363-4740</a>
+      </div>
+      <div class="trust-badges">
+        <div class="trust-badge">
+          <div class="trust-badge-icon">🛡️</div>
+          <div class="trust-badge-text">Lifetime Warranty</div>
+        </div>
+        <div class="trust-badge">
+          <div class="trust-badge-icon">⚡</div>
+          <div class="trust-badge-text">One-Day Installation</div>
+        </div>
+        <div class="trust-badge">
+          <div class="trust-badge-icon">👷</div>
+          <div class="trust-badge-text">5 Professional Crews</div>
+        </div>
+        <div class="trust-badge">
+          <div class="trust-badge-icon">🇺🇸</div>
+          <div class="trust-badge-text">Nationwide Service</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Value Proposition -->
+  <section class="value-prop">
+    <div class="value-prop-container">
+      <h2>We Don't Just Coat Floors. We Create Experiences.</h2>
+      <p>At Peak Floor Coating, we're obsessed with the details that others overlook. While most companies rush through prep work and use inferior products, we've built our reputation on doing things right the first time. Our proprietary surface preparation process and premium polyaspartic coatings mean your floor won't just look incredible—it'll stay that way for decades.</p>
+    </div>
+  </section>
+
+  <!-- 4 Pillars -->
+  <section class="pillars">
+    <div class="pillars-container">
+      <div class="pillars-grid">
+        <div class="pillar-card">
+          <div class="pillar-icon">🛡️</div>
+          <h3>Lifetime Protection</h3>
+          <p>We stand behind our work with an industry-leading lifetime warranty. No fine print, no runaround. If your floor fails, we fix it. Period. That's the confidence that comes from using superior materials and refusing to cut corners.</p>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-icon">⚡</div>
+          <h3>Done in a Day</h3>
+          <p>Your garage shouldn't be off-limits for weeks. Our advanced polyaspartic coatings cure in hours, not days. We start in the morning, and you're parking on it by evening. Fast installation without sacrificing quality—that's the Peak difference.</p>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-icon">🔬</div>
+          <h3>Preparation Perfection</h3>
+          <p>Here's what separates us from the competition: we're fanatical about surface prep. Diamond grinding, crack repair, moisture testing—we do everything necessary to ensure proper adhesion. Because a coating is only as good as what's underneath it.</p>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-icon">💎</div>
+          <h3>Superior Chemistry</h3>
+          <p>We exclusively use polyaspartic coatings—4x stronger than epoxy and engineered to resist UV yellowing, hot tire pickup, chemicals, and extreme temperature swings. While others are still using yesterday's technology, we're delivering tomorrow's performance today.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services Overview -->
+  <section class="services" id="services">
+    <div class="services-container">
+      <div class="services-intro">
+        <h2>Engineered for Every Space</h2>
+      </div>
+      
+      <div class="service-card">
+        <div class="service-image">
+          <img src="PLACEHOLDER_SERVICE_RESIDENTIAL" alt="Residential Floor Coating">
+        </div>
+        <div class="service-content">
+          <h3>Residential Floor Coating</h3>
+          <p>Your garage is more than just a parking spot—it's your workshop, your gym, your retreat. Our residential floor coatings transform tired concrete into a stunning, easy-to-clean surface that makes your entire home feel more valuable. From classic solid colors to custom metallic blends, we'll help you create a space you'll actually want to spend time in.</p>
+          <ul class="service-list">
+            <li>Garages (1, 2, or 3-car)</li>
+            <li>Basements and game rooms</li>
+            <li>Home gyms and workshops</li>
+            <li>Patios and outdoor living spaces</li>
+            <li>Pool decks and walkways</li>
+          </ul>
+          <a href="#contact" class="service-cta">Explore Residential Services</a>
+        </div>
+      </div>
+
+      <div class="service-card">
+        <div class="service-image">
+          <img src="PLACEHOLDER_SERVICE_COMMERCIAL" alt="Commercial Floor Coating">
+        </div>
+        <div class="service-content">
+          <h3>Commercial Floor Coating</h3>
+          <p>First impressions matter in business. Our commercial-grade polyaspartic coatings deliver the durability you need with the aesthetics your customers expect. From high-traffic retail spaces to demanding manufacturing environments, we engineer solutions that perform under pressure while looking sharp year after year.</p>
+          <ul class="service-list">
+            <li>Auto dealerships and showrooms</li>
+            <li>Retail stores and salons</li>
+            <li>Restaurants and cafés</li>
+            <li>Warehouses and distribution centers</li>
+            <li>Fitness centers and studios</li>
+            <li>Medical facilities and offices</li>
+          </ul>
+          <a href="#contact" class="service-cta">Explore Commercial Services</a>
+        </div>
+      </div>
+
+      <div class="service-card">
+        <div class="service-image">
+          <img src="PLACEHOLDER_SERVICE_POLISHING" alt="Concrete Polishing">
+        </div>
+        <div class="service-content">
+          <h3>Concrete Polishing</h3>
+          <p>Sometimes the best solution is to enhance what you already have. Our precision concrete polishing service transforms dull, flat concrete into smooth, glossy surfaces without adding a coating. Using diamond-grinding technology, we bring out the natural beauty of your concrete while improving its durability and ease of maintenance.</p>
+          <ul class="service-list">
+            <li>Industrial and warehouse floors</li>
+            <li>Commercial retail spaces</li>
+            <li>Modern residential basements</li>
+            <li>Minimalist design aesthetics</li>
+            <li>LEED-certified projects</li>
+          </ul>
+          <a href="#contact" class="service-cta">Explore Concrete Polishing</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- The Process -->
+  <section class="process">
+    <div class="process-container">
+      <div class="process-intro">
+        <h2>From Consultation to Completion in 3 Simple Steps</h2>
+      </div>
+      <div class="process-steps">
+        <div class="process-step">
+          <img src="PLACEHOLDER_PROCESS_STEP1" alt="Free Consultation" class="process-step-image">
+          <div class="process-step-number">1</div>
+          <h3>Free Consultation & Quote</h3>
+          <p>We start with a conversation about your vision and needs. Share photos of your space, tell us about your usage requirements, and we'll provide a detailed quote within 24 hours. No pressure, no gimmicks—just honest pricing and expert guidance.</p>
+        </div>
+        <div class="process-step">
+          <img src="PLACEHOLDER_PROCESS_STEP2" alt="Precision Preparation" class="process-step-image">
+          <div class="process-step-number">2</div>
+          <h3>Precision Preparation</h3>
+          <p>On installation day, our crew arrives on time and gets to work. We protect your property, diamond-grind the surface to perfection, repair any cracks or damage, and ensure optimal conditions for coating adhesion. This is where most companies cut corners—we never do.</p>
+        </div>
+        <div class="process-step">
+          <img src="PLACEHOLDER_PROCESS_STEP3" alt="Expert Application" class="process-step-image">
+          <div class="process-step-number">3</div>
+          <h3>Expert Application & Cure</h3>
+          <p>Using professional-grade equipment, we apply your custom coating system in carefully controlled layers. Our polyaspartic technology cures rapidly, allowing you to walk on it in hours and park on it the same evening. We clean up completely, walk you through care instructions, and leave you with a floor that exceeds expectations.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gallery Preview -->
+  <section class="gallery" id="gallery">
+    <div class="gallery-container">
+      <div class="gallery-intro">
+        <h2>See the Peak Difference</h2>
+        <p>Every project tells a story. From dated, cracked concrete to stunning showpieces, our portfolio speaks for itself.</p>
+      </div>
+      <div class="gallery-grid">
+        <div class="gallery-item">
+          <img src="PLACEHOLDER_GALLERY_1" alt="Before/After residential garage">
+        </div>
+        <div class="gallery-item">
+          <img src="PLACEHOLDER_GALLERY_2" alt="Finished commercial showroom floor">
+        </div>
+        <div class="gallery-item">
+          <img src="PLACEHOLDER_GALLERY_3" alt="Residential garage with custom orange flake">
+        </div>
+        <div class="gallery-item">
+          <img src="PLACEHOLDER_GALLERY_4" alt="Before/After basement">
+        </div>
+        <div class="gallery-item">
+          <img src="PLACEHOLDER_GALLERY_5" alt="Outdoor patio coating">
+        </div>
+        <div class="gallery-item">
+          <img src="PLACEHOLDER_GALLERY_6" alt="Before/After 3-car garage">
+        </div>
+        <div class="gallery-item">
+          <img src="PLACEHOLDER_GALLERY_7" alt="Commercial fitness center floor">
+        </div>
+        <div class="gallery-item">
+          <img src="PLACEHOLDER_GALLERY_8" alt="Modern metallic residential garage">
+        </div>
+        <div class="gallery-item">
+          <img src="PLACEHOLDER_GALLERY_9" alt="Industrial warehouse polished concrete">
+        </div>
+      </div>
+      <div style="text-align:center; margin-top:3rem;">
+        <a href="#gallery" class="service-cta">View Full Gallery</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- The Peak Promise -->
+  <section class="promise">
+    <div class="promise-container">
+      <h2>The Peak Promise: Built on Trust, Backed by Performance</h2>
+      <p class="promise-intro">We're in the business of creating floors so remarkable, you'll want to show them off. That starts with a commitment you can count on.</p>
+      <div class="promise-points">
+        <div class="promise-point">
+          <div class="promise-point-icon">✓</div>
+          <div class="promise-point-text">
+            <strong>Lifetime Warranty</strong>
+            We guarantee our workmanship and materials for as long as you own your property. No delamination, no yellowing, no peeling.
+          </div>
+        </div>
+        <div class="promise-point">
+          <div class="promise-point-icon">✓</div>
+          <div class="promise-point-text">
+            <strong>Transparent Pricing</strong>
+            Your quote is your price. No hidden fees, no surprise charges, no bait-and-switch tactics.
+          </div>
+        </div>
+        <div class="promise-point">
+          <div class="promise-point-icon">✓</div>
+          <div class="promise-point-text">
+            <strong>Scheduled with Precision</strong>
+            We provide exact start and completion times. Your time matters, and we respect it.
+          </div>
+        </div>
+        <div class="promise-point">
+          <div class="promise-point-icon">✓</div>
+          <div class="promise-point-text">
+            <strong>Property Protection</strong>
+            Your home is protected from start to finish. We treat every property like our own.
+          </div>
+        </div>
+        <div class="promise-point">
+          <div class="promise-point-icon">✓</div>
+          <div class="promise-point-text">
+            <strong>100% Satisfaction Guarantee</strong>
+            If you're not thrilled with the result, we'll make it right. That's our promise.
+          </div>
+        </div>
+      </div>
+      <a href="#contact" class="cta-btn" style="font-size:1.1rem; padding:1rem 2rem;">Get Your Free Quote</a>
+    </div>
+  </section>
+
+  <!-- Why Polyaspartic -->
+  <section class="why-poly">
+    <div class="why-poly-container">
+      <div class="why-poly-intro">
+        <h2>The Science Behind the Beauty</h2>
+        <p>Not all floor coatings are created equal. Here's why we exclusively use polyaspartic technology.</p>
+      </div>
+      <div class="comparison-image" style="margin-bottom:3rem;">
+        <img src="PLACEHOLDER_POLYASPARTIC_COMPARISON" alt="Polyaspartic vs Epoxy Comparison">
+      </div>
+      <div class="comparison">
+        <div class="comparison-column">
+          <h3>Polyaspartic Coating (What We Use)</h3>
+          <ul>
+            <li>4x stronger than epoxy</li>
+            <li>Cures in hours, not days</li>
+            <li>UV stable—won't yellow in sunlight</li>
+            <li>Resists hot tire pickup</li>
+            <li>Extreme temperature flexibility (-40°F to 140°F)</li>
+            <li>Superior chemical resistance</li>
+            <li>Can apply in cold weather</li>
+            <li>Virtually zero VOCs</li>
+          </ul>
+        </div>
+        <div class="comparison-column">
+          <h3>Traditional Epoxy (What Others Use)</h3>
+          <ul>
+            <li>Softer surface, scratches easily</li>
+            <li>3-7 days cure time required</li>
+            <li>Yellows and fades in UV light</li>
+            <li>Hot tires can pull coating up</li>
+            <li>Brittle in extreme temperatures</li>
+            <li>Limited chemical resistance</li>
+            <li>Requires 50°F+ temperature</li>
+            <li>High VOC emissions</li>
+          </ul>
+        </div>
+      </div>
+      <div class="comparison-conclusion">
+        <p style="font-size:1.2rem; margin:0;">The bottom line: Polyaspartic coatings outperform epoxy in every measurable category. They cost slightly more upfront, but the superior durability and performance make them the smarter long-term investment.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Special Offer -->
+  <section class="special-offer">
+    <div class="special-offer-container">
+      <h2>New Customer Special</h2>
+      <div class="offer-headline">$200 OFF Your Floor Coating Project</div>
+      <p>We're celebrating our nationwide launch with an exclusive offer for new customers. Book your free consultation this month and save $200 on any residential or commercial floor coating project over $2,000.</p>
+      <p class="fine-print">Valid for projects scheduled within 60 days of quote. Cannot be combined with other offers. Minimum project size $2,000. First-time Peak Floor Coating customers only.</p>
+      <a href="#contact" class="cta-btn" style="background:white; color:#f97316!important; font-size:1.1rem; padding:1rem 2rem;">Claim Your $200 Discount</a>
+      <p class="urgency">Limited availability—only 15 spots remaining this month</p>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq">
+    <div class="faq-container">
+      <div class="faq-intro">
+        <h2>Questions? We've Got Answers.</h2>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">How long does the installation take?</div>
+        <div class="faq-answer">Most residential garage projects are completed in a single day—typically 6-8 hours from start to finish. We arrive in the morning, prep and coat your floor, and you can walk on it by evening. Light vehicle traffic is safe after 24 hours, with full cure in 3-5 days.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">What's included in your lifetime warranty?</div>
+        <div class="faq-answer">Our lifetime warranty covers delamination, peeling, cracking, yellowing, and fading for as long as you own your property. If your coating fails due to material defect or installation error, we'll repair or replace it at no cost. This doesn't cover damage from abuse or improper maintenance, but normal wear and tear is fully covered.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">How do I prepare my floor before you arrive?</div>
+        <div class="faq-answer">Simple—just clear the space. Remove vehicles, storage items, and anything on the floor. Our crew handles all the technical preparation including cleaning, grinding, crack repair, and surface profiling. We'll provide a detailed preparation checklist when you schedule your project.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">How does polyaspartic coating compare to epoxy?</div>
+        <div class="faq-answer">Polyaspartic coatings are the superior choice for several reasons: they're 4x stronger, cure dramatically faster, won't yellow in sunlight, resist hot tire pickup, and perform in extreme temperatures. While epoxy can take days to cure and often fails in demanding conditions, polyaspartic delivers professional results that last decades.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">What colors and finishes are available?</div>
+        <div class="faq-answer">We offer an extensive palette of solid colors, custom blends, metallic finishes, and decorative flake systems. Popular choices include classic grays, modern metallics, and custom color matches. During your consultation, we'll show you samples and help you select the perfect finish for your space and style.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">How much does floor coating cost?</div>
+        <div class="faq-answer">Every project is unique, so we provide custom quotes based on your specific needs, floor condition, size, and desired finish. Most residential garages range from $2,500-$6,000 depending on these factors. We offer transparent, detailed quotes with no hidden fees—what we quote is what you pay.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">Do you offer financing options?</div>
+        <div class="faq-answer">Yes, we partner with leading financing providers to offer flexible payment plans for qualified customers. Options include 0% interest for 12 months and extended terms up to 60 months. Ask about financing during your free consultation.</div>
+      </div>
+      <div style="text-align:center; margin-top:3rem;">
+        <a href="#faq" class="service-cta">See All FAQs</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Preview -->
+  <section class="about-preview" id="about">
+    <div class="about-preview-container">
+      <div class="about-preview-image">
+        <img src="PLACEHOLDER_ABOUT_TEAM" alt="Peak Floor Coating Team">
+      </div>
+      <div class="about-preview-content">
+        <h2>Built Different. Built to Last.</h2>
+        <p>Peak Floor Coating was founded on a simple belief: homeowners deserve better than the usual contractor experience. No missed appointments, no shoddy workmanship, no cutting corners to save a few bucks.</p>
+        <p>We're a team of flooring perfectionists who happen to be really good at customer service. Our partners have completed hundreds of successful installations across the country, and we've assembled the best crews, the best materials, and the best processes to deliver results that exceed expectations.</p>
+        <p>When you choose Peak, you're not just getting a floor coating—you're getting a partner who's invested in your complete satisfaction. We don't disappear after installation. We're here for the lifetime of your floor, ready to support you whenever you need us.</p>
+        <a href="#about" class="service-cta">Learn Our Story</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Instagram Feed -->
+  <section class="instagram">
+    <div class="instagram-container">
+      <h2>Follow the Journey</h2>
+      <p>See our latest projects, tips, and behind-the-scenes content on Instagram</p>
+      <div class="instagram-handle">@peakfloorcoating</div>
+      <div class="instagram-widget">
+        <div class="instagram-widget-placeholder">Instagram Feed Widget - Embed @peakfloorcoating feed here</div>
+      </div>
+      <a href="https://instagram.com/peakfloorcoating" target="_blank" class="service-cta" style="margin-top:2rem;">Follow Us on Instagram</a>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="final-cta" id="contact">
+    <div class="final-cta-container">
+      <h2>Ready to Transform Your Concrete?</h2>
+      <p>Join the growing number of homeowners who've discovered the Peak difference. Get your free quote today and see why we're quickly becoming America's most trusted floor coating company.</p>
+      <div class="contact-options">
+        <div class="contact-option">
+          <h3>Call Us</h3>
+          <div class="contact-value">(919) 363-4740</div>
+          <div class="contact-note">Available 24/7</div>
+        </div>
+        <div class="contact-option">
+          <h3>Email Us</h3>
+          <div class="contact-value">info@peakfloorcoating.com</div>
+          <div class="contact-note">Response within 4 hours</div>
+        </div>
+        <div class="contact-option">
+          <h3>Request Quote</h3>
+          <div class="contact-value">Get Free Estimate</div>
+          <div class="contact-note">Detailed quote within 24 hours</div>
+        </div>
+      </div>
+      <div class="guarantee-reminder">Lifetime Warranty • One-Day Installation • $200 New Customer Discount</div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-grid">
+        <div class="footer-column">
+          <h3>Services</h3>
+          <ul>
+            <li><a href="#services">Residential Floor Coating</a></li>
+            <li><a href="#services">Commercial Floor Coating</a></li>
+            <li><a href="#services">Concrete Polishing</a></li>
+            <li><a href="#gallery">Color Gallery</a></li>
+            <li><a href="#contact">Free Quote</a></li>
+          </ul>
+        </div>
+        <div class="footer-column">
+          <h3>Company</h3>
+          <ul>
+            <li><a href="#about">About Us</a></li>
+            <li><a href="#process">Our Process</a></li>
+            <li><a href="#warranty">Warranty Information</a></li>
+            <li><a href="#careers">Careers</a></li>
+            <li><a href="#blog">Blog</a></li>
+          </ul>
+        </div>
+        <div class="footer-column">
+          <h3>Resources</h3>
+          <ul>
+            <li><a href="#faq">FAQ</a></li>
+            <li><a href="#care-guide">Floor Care Guide</a></li>
+            <li><a href="#gallery">Before & After Gallery</a></li>
+            <li><a href="#reviews">Customer Reviews</a></li>
+            <li><a href="#financing">Financing Options</a></li>
+          </ul>
+        </div>
+        <div class="footer-column">
+          <h3>Contact</h3>
+          <ul>
+            <li><a href="tel:9193634740">(919) 363-4740</a></li>
+            <li><a href="mailto:info@peakfloorcoating.com">info@peakfloorcoating.com</a></li>
+            <li>Hours: 24/7</li>
+            <li><a href="#contact">Get Free Quote</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-social">
+          <a href="https://facebook.com/peakfloorcoating" target="_blank" aria-label="Facebook">📘</a>
+          <a href="https://instagram.com/peakfloorcoating" target="_blank" aria-label="Instagram">📷</a>
+          <a href="https://linkedin.com/company/peakfloorcoating" target="_blank" aria-label="LinkedIn">💼</a>
+        </div>
+        <div class="footer-trust">
+          <div class="footer-trust-item">Licensed & Insured</div>
+          <div class="footer-trust-item">Lifetime Warranty</div>
+          <div class="footer-trust-item">Nationwide Service</div>
+          <div class="footer-trust-item">Professional Installation</div>
+        </div>
+      </div>
+      <div class="footer-copyright">
+        <p>© 2025 Peak Floor Coating. All rights reserved.</p>
+        <p style="margin-top:0.5rem;">
+          <a href="#privacy" style="color:rgba(255,255,255,0.8); margin:0 0.5rem;">Privacy Policy</a> |
+          <a href="#terms" style="color:rgba(255,255,255,0.8); margin:0 0.5rem;">Terms of Service</a> |
+          <a href="#warranty" style="color:rgba(255,255,255,0.8); margin:0 0.5rem;">Warranty Information</a>
+        </p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
+

@@ -28,6 +28,7 @@ function Testing() {
       const { data, error } = await supabase
         .from('leads')
         .select('id, first_name, last_name, phone, email, sales_stage')
+        .eq('archived', false)
         .order('created_at', { ascending: false })
         .limit(100)
 

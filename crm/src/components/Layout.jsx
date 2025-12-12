@@ -5,33 +5,6 @@ import './Layout.css'
 
 function Layout() {
   const location = useLocation()
-  const [unreadCount, setUnreadCount] = useState(0)
-
-  useEffect(() => {
-    fetchUnreadCount()
-    
-    // Poll for unread messages every 30 seconds
-    const interval = setInterval(() => {
-      fetchUnreadCount()
-    }, 30000)
-
-    return () => clearInterval(interval)
-  }, [])
-
-  const fetchUnreadCount = async () => {
-    try {
-      const { count, error } = await supabase
-        .from('messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_read', false)
-        .eq('is_outbound', false)
-
-      if (error) throw error
-      setUnreadCount(count || 0)
-    } catch (error) {
-      console.error('Error fetching unread count:', error)
-    }
-  }
   
   return (
     <div className="layout">
@@ -66,11 +39,6 @@ function Layout() {
               </Link>
             </nav>
           </div>
-          {unreadCount > 0 && (
-            <div className="unread-notification-badge">
-              {unreadCount}
-            </div>
-          )}
         </div>
       </header>
       <main className="main-content">

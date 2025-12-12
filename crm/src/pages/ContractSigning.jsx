@@ -34,9 +34,22 @@ function ContractSigning() {
       if (contractError) throw contractError
 
       if (contractData.status === 'signed') {
-        alert('This contract has already been signed.')
-        navigate('/success')
-        return
+        // Check if payment has been made
+        const { data: payments } = await supabase
+          .from('payments')
+          .select('*')
+          .eq('contract_id', contractData.id)
+          .eq('status', 'completed')
+
+        if (payments && payments.length > 0) {
+          // Payment already made, redirect to success
+          navigate('/success')
+          return
+        } else {
+          // Contract signed but payment not made, redirect to payment page
+          navigate(`/payment/${token}`)
+          return
+        }
       }
 
       setContract(contractData)

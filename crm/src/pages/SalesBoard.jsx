@@ -21,11 +21,20 @@ const ALL_STAGES = [...ACTIVE_STAGES, ...COMPLETED_STAGES]
 
 function SalesBoard() {
   const [leads, setLeads] = useState([])
+  const [unreadMessages, setUnreadMessages] = useState([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
   useEffect(() => {
     fetchLeads()
+    fetchUnreadMessages()
+    
+    // Poll for new messages every 30 seconds
+    const interval = setInterval(() => {
+      fetchUnreadMessages()
+    }, 30000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   const fetchLeads = async () => {
@@ -83,6 +92,41 @@ function SalesBoard() {
     }
   }
 
+  const fetchUnreadMessages = async () => {
+    try {
+      // Fetch all unread inbound messages with lead information
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('messages')
+        .select(`
+          *,
+          leads (
+            id,
+            first_name,
+            last_name,
+            sales_stage
+          )
+        `)
+        .eq('is_read', false)
+        .eq('is_outbound', false)
+        .order('created_at', { ascending: false })
+
+      if (messagesError) throw messagesError
+
+      // Filter out messages from "sold" leads and format
+      const filteredMessages = (messagesData || [])
+        .filter(msg => msg.leads && msg.leads.sales_stage !== 'sold')
+        .map(msg => ({
+          ...msg,
+          leadName: `${msg.leads.first_name || ''} ${msg.leads.last_name || ''}`.trim() || 'Unknown',
+          leadId: msg.leads.id,
+        }))
+
+      setUnreadMessages(filteredMessages)
+    } catch (error) {
+      console.error('Error fetching unread messages:', error)
+    }
+  }
+
   const handleItemMove = async (leadId, newStage) => {
     // Show warning if moving to "Lost"
     if (newStage === 'lost') {
@@ -115,6 +159,9 @@ function SalesBoard() {
       setLeads(leads.map(lead =>
         lead.id === leadId ? { ...lead, stage: newStage, sales_stage: newStage } : lead
       ))
+      
+      // Refresh unread messages in case stage changed
+      await fetchUnreadMessages()
     } catch (error) {
       console.error('Error updating lead stage:', error)
       alert('Error updating lead stage')
@@ -155,6 +202,29 @@ function SalesBoard() {
         onItemClick={handleItemClick}
         separatorAfter={ACTIVE_STAGES.length}
       />
+      
+      {unreadMessages.length > 0 && (
+        <div className="unread-messages-window">
+          <h2>Unread Messages ({unreadMessages.length})</h2>
+          <div className="unread-messages-list">
+            {unreadMessages.map((message) => (
+              <div 
+                key={message.id} 
+                className="unread-message-item"
+                onClick={() => navigate(`/leads/${message.leadId}`)}
+              >
+                <div className="unread-message-lead">{message.leadName}</div>
+                <div className="unread-message-content">
+                  <span className="unread-message-type">{message.message_type}:</span> {message.content || '(No content)'}
+                </div>
+                <div className="unread-message-time">
+                  {new Date(message.created_at).toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

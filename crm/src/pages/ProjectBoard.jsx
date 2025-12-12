@@ -15,12 +15,27 @@ const PROJECT_STAGES = [
 
 function ProjectBoard() {
   const [projects, setProjects] = useState([])
+  const [unreadMessages, setUnreadMessages] = useState([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
   useEffect(() => {
     fetchProjects()
+    
+    // Poll for new messages every 30 seconds
+    const interval = setInterval(() => {
+      fetchUnreadMessages()
+    }, 30000)
+    
+    return () => clearInterval(interval)
   }, [])
+  
+  useEffect(() => {
+    // Fetch unread messages when projects are loaded
+    if (projects.length > 0) {
+      fetchUnreadMessages()
+    }
+  }, [projects])
 
   const fetchProjects = async () => {
     try {
@@ -67,6 +82,49 @@ function ProjectBoard() {
     }
   }
 
+  const fetchUnreadMessages = async () => {
+    try {
+      // Get all lead IDs from projects
+      const projectLeadIds = projects
+        .filter(p => p.leads?.id)
+        .map(p => p.leads.id)
+
+      if (projectLeadIds.length === 0) {
+        setUnreadMessages([])
+        return
+      }
+
+      // Fetch unread inbound messages for these leads
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('messages')
+        .select(`
+          *,
+          leads (
+            id,
+            first_name,
+            last_name
+          )
+        `)
+        .in('lead_id', projectLeadIds)
+        .eq('is_read', false)
+        .eq('is_outbound', false)
+        .order('created_at', { ascending: false })
+
+      if (messagesError) throw messagesError
+
+      // Format messages
+      const formattedMessages = (messagesData || []).map(msg => ({
+        ...msg,
+        leadName: `${msg.leads.first_name || ''} ${msg.leads.last_name || ''}`.trim() || 'Unknown',
+        leadId: msg.leads.id,
+      }))
+
+      setUnreadMessages(formattedMessages)
+    } catch (error) {
+      console.error('Error fetching unread messages:', error)
+    }
+  }
+
   const handleItemMove = async (projectId, newStage) => {
     try {
       const { error } = await supabase
@@ -80,6 +138,9 @@ function ProjectBoard() {
       setProjects(projects.map(project =>
         project.id === projectId ? { ...project, stage: newStage, project_stage: newStage } : project
       ))
+      
+      // Refresh unread messages
+      await fetchUnreadMessages()
     } catch (error) {
       console.error('Error updating project stage:', error)
       alert('Error updating project stage')
@@ -106,6 +167,35 @@ function ProjectBoard() {
         onItemMove={handleItemMove}
         onItemClick={handleItemClick}
       />
+      
+      {unreadMessages.length > 0 && (
+        <div className="unread-messages-window">
+          <h2>Unread Messages ({unreadMessages.length})</h2>
+          <div className="unread-messages-list">
+            {unreadMessages.map((message) => (
+              <div 
+                key={message.id} 
+                className="unread-message-item"
+                onClick={() => {
+                  // Find the project for this lead
+                  const project = projects.find(p => p.leads?.id === message.leadId)
+                  if (project) {
+                    navigate(`/projects/${project.id}`)
+                  }
+                }}
+              >
+                <div className="unread-message-lead">{message.leadName}</div>
+                <div className="unread-message-content">
+                  <span className="unread-message-type">{message.message_type}:</span> {message.content || '(No content)'}
+                </div>
+                <div className="unread-message-time">
+                  {new Date(message.created_at).toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

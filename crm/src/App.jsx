@@ -5,6 +5,7 @@ import LeadDetail from './pages/LeadDetail'
 import ProjectBoard from './pages/ProjectBoard'
 import ProjectDetail from './pages/ProjectDetail'
 import Reps from './pages/Reps'
+import Testing from './pages/Testing'
 import ContractSigning from './pages/ContractSigning'
 import Success from './pages/Success'
 import './App.css'
@@ -24,6 +25,7 @@ function App() {
           <Route path="projects" element={<ProjectBoard />} />
           <Route path="projects/:id" element={<ProjectDetail />} />
           <Route path="reps" element={<Reps />} />
+          <Route path="testing" element={<Testing />} />
         </Route>
       </Routes>
     </BrowserRouter>

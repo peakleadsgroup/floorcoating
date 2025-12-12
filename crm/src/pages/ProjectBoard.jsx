@@ -168,9 +168,9 @@ function ProjectBoard() {
         onItemClick={handleItemClick}
       />
       
-      {unreadMessages.length > 0 && (
-        <div className="unread-messages-window">
-          <h2>Unread Messages ({unreadMessages.length})</h2>
+      <div className="unread-messages-window">
+        <h2>Unread Messages ({unreadMessages.length})</h2>
+        {unreadMessages.length > 0 ? (
           <div className="unread-messages-list">
             {unreadMessages.map((message) => (
               <div 
@@ -194,8 +194,12 @@ function ProjectBoard() {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="no-unread-messages">
+            <p>No unread messages</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

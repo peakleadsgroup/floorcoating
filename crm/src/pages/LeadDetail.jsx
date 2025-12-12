@@ -79,6 +79,10 @@ Customer Signature
 Date: _______________`,
   })
   const [newNote, setNewNote] = useState('')
+  const [newMessage, setNewMessage] = useState({
+    message_type: 'Text',
+    content: '',
+  })
 
   useEffect(() => {
     if (!isNew) {
@@ -187,6 +191,35 @@ Date: _______________`,
       await fetchMessages()
     } catch (error) {
       console.error('Error marking all as read:', error)
+    }
+  }
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault()
+    
+    if (!newMessage.content.trim()) {
+      alert('Please enter a message')
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .insert([{
+          lead_id: id,
+          message_type: newMessage.message_type,
+          content: newMessage.content.trim(),
+          is_read: false,
+        }])
+
+      if (error) throw error
+
+      setNewMessage({ message_type: 'Text', content: '' })
+      await fetchMessages()
+      alert('Message sent successfully')
+    } catch (error) {
+      console.error('Error sending message:', error)
+      alert('Error sending message')
     }
   }
 
@@ -470,6 +503,36 @@ Date: _______________`,
                   </div>
                 )}
               </div>
+
+              {/* New Message Form */}
+              <form onSubmit={handleSendMessage} className="new-message-form">
+                <div className="message-form-row">
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <select
+                      value={newMessage.message_type}
+                      onChange={(e) => setNewMessage({ ...newMessage, message_type: e.target.value })}
+                      className="message-type-select"
+                    >
+                      <option value="Text">Text</option>
+                      <option value="Email">Email</option>
+                      <option value="Call">Call</option>
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ flex: 3 }}>
+                    <textarea
+                      value={newMessage.content}
+                      onChange={(e) => setNewMessage({ ...newMessage, content: e.target.value })}
+                      placeholder="Type your message..."
+                      rows="2"
+                      className="message-content-input"
+                    />
+                  </div>
+                  <button type="submit" className="btn-primary send-message-btn">
+                    Send
+                  </button>
+                </div>
+              </form>
+
               {messages.length === 0 ? (
                 <p className="no-messages">No messages yet</p>
               ) : (

@@ -7,6 +7,7 @@ import ProjectDetail from './pages/ProjectDetail'
 import Reps from './pages/Reps'
 import Testing from './pages/Testing'
 import ContractSigning from './pages/ContractSigning'
+import Payment from './pages/Payment'
 import Success from './pages/Success'
 import './App.css'
 
@@ -16,6 +17,7 @@ function App() {
       <Routes>
         {/* Public routes (no layout) */}
         <Route path="/contract/:token" element={<ContractSigning />} />
+        <Route path="/payment/:token" element={<Payment />} />
         <Route path="/success" element={<Success />} />
         
         {/* Internal routes (with layout) */}

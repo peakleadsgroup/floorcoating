@@ -160,6 +160,16 @@
   color: white;
 }
 
+.message-bubble-content a {
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.message-bubble-content a:hover {
+  opacity: 0.8;
+}
+
 .no-messages {
   color: #64748b;
   font-style: italic;

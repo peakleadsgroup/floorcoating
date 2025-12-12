@@ -238,7 +238,7 @@ function SalesBoard() {
                 <div className="unread-message-content-wrapper" onClick={() => navigate(`/leads/${message.leadId}`)}>
                   <div className="unread-message-lead">{message.leadName}</div>
                   <div className="unread-message-content">
-                    <span className="unread-message-type">{message.message_type}:</span> {message.content || '(No content)'}
+                    <span className="unread-message-type">{message.message_type}:</span> {renderMessageContent(message.content)}
                   </div>
                   <div className="unread-message-time">
                     {new Date(message.created_at).toLocaleString()}

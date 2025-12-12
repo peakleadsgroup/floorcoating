@@ -463,7 +463,7 @@ function Testing() {
                     )}
                   </div>
                   <div className="recent-message-content">
-                    {message.content || '(No content)'}
+                    {renderMessageContent(message.content)}
                   </div>
                 </div>
               ))}

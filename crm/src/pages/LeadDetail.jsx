@@ -3,6 +3,43 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import './LeadDetail.css'
 
+// Function to convert URLs to clickable links and render HTML for emails
+const renderMessageContent = (content) => {
+  if (!content) return '(No content)'
+  
+  // Check if content contains HTML (like email messages with hyperlinks)
+  if (content.includes('<a href=')) {
+    // For HTML content (emails), render as HTML
+    return <div dangerouslySetInnerHTML={{ __html: content.replace(/\n/g, '<br />') }} />
+  }
+  
+  // For plain text, convert URLs to clickable links
+  const urlRegex = /(https?:\/\/[^\s]+)/g
+  const parts = content.split(urlRegex)
+  
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (urlRegex.test(part)) {
+          return (
+            <a 
+              key={index}
+              href={part} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ color: 'inherit', textDecoration: 'underline' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {part}
+            </a>
+          )
+        }
+        return <span key={index}>{part}</span>
+      })}
+    </>
+  )
+}
+
 function LeadDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -738,8 +775,8 @@ Date: _______________`,
       // Create text message
       const textMessage = `Hey ${leadFirstName}, here is the service agreement and deposit link to upgrade your floors! ${contractLink} - let me know if there's anything at all I can do to make this super easy for you!`
 
-      // Create email message
-      const emailMessage = `Hey ${leadFirstName}, I figured I'd send this link over email as well so you'll have it in both places. Here is the service agreement to upgrade your floors: ${contractLink} - happy to help in any way I can! Just let me know!`
+      // Create email message with HTML hyperlink
+      const emailMessage = `Hey ${leadFirstName}, I figured I'd send this link over email as well so you'll have it in both places. Here is the <a href="${contractLink}">Service Agreement + Deposit</a> to upgrade your floors - happy to help in any way I can! Just let me know!`
 
       // Insert text message
       const { error: textError } = await supabase
@@ -900,7 +937,7 @@ Date: _______________`,
                           {!message.is_read && !message.is_outbound && <span className="unread-dot"></span>}
                         </div>
                         <div className="message-bubble-content">
-                          {message.content || '(No content)'}
+                          {renderMessageContent(message.content)}
                         </div>
                       </div>
                     ))}

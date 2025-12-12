@@ -49,7 +49,7 @@ function ContractSigning() {
     }
   }
 
-  const handleSignAndPay = async () => {
+  const handleSign = async () => {
     if (!formData.signed_name.trim()) {
       alert('Please enter your full name to sign')
       return
@@ -63,7 +63,7 @@ function ContractSigning() {
     setSigning(true)
 
     try {
-      // Update contract with signature
+      // Update contract with signature only
       const { error: contractError } = await supabase
         .from('contracts')
         .update({
@@ -75,49 +75,8 @@ function ContractSigning() {
 
       if (contractError) throw contractError
 
-      // Create payment record
-      // Note: In production, you'd integrate with Stripe here
-      // For MVP, we'll create a payment record and mark it as completed
-      // This would normally happen after Stripe payment confirmation
-      
-      const { error: paymentError } = await supabase
-        .from('payments')
-        .insert({
-          contract_id: contract.id,
-          amount: contract.deposit_amount,
-          status: 'completed',
-          payment_reference_id: `manual_${Date.now()}`,
-        })
-
-      if (paymentError) throw paymentError
-
-      // Move lead to "Sold" stage
-      if (lead?.id) {
-        const { error: leadUpdateError } = await supabase
-          .from('leads')
-          .update({ 
-            sales_stage: 'sold',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', lead.id)
-
-        if (leadUpdateError) {
-          console.error('Error updating lead stage:', leadUpdateError)
-          // Don't throw - contract is signed and payment is done, so continue
-        } else {
-          // Add activity log for stage change
-          await supabase
-            .from('lead_activities')
-            .insert({
-              lead_id: lead.id,
-              activity_type: 'stage_change',
-              content: 'Moved to Sold (contract signed and deposit paid)',
-            })
-        }
-      }
-
-      // Redirect to success page
-      navigate('/success')
+      // Redirect to payment page
+      navigate(`/payment/${token}`)
     } catch (error) {
       console.error('Error processing signature:', error)
       alert('Error processing signature. Please try again.')
@@ -195,14 +154,11 @@ function ContractSigning() {
             </div>
             <button 
               className="btn-sign-pay" 
-              onClick={handleSignAndPay}
+              onClick={handleSign}
               disabled={signing}
             >
-              {signing ? 'Processing...' : `Sign & Pay $${contract.deposit_amount?.toFixed(2)} Deposit`}
+              {signing ? 'Processing...' : `Sign Contract`}
             </button>
-            <p className="payment-note">
-              Note: For MVP, payment is processed automatically. In production, this would integrate with Stripe for secure payment processing.
-            </p>
           </div>
         </div>
       </div>

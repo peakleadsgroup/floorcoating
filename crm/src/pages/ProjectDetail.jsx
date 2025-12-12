@@ -509,7 +509,7 @@ function ProjectDetail() {
                           {!message.is_read && !message.is_outbound && <span className="unread-dot"></span>}
                         </div>
                         <div className="message-bubble-content">
-                          {message.content || '(No content)'}
+                          {renderMessageContent(message.content)}
                         </div>
                       </div>
                     ))}

@@ -42,12 +42,14 @@
     
     /* 4 Pillars */
     .pillars { padding:5rem 2rem; background:#f8f9fa; }
-    .pillars-container { max-width:1200px; margin:0 auto; }
-    .pillars-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:3rem; margin-top:3rem; }
-    .pillar-card { background:white; padding:2.5rem; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.1); text-align:center; }
-    .pillar-icon { width:80px; height:80px; margin:0 auto 1.5rem; background:#1a365d; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:2.5rem; }
-    .pillar-card h3 { font-size:1.5rem; margin-bottom:1rem; color:#1a365d; }
-    .pillar-card p { color:#666; line-height:1.7; }
+    .pillars-container { max-width:1400px; margin:0 auto; }
+    .pillars-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:3rem; margin-top:3rem; }
+    .pillar-card { background:white; padding:3rem 2.5rem; border-radius:16px; box-shadow:0 6px 30px rgba(0,0,0,0.1); text-align:center; transition:transform .3s, box-shadow .3s; }
+    .pillar-card:hover { transform:translateY(-5px); box-shadow:0 10px 40px rgba(0,0,0,0.15); }
+    .pillar-icon { width:100px; height:100px; margin:0 auto 2rem; background:#1a365d; border-radius:50%; display:flex; align-items:center; justify-content:center; padding:20px; }
+    .pillar-icon img { width:100%; height:100%; object-fit:contain; filter:brightness(0) invert(1); }
+    .pillar-card h3 { font-size:1.6rem; margin-bottom:1.2rem; color:#1a365d; font-weight:700; }
+    .pillar-card p { color:#666; line-height:1.8; font-size:1.05rem; }
     
     /* Services */
     .services { padding:5rem 2rem; background:white; }
@@ -86,9 +88,17 @@
     .gallery-intro h2 { font-size:3rem; margin-bottom:1rem; color:#1a365d; }
     .gallery-intro p { font-size:1.2rem; color:#666; }
     .gallery-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:2rem; margin-bottom:3rem; }
-    .gallery-item { border-radius:12px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.1); position:relative; }
+    .gallery-item { border-radius:12px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,0.1); position:relative; cursor:pointer; }
     .gallery-item img { width:100%; height:300px; object-fit:cover; transition:transform .3s; }
     .gallery-item:hover img { transform:scale(1.05); }
+    
+    /* Lightbox Modal */
+    .lightbox { display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.95); overflow:auto; }
+    .lightbox.active { display:flex; align-items:center; justify-content:center; }
+    .lightbox-content { position:relative; max-width:90%; max-height:90%; margin:auto; }
+    .lightbox-content img { width:100%; height:auto; max-height:90vh; object-fit:contain; border-radius:8px; }
+    .lightbox-close { position:absolute; top:20px; right:40px; color:#fff; font-size:40px; font-weight:bold; cursor:pointer; z-index:10000; transition:color .3s; }
+    .lightbox-close:hover { color:#f97316; }
     
     /* Peak Promise */
     .promise { padding:5rem 2rem; background:linear-gradient(rgba(26,54,93,0.9), rgba(26,54,93,0.9)), url('PLACEHOLDER_PROMISE_BACKGROUND'); background-size:cover; background-position:center; color:white; }
@@ -103,13 +113,13 @@
     
     /* Why Polyaspartic */
     .why-poly { padding:5rem 2rem; background:white; }
-    .why-poly-container { max-width:1200px; margin:0 auto; }
+    .why-poly-container { max-width:1400px; margin:0 auto; }
     .why-poly-intro { text-align:center; margin-bottom:4rem; }
     .why-poly-intro h2 { font-size:3rem; margin-bottom:1rem; color:#1a365d; }
     .why-poly-intro p { font-size:1.2rem; color:#666; }
-    .comparison { display:grid; grid-template-columns:1fr 1fr; gap:3rem; margin-bottom:3rem; }
-    .comparison-image { border-radius:12px; overflow:hidden; }
-    .comparison-image img { width:100%; height:300px; object-fit:cover; }
+    .comparison { display:grid; grid-template-columns:1fr 1fr; gap:3rem; margin-bottom:3rem; max-width:1200px; margin-left:auto; margin-right:auto; }
+    .comparison-image { border-radius:12px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.15); margin:0 auto 4rem; max-width:1400px; }
+    .comparison-image img { width:100%; height:auto; min-height:500px; object-fit:contain; display:block; }
     .comparison-column { background:#f8f9fa; padding:2rem; border-radius:12px; }
     .comparison-column h3 { font-size:1.8rem; margin-bottom:1.5rem; color:#1a365d; }
     .comparison-column ul { list-style:none; }
@@ -188,6 +198,7 @@
       .service-card { grid-template-columns:1fr; }
       .service-card:nth-child(even) { direction:ltr; }
       .comparison { grid-template-columns:1fr; }
+      .comparison-image img { min-height:300px; }
       .about-preview-container { grid-template-columns:1fr; }
       .contact-options { grid-template-columns:1fr; }
       .footer-grid { grid-template-columns:1fr; }
@@ -259,22 +270,30 @@
     <div class="pillars-container">
       <div class="pillars-grid">
         <div class="pillar-card">
-          <div class="pillar-icon">🛡️</div>
+          <div class="pillar-icon">
+            <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/icons.png?raw=true" alt="Shield Icon">
+          </div>
           <h3>Lifetime Protection</h3>
           <p>We stand behind our work with an industry-leading lifetime warranty. No fine print, no runaround. If your floor fails, we fix it. Period. That's the confidence that comes from using superior materials and refusing to cut corners.</p>
         </div>
         <div class="pillar-card">
-          <div class="pillar-icon">⚡</div>
+          <div class="pillar-icon">
+            <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/2.png?raw=true" alt="Lightning Icon">
+          </div>
           <h3>Done in a Day</h3>
           <p>Your garage shouldn't be off-limits for weeks. Our advanced polyaspartic coatings cure in hours, not days. We start in the morning, and you're parking on it by evening. Fast installation without sacrificing quality—that's the Peak difference.</p>
         </div>
         <div class="pillar-card">
-          <div class="pillar-icon">🔬</div>
+          <div class="pillar-icon">
+            <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/3.png?raw=true" alt="Preparation Icon">
+          </div>
           <h3>Preparation Perfection</h3>
           <p>Here's what separates us from the competition: we're fanatical about surface prep. Diamond grinding, crack repair, moisture testing—we do everything necessary to ensure proper adhesion. Because a coating is only as good as what's underneath it.</p>
         </div>
         <div class="pillar-card">
-          <div class="pillar-icon">💎</div>
+          <div class="pillar-icon">
+            <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/4.png?raw=true" alt="Chemistry Icon">
+          </div>
           <h3>Superior Chemistry</h3>
           <p>We exclusively use polyaspartic coatings—4x stronger than epoxy and engineered to resist UV yellowing, hot tire pickup, chemicals, and extreme temperature swings. While others are still using yesterday's technology, we're delivering tomorrow's performance today.</p>
         </div>
@@ -366,31 +385,28 @@
       </div>
       <div class="gallery-grid">
         <div class="gallery-item">
-          <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/BeforeAfter.png?raw=true" alt="Before/After residential garage">
+          <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/BeforeAfter.png?raw=true" alt="Before/After residential garage" onclick="openLightbox(this.src, this.alt)">
         </div>
         <div class="gallery-item">
-          <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/Sleek%20Showroom.png?raw=true" alt="Finished commercial showroom floor">
+          <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/Sleek%20Showroom.png?raw=true" alt="Finished commercial showroom floor" onclick="openLightbox(this.src, this.alt)">
         </div>
         <div class="gallery-item">
-          <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/Custom%20Orange%20Flake.png?raw=true" alt="Residential garage with custom orange flake">
+          <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/Custom%20Orange%20Flake.png?raw=true" alt="Residential garage with custom orange flake" onclick="openLightbox(this.src, this.alt)">
         </div>
         <div class="gallery-item">
-          <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/Basement%20BeforeAfter.png?raw=true" alt="Before/After basement">
+          <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/Basement%20BeforeAfter.png?raw=true" alt="Before/After basement" onclick="openLightbox(this.src, this.alt)">
         </div>
         <div class="gallery-item">
-          <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/OutdoorPatio.png?raw=true" alt="Outdoor patio coating">
+          <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/OutdoorPatio.png?raw=true" alt="Outdoor patio coating" onclick="openLightbox(this.src, this.alt)">
         </div>
         <div class="gallery-item">
-          <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/20251211_2228_Garage%20Floor%20Transformation_simple_compose_01kc89jb1xe69s58g68836t82q.png?raw=true" alt="Before/After 3-car garage">
+          <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/20251211_2228_Garage%20Floor%20Transformation_simple_compose_01kc89jb1xe69s58g68836t82q.png?raw=true" alt="Before/After 3-car garage" onclick="openLightbox(this.src, this.alt)">
         </div>
         <div class="gallery-item">
-          <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/20251211_2236_Pristine%20Basement%20with%20Polyurea%20Flooring_simple_compose_01kc89zy88fqjr85w8bfn4xkn0.png?raw=true" alt="Commercial fitness center floor">
+          <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/20251211_2236_Pristine%20Basement%20with%20Polyurea%20Flooring_simple_compose_01kc89zy88fqjr85w8bfn4xkn0.png?raw=true" alt="Commercial fitness center floor" onclick="openLightbox(this.src, this.alt)">
         </div>
         <div class="gallery-item">
-          <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/20251211_2235_Sparkling%20Garage%20Floor_simple_compose_01kc89z8pwe7evh7nnbefnpbq8.png?raw=true" alt="Modern metallic residential garage">
-        </div>
-        <div class="gallery-item">
-          <img src="PLACEHOLDER_GALLERY_9" alt="Industrial warehouse polished concrete">
+          <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/20251211_2235_Sparkling%20Garage%20Floor_simple_compose_01kc89z8pwe7evh7nnbefnpbq8.png?raw=true" alt="Modern metallic residential garage" onclick="openLightbox(this.src, this.alt)">
         </div>
       </div>
       <div style="text-align:center; margin-top:3rem;">
@@ -452,7 +468,7 @@
         <h2>The Science Behind the Beauty</h2>
         <p>Not all floor coatings are created equal. Here's why we exclusively use polyaspartic technology.</p>
       </div>
-      <div class="comparison-image" style="margin-bottom:3rem;">
+      <div class="comparison-image">
         <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/20251211_2230_Coating%20Comparison%20Detail_simple_compose_01kc89na1xe8v91sgx6aqfyh3w.png?raw=true" alt="Polyaspartic vs Epoxy Comparison">
       </div>
       <div class="comparison">
@@ -662,6 +678,41 @@
       </div>
     </div>
   </footer>
+
+  <!-- Lightbox Modal -->
+  <div id="lightbox" class="lightbox" onclick="closeLightbox()">
+    <span class="lightbox-close" onclick="closeLightbox(event)">&times;</span>
+    <div class="lightbox-content" onclick="event.stopPropagation()">
+      <img id="lightbox-img" src="" alt="">
+    </div>
+  </div>
+
+  <script>
+    function openLightbox(imgSrc, imgAlt) {
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImg = document.getElementById('lightbox-img');
+      lightboxImg.src = imgSrc;
+      lightboxImg.alt = imgAlt;
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox(event) {
+      if (event) {
+        event.stopPropagation();
+      }
+      const lightbox = document.getElementById('lightbox');
+      lightbox.classList.remove('active');
+      document.body.style.overflow = 'auto';
+    }
+
+    // Close lightbox on Escape key
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeLightbox();
+      }
+    });
+  </script>
 </body>
 </html>
 

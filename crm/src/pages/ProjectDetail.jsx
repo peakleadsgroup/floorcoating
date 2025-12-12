@@ -588,91 +588,95 @@ function ProjectDetail() {
                 ))}
               </select>
             </div>
-            <div className="form-group">
-              <label>Inspection Date</label>
-              <input
-                type="date"
-                value={formData.inspection_date}
-                onChange={(e) => {
-                  const updated = { ...formData, inspection_date: e.target.value }
-                  setFormData(updated)
-                  handleAutoSave(updated)
-                }}
-              />
+            <div className="form-row-group">
+              <div className="form-group">
+                <label>Inspection Date</label>
+                <input
+                  type="date"
+                  value={formData.inspection_date}
+                  onChange={(e) => {
+                    const updated = { ...formData, inspection_date: e.target.value }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label>Inspection Time</label>
+                <input
+                  type="time"
+                  value={formData.inspection_time}
+                  onChange={(e) => {
+                    const updated = { ...formData, inspection_time: e.target.value }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label>Inspection Time Zone</label>
+                <select
+                  value={formData.inspection_timezone}
+                  onChange={(e) => {
+                    const updated = { ...formData, inspection_timezone: e.target.value }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
+                >
+                  <option value="America/New_York">Eastern Time (ET)</option>
+                  <option value="America/Chicago">Central Time (CT)</option>
+                  <option value="America/Denver">Mountain Time (MT)</option>
+                  <option value="America/Phoenix">Arizona Time (MST)</option>
+                  <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                  <option value="America/Anchorage">Alaska Time (AKT)</option>
+                  <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                </select>
+              </div>
             </div>
-            <div className="form-group">
-              <label>Inspection Time</label>
-              <input
-                type="time"
-                value={formData.inspection_time}
-                onChange={(e) => {
-                  const updated = { ...formData, inspection_time: e.target.value }
-                  setFormData(updated)
-                  handleAutoSave(updated)
-                }}
-              />
-            </div>
-            <div className="form-group">
-              <label>Inspection Time Zone</label>
-              <select
-                value={formData.inspection_timezone}
-                onChange={(e) => {
-                  const updated = { ...formData, inspection_timezone: e.target.value }
-                  setFormData(updated)
-                  handleAutoSave(updated)
-                }}
-              >
-                <option value="America/New_York">Eastern Time (ET)</option>
-                <option value="America/Chicago">Central Time (CT)</option>
-                <option value="America/Denver">Mountain Time (MT)</option>
-                <option value="America/Phoenix">Arizona Time (MST)</option>
-                <option value="America/Los_Angeles">Pacific Time (PT)</option>
-                <option value="America/Anchorage">Alaska Time (AKT)</option>
-                <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Install Date</label>
-              <input
-                type="date"
-                value={formData.install_date}
-                onChange={(e) => {
-                  const updated = { ...formData, install_date: e.target.value }
-                  setFormData(updated)
-                  handleAutoSave(updated)
-                }}
-              />
-            </div>
-            <div className="form-group">
-              <label>Install Time</label>
-              <input
-                type="time"
-                value={formData.install_time}
-                onChange={(e) => {
-                  const updated = { ...formData, install_time: e.target.value }
-                  setFormData(updated)
-                  handleAutoSave(updated)
-                }}
-              />
-            </div>
-            <div className="form-group">
-              <label>Install Time Zone</label>
-              <select
-                value={formData.install_timezone}
-                onChange={(e) => {
-                  const updated = { ...formData, install_timezone: e.target.value }
-                  setFormData(updated)
-                  handleAutoSave(updated)
-                }}
-              >
-                <option value="America/New_York">Eastern Time (ET)</option>
-                <option value="America/Chicago">Central Time (CT)</option>
-                <option value="America/Denver">Mountain Time (MT)</option>
-                <option value="America/Phoenix">Arizona Time (MST)</option>
-                <option value="America/Los_Angeles">Pacific Time (PT)</option>
-                <option value="America/Anchorage">Alaska Time (AKT)</option>
-                <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
-              </select>
+            <div className="form-row-group">
+              <div className="form-group">
+                <label>Install Date</label>
+                <input
+                  type="date"
+                  value={formData.install_date}
+                  onChange={(e) => {
+                    const updated = { ...formData, install_date: e.target.value }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label>Install Time</label>
+                <input
+                  type="time"
+                  value={formData.install_time}
+                  onChange={(e) => {
+                    const updated = { ...formData, install_time: e.target.value }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label>Install Time Zone</label>
+                <select
+                  value={formData.install_timezone}
+                  onChange={(e) => {
+                    const updated = { ...formData, install_timezone: e.target.value }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
+                >
+                  <option value="America/New_York">Eastern Time (ET)</option>
+                  <option value="America/Chicago">Central Time (CT)</option>
+                  <option value="America/Denver">Mountain Time (MT)</option>
+                  <option value="America/Phoenix">Arizona Time (MST)</option>
+                  <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                  <option value="America/Anchorage">Alaska Time (AKT)</option>
+                  <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>

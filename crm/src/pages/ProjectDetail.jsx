@@ -368,13 +368,26 @@ function ProjectDetail() {
 
   const handleSave = async () => {
     try {
-      // Automatically set stage to "scheduled" if install_date is filled out
+      // Automatically set stage based on dates - only move to scheduled if both dates are set
       let projectStage = formData.project_stage
-      if (formData.install_date && formData.install_date.trim() !== '') {
-        projectStage = 'scheduled'
+      const hasInstallDate = formData.install_date && formData.install_date !== ''
+      const hasInspectionDate = formData.inspection_date && formData.inspection_date !== ''
+      const today = new Date().toISOString().split('T')[0]
+      
+      if (hasInstallDate && formData.install_date === today) {
+        projectStage = 'install_day'
+      } else if (hasInspectionDate && formData.inspection_date === today) {
+        if (projectStage !== 'install_day') {
+          projectStage = 'inspection_day'
+        }
+      } else if (hasInstallDate && hasInspectionDate) {
+        // Both dates are set - move to scheduled
+        if (projectStage === 'sold') {
+          projectStage = 'scheduled'
+        }
       } else {
-        // If no install_date, keep in sold
-        if (projectStage === 'scheduled') {
+        // Not both dates set - keep in sold
+        if (projectStage === 'scheduled' && (!hasInstallDate || !hasInspectionDate)) {
           projectStage = 'sold'
         }
       }
@@ -418,28 +431,26 @@ function ProjectDetail() {
       let projectStage = updatedFormData.project_stage
 
       // Automatically set stage based on dates
-      // Priority: install_date > inspection_date > scheduled
-      if (updatedFormData.install_date && updatedFormData.install_date !== '') {
-        if (updatedFormData.install_date === today) {
-          projectStage = 'install_day'
-        } else {
-          // If install_date is set but not today, move to scheduled
-          if (projectStage === 'sold' || projectStage === 'inspection_day') {
-            projectStage = 'scheduled'
-          }
-        }
-      } else if (updatedFormData.inspection_date && updatedFormData.inspection_date !== '') {
-        if (updatedFormData.inspection_date === today) {
+      // Priority: install_date (today) > inspection_date (today) > scheduled (both dates set)
+      const hasInstallDate = updatedFormData.install_date && updatedFormData.install_date !== ''
+      const hasInspectionDate = updatedFormData.inspection_date && updatedFormData.inspection_date !== ''
+      
+      if (hasInstallDate && updatedFormData.install_date === today) {
+        // Install date is today - move to install_day
+        projectStage = 'install_day'
+      } else if (hasInspectionDate && updatedFormData.inspection_date === today) {
+        // Inspection date is today - move to inspection_day (only if not install_day)
+        if (projectStage !== 'install_day') {
           projectStage = 'inspection_day'
-        } else {
-          // If inspection_date is set but not today, move to scheduled
-          if (projectStage === 'sold') {
-            projectStage = 'scheduled'
-          }
+        }
+      } else if (hasInstallDate && hasInspectionDate) {
+        // Both dates are set (but not today) - move to scheduled
+        if (projectStage === 'sold') {
+          projectStage = 'scheduled'
         }
       } else {
-        // If no dates, keep in sold (unless already past sold)
-        if (projectStage === 'scheduled' || projectStage === 'inspection_day') {
+        // If not both dates are set, keep in sold (unless already past sold)
+        if (projectStage === 'scheduled' && (!hasInstallDate || !hasInspectionDate)) {
           projectStage = 'sold'
         }
       }

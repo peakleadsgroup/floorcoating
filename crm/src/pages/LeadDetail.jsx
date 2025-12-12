@@ -334,12 +334,17 @@ Date: _______________`,
               </div>
               <div className="form-group">
                 <label>Source</label>
-                <input
-                  type="text"
+                <select
                   value={formData.source}
                   onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                  placeholder="e.g., Website, Referral, Google Ads"
-                />
+                >
+                  <option value="">Select a source</option>
+                  <option value="Meta">Meta</option>
+                  <option value="Google">Google</option>
+                  <option value="Referral">Referral</option>
+                  <option value="Organic Socials">Organic Socials</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
               <div className="form-group">
                 <label>Estimated Sq Ft</label>
@@ -356,11 +361,12 @@ Date: _______________`,
                   onChange={(e) => setFormData({ ...formData, sales_stage: e.target.value })}
                 >
                   <option value="new">New</option>
-                  <option value="contacted">Contacted</option>
+                  <option value="follow_up">Follow Up</option>
+                  <option value="appointment_set">Appointment Set</option>
                   <option value="quoted">Quoted</option>
-                  <option value="ready_to_sign">Ready to Sign</option>
                   <option value="sold">Sold</option>
                   <option value="lost">Lost</option>
+                  <option value="not_interested">Not Interested</option>
                 </select>
               </div>
               <div className="form-group">

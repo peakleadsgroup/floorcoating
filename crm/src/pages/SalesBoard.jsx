@@ -6,11 +6,12 @@ import './SalesBoard.css'
 
 const SALES_STAGES = [
   { id: 'new', title: 'New' },
-  { id: 'contacted', title: 'Contacted' },
+  { id: 'follow_up', title: 'Follow Up' },
+  { id: 'appointment_set', title: 'Appointment Set' },
   { id: 'quoted', title: 'Quoted' },
-  { id: 'ready_to_sign', title: 'Ready to Sign' },
   { id: 'sold', title: 'Sold' },
   { id: 'lost', title: 'Lost' },
+  { id: 'not_interested', title: 'Not Interested' },
 ]
 
 function SalesBoard() {

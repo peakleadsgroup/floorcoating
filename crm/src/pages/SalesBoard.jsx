@@ -28,6 +28,7 @@ function SalesBoard() {
       const { data, error } = await supabase
         .from('leads')
         .select('*')
+        .eq('archived', false)
         .order('created_at', { ascending: false })
 
       if (error) throw error

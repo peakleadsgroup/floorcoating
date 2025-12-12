@@ -28,6 +28,7 @@ function LeadDetail() {
     estimated_sqft: '',
     sales_stage: 'new',
     assigned_rep: '',
+    archived: false,
   })
   
   // Contract form state
@@ -105,6 +106,7 @@ Date: _______________`,
         estimated_sqft: data.estimated_sqft || '',
         sales_stage: data.sales_stage || 'new',
         assigned_rep: data.assigned_rep || '',
+        archived: data.archived || false,
       })
     } catch (error) {
       console.error('Error fetching lead:', error)
@@ -197,6 +199,70 @@ Date: _______________`,
     } catch (error) {
       console.error('Error adding note:', error)
       alert('Error adding note')
+    }
+  }
+
+  const handleArchive = async () => {
+    if (!confirm('Are you sure you want to archive this lead? It will be hidden from the sales board.')) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ 
+          archived: true,
+          archived_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+
+      if (error) throw error
+
+      // Add activity log
+      await supabase
+        .from('lead_activities')
+        .insert({
+          lead_id: id,
+          activity_type: 'archived',
+          content: 'Lead archived',
+        })
+
+      alert('Lead archived successfully')
+      navigate('/') // Go back to sales board
+    } catch (error) {
+      console.error('Error archiving lead:', error)
+      alert('Error archiving lead')
+    }
+  }
+
+  const handleUnarchive = async () => {
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ 
+          archived: false,
+          archived_at: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+
+      if (error) throw error
+
+      // Add activity log
+      await supabase
+        .from('lead_activities')
+        .insert({
+          lead_id: id,
+          activity_type: 'unarchived',
+          content: 'Lead unarchived',
+        })
+
+      await fetchLead()
+      alert('Lead unarchived successfully')
+    } catch (error) {
+      console.error('Error unarchiving lead:', error)
+      alert('Error unarchiving lead')
     }
   }
 
@@ -293,6 +359,19 @@ Date: _______________`,
           ← Back to Sales Board
         </button>
         <h1>{isNew ? 'New Lead' : lead?.name || 'Lead Details'}</h1>
+        {!isNew && (
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {lead?.archived ? (
+              <button className="btn-secondary" onClick={handleUnarchive}>
+                Unarchive Lead
+              </button>
+            ) : (
+              <button className="btn-secondary" onClick={handleArchive}>
+                Archive Lead
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="lead-detail-content">

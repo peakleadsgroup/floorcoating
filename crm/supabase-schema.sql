@@ -15,6 +15,8 @@ CREATE TABLE leads (
   estimated_sqft INTEGER,
   sales_stage TEXT NOT NULL DEFAULT 'new',
   assigned_rep TEXT,
+  archived BOOLEAN DEFAULT FALSE,
+  archived_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

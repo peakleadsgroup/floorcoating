@@ -480,6 +480,32 @@ Date: _______________`,
             activity_type: 'appointment_cancelled',
             content: `Appointment cancelled: ${new Date(appointment.appointment_date).toLocaleDateString()} at ${appointment.appointment_time}`,
           })
+
+        // Move lead back to "Follow Up" stage
+        const { error: updateError } = await supabase
+          .from('leads')
+          .update({ 
+            sales_stage: 'follow_up',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id)
+
+        if (updateError) throw updateError
+
+        // Update local state
+        setFormData({ ...formData, sales_stage: 'follow_up' })
+        if (lead) {
+          setLead({ ...lead, sales_stage: 'follow_up' })
+        }
+
+        // Add activity log for stage change
+        await supabase
+          .from('lead_activities')
+          .insert({
+            lead_id: id,
+            activity_type: 'stage_change',
+            content: 'Moved to Follow Up (appointment cancelled)',
+          })
       }
 
       await fetchAppointments()
@@ -753,8 +779,6 @@ Date: _______________`,
 
       // Refresh messages to show the new sent messages
       await fetchMessages()
-
-      alert('Contract link sent via text and email!')
     } catch (error) {
       console.error('Error sending contract:', error)
       alert('Error sending contract')

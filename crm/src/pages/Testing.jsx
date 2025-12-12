@@ -14,6 +14,7 @@ function Testing() {
   const [recentMessages, setRecentMessages] = useState([])
   const [contract, setContract] = useState(null)
   const [processingContract, setProcessingContract] = useState(false)
+  const [hasPayment, setHasPayment] = useState(false)
 
   useEffect(() => {
     fetchLeads()
@@ -136,12 +137,65 @@ function Testing() {
 
       if (error) throw error
       setContract(data || null)
+
+      // Check if payment exists
+      if (data) {
+        const { data: payments } = await supabase
+          .from('payments')
+          .select('*')
+          .eq('contract_id', data.id)
+          .eq('status', 'completed')
+        
+        setHasPayment(payments && payments.length > 0)
+      } else {
+        setHasPayment(false)
+      }
     } catch (error) {
       console.error('Error fetching contract:', error)
     }
   }
 
-  const handleMarkSignedAndPaid = async () => {
+  const checkAndMoveToSold = async () => {
+    // Check if both contract is signed and payment exists
+    const { data: updatedContract } = await supabase
+      .from('contracts')
+      .select('status')
+      .eq('id', contract.id)
+      .single()
+
+    const { data: payments } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('contract_id', contract.id)
+      .eq('status', 'completed')
+
+    const contractSigned = updatedContract?.status === 'signed'
+    const paymentExists = payments && payments.length > 0
+
+    // Move to "Sold" if both conditions are met
+    if (contractSigned && paymentExists) {
+      const { error: leadUpdateError } = await supabase
+        .from('leads')
+        .update({ 
+          sales_stage: 'sold',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedLead.id)
+
+      if (!leadUpdateError) {
+        // Add activity log for stage change
+        await supabase
+          .from('lead_activities')
+          .insert({
+            lead_id: selectedLead.id,
+            activity_type: 'stage_change',
+            content: 'Moved to Sold (contract signed and deposit paid - testing)',
+          })
+      }
+    }
+  }
+
+  const handleMarkSigned = async () => {
     if (!selectedLead || !contract) {
       alert('Please select a lead with a contract')
       return
@@ -152,7 +206,8 @@ function Testing() {
       return
     }
 
-    if (!confirm(`Mark contract as signed and deposit as paid for ${leadName}?`)) {
+    const name = `${selectedLead.first_name || ''} ${selectedLead.last_name || ''}`.trim() || 'Unknown'
+    if (!confirm(`Mark contract as signed for ${name}?`)) {
       return
     }
 
@@ -171,6 +226,48 @@ function Testing() {
 
       if (contractError) throw contractError
 
+      // Refresh contract data
+      await fetchContract()
+      
+      // Check if we should move to Sold (if payment also exists)
+      await checkAndMoveToSold()
+      await fetchLeads()
+      
+      alert('Contract marked as signed!')
+    } catch (error) {
+      console.error('Error marking contract as signed:', error)
+      alert('Error marking contract as signed')
+    } finally {
+      setProcessingContract(false)
+    }
+  }
+
+  const handleMarkPaid = async () => {
+    if (!selectedLead || !contract) {
+      alert('Please select a lead with a contract')
+      return
+    }
+
+    // Check if payment already exists
+    const { data: existingPayments } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('contract_id', contract.id)
+      .eq('status', 'completed')
+
+    if (existingPayments && existingPayments.length > 0) {
+      alert('Deposit is already marked as paid')
+      return
+    }
+
+    const name = `${selectedLead.first_name || ''} ${selectedLead.last_name || ''}`.trim() || 'Unknown'
+    if (!confirm(`Mark deposit as paid for ${name}?`)) {
+      return
+    }
+
+    setProcessingContract(true)
+
+    try {
       // Create payment record
       const { error: paymentError } = await supabase
         .from('payments')
@@ -183,36 +280,17 @@ function Testing() {
 
       if (paymentError) throw paymentError
 
-      // Move lead to "Sold" stage
-      const { error: leadUpdateError } = await supabase
-        .from('leads')
-        .update({ 
-          sales_stage: 'sold',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedLead.id)
-
-      if (leadUpdateError) {
-        console.error('Error updating lead stage:', leadUpdateError)
-      } else {
-        // Add activity log for stage change
-        await supabase
-          .from('lead_activities')
-          .insert({
-            lead_id: selectedLead.id,
-            activity_type: 'stage_change',
-            content: 'Moved to Sold (contract signed and deposit paid - testing)',
-          })
-      }
-
-      // Refresh contract and lead data
+      // Refresh contract data
       await fetchContract()
+      
+      // Check if we should move to Sold (if contract also signed)
+      await checkAndMoveToSold()
       await fetchLeads()
       
-      alert('Contract marked as signed and deposit as paid!')
+      alert('Deposit marked as paid!')
     } catch (error) {
-      console.error('Error processing contract:', error)
-      alert('Error processing contract')
+      console.error('Error marking deposit as paid:', error)
+      alert('Error marking deposit as paid')
     } finally {
       setProcessingContract(false)
     }
@@ -338,16 +416,28 @@ function Testing() {
                 {contract.signed_name && (
                   <p><strong>Signed by:</strong> {contract.signed_name}</p>
                 )}
+                <p><strong>Deposit Paid:</strong> {hasPayment ? 'Yes' : 'No'}</p>
               </div>
-              {contract.status !== 'signed' && (
-                <button 
-                  className="btn-primary"
-                  onClick={handleMarkSignedAndPaid}
-                  disabled={processingContract}
-                >
-                  {processingContract ? 'Processing...' : 'Mark Signed & Deposit Paid'}
-                </button>
-              )}
+              <div className="contract-testing-buttons">
+                {contract.status !== 'signed' && (
+                  <button 
+                    className="btn-primary"
+                    onClick={handleMarkSigned}
+                    disabled={processingContract}
+                  >
+                    {processingContract ? 'Processing...' : 'Mark Service Agreement Signed'}
+                  </button>
+                )}
+                {!hasPayment && (
+                  <button 
+                    className="btn-primary"
+                    onClick={handleMarkPaid}
+                    disabled={processingContract}
+                  >
+                    {processingContract ? 'Processing...' : 'Mark Deposit Paid'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}

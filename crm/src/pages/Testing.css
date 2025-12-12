@@ -257,6 +257,12 @@
   flex-direction: column;
   gap: 0.5rem;
   padding: 1rem;
+}
+
+.contract-testing-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
   background: #f8fafc;
   border-radius: 6px;
 }

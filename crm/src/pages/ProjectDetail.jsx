@@ -377,13 +377,32 @@ function ProjectDetail() {
 
     // Set new timeout for debounced save (1 second delay)
     saveTimeoutRef.current = setTimeout(async () => {
-      // Automatically set stage to "scheduled" if install_date is filled out
+      const today = new Date().toISOString().split('T')[0] // Get today's date in YYYY-MM-DD format
       let projectStage = updatedFormData.project_stage
+
+      // Automatically set stage based on dates
+      // Priority: install_date > inspection_date > scheduled
       if (updatedFormData.install_date && updatedFormData.install_date !== '') {
-        projectStage = 'scheduled'
+        if (updatedFormData.install_date === today) {
+          projectStage = 'install_day'
+        } else {
+          // If install_date is set but not today, move to scheduled
+          if (projectStage === 'sold' || projectStage === 'inspection_day') {
+            projectStage = 'scheduled'
+          }
+        }
+      } else if (updatedFormData.inspection_date && updatedFormData.inspection_date !== '') {
+        if (updatedFormData.inspection_date === today) {
+          projectStage = 'inspection_day'
+        } else {
+          // If inspection_date is set but not today, move to scheduled
+          if (projectStage === 'sold') {
+            projectStage = 'scheduled'
+          }
+        }
       } else {
-        // If no install_date, keep in sold
-        if (projectStage === 'scheduled') {
+        // If no dates, keep in sold (unless already past sold)
+        if (projectStage === 'scheduled' || projectStage === 'inspection_day') {
           projectStage = 'sold'
         }
       }
@@ -560,7 +579,7 @@ function ProjectDetail() {
               >
                 <option value="sold">Sold</option>
                 <option value="scheduled">Scheduled</option>
-                <option value="prep">Prep</option>
+                <option value="inspection_day">Inspection Day</option>
                 <option value="install_day">Install Day</option>
                 <option value="completed">Completed</option>
                 <option value="warranty">Warranty</option>

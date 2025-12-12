@@ -7,7 +7,7 @@ import './ProjectBoard.css'
 const PROJECT_STAGES = [
   { id: 'sold', title: 'Sold' },
   { id: 'scheduled', title: 'Scheduled' },
-  { id: 'prep', title: 'Prep' },
+  { id: 'inspection_day', title: 'Inspection Day' },
   { id: 'install_day', title: 'Install Day' },
   { id: 'completed', title: 'Completed' },
   { id: 'warranty', title: 'Warranty' },
@@ -18,6 +18,38 @@ function ProjectBoard() {
   const [unreadMessages, setUnreadMessages] = useState([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+
+  const checkAndUpdateStageByDate = async (projects) => {
+    const today = new Date().toISOString().split('T')[0] // Get today's date in YYYY-MM-DD format
+    const updates = []
+
+    for (const project of projects) {
+      // Check if today is the install date
+      if (project.install_date && project.install_date === today) {
+        if (project.project_stage !== 'install_day') {
+          updates.push({ id: project.id, stage: 'install_day' })
+        }
+      }
+      // Check if today is the inspection date (only if not already on install_day)
+      else if (project.inspection_date && project.inspection_date === today) {
+        if (project.project_stage !== 'inspection_day' && project.project_stage !== 'install_day') {
+          updates.push({ id: project.id, stage: 'inspection_day' })
+        }
+      }
+    }
+
+    // Update all projects that need stage changes
+    if (updates.length > 0) {
+      for (const update of updates) {
+        await supabase
+          .from('projects')
+          .update({ project_stage: update.stage, updated_at: new Date().toISOString() })
+          .eq('id', update.id)
+      }
+      return true // Indicates updates were made
+    }
+    return false
+  }
 
   useEffect(() => {
     fetchProjects()
@@ -58,8 +90,36 @@ function ProjectBoard() {
 
       if (error) throw error
       
+      // Check and update stages based on dates
+      const hadUpdates = await checkAndUpdateStageByDate(data || [])
+      
+      // If updates were made, refetch to get updated data
+      let finalData = data || []
+      if (hadUpdates) {
+        const { data: updatedData, error: refetchError } = await supabase
+          .from('projects')
+          .select(`
+            *,
+            leads (
+              id,
+              first_name,
+              last_name,
+              street_address,
+              city,
+              state,
+              zip
+            )
+          `)
+          .eq('archived', false)
+          .order('created_at', { ascending: false })
+
+        if (!refetchError && updatedData) {
+          finalData = updatedData
+        }
+      }
+      
       // Get lead IDs to fetch unread message counts
-      const leadIds = (data || [])
+      const leadIds = finalData
         .filter(p => p.leads?.id)
         .map(p => p.leads.id)
 
@@ -80,7 +140,7 @@ function ProjectBoard() {
       }
 
       // Flatten the data structure for KanbanBoard
-      const flattenedProjects = (data || []).map(project => ({
+      const flattenedProjects = (finalData || data || []).map(project => ({
         ...project,
         name: project.leads 
           ? `${project.leads.first_name || ''} ${project.leads.last_name || ''}`.trim() || 'Unknown'

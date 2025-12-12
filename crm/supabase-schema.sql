@@ -90,7 +90,7 @@ CREATE TABLE appointments (
 CREATE TABLE reps (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('Sales', 'Project Management', 'Installer')),
+  roles JSONB DEFAULT '[]'::jsonb, -- Array of roles: ['Sales', 'Project Management', 'Installer']
   email TEXT,
   phone TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -105,8 +105,12 @@ CREATE TABLE projects (
   project_stage TEXT NOT NULL DEFAULT 'sold',
   installer_id UUID REFERENCES reps(id) ON DELETE SET NULL,
   installer TEXT, -- Keep for backward compatibility, but prefer installer_id
+  inspection_date DATE,
+  inspection_time TIME,
+  inspection_timezone TEXT DEFAULT 'America/New_York',
   install_date DATE,
-  internal_notes TEXT,
+  install_time TIME,
+  install_timezone TEXT DEFAULT 'America/New_York',
   archived BOOLEAN DEFAULT FALSE,
   archived_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import './ProjectDetail.css'
@@ -15,11 +15,15 @@ function ProjectDetail() {
   const [loading, setLoading] = useState(true)
   
   const [formData, setFormData] = useState({
-    project_stage: 'scheduled',
+    project_stage: 'sold',
     installer_id: '',
     installer: '',
+    inspection_date: '',
+    inspection_time: '',
+    inspection_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     install_date: '',
-    internal_notes: '',
+    install_time: '',
+    install_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   })
   
   const [newMessage, setNewMessage] = useState({
@@ -77,11 +81,16 @@ function ProjectDetail() {
       const { data, error } = await supabase
         .from('reps')
         .select('*')
-        .eq('role', 'Installer')
         .order('name', { ascending: true })
 
       if (error) throw error
-      setInstallers(data || [])
+      // Filter to only include reps with 'Installer' role
+      const installersData = (data || []).filter(rep => {
+        const repRoles = rep.roles || (rep.role ? [rep.role] : [])
+        const rolesArray = Array.isArray(repRoles) ? repRoles : [repRoles]
+        return rolesArray.includes('Installer')
+      })
+      setInstallers(installersData)
     } catch (error) {
       console.error('Error fetching installers:', error)
     }
@@ -106,8 +115,12 @@ function ProjectDetail() {
         project_stage: projectData.project_stage || 'sold',
         installer_id: projectData.installer_id || '',
         installer: projectData.installer || '',
+        inspection_date: projectData.inspection_date || '',
+        inspection_time: projectData.inspection_time || '',
+        inspection_timezone: projectData.inspection_timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
         install_date: projectData.install_date || '',
-        internal_notes: projectData.internal_notes || '',
+        install_time: projectData.install_time || '',
+        install_timezone: projectData.install_timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       })
     } catch (error) {
       console.error('Error fetching project:', error)
@@ -318,11 +331,26 @@ function ProjectDetail() {
 
   const handleSave = async () => {
     try {
+      // Automatically set stage to "scheduled" if install_date is filled out
+      let projectStage = formData.project_stage
+      if (formData.install_date && formData.install_date.trim() !== '') {
+        projectStage = 'scheduled'
+      } else {
+        // If no install_date, keep in sold
+        if (projectStage === 'scheduled') {
+          projectStage = 'sold'
+        }
+      }
+
       const updateData = {
-        project_stage: formData.project_stage,
+        project_stage: projectStage,
         installer_id: formData.installer_id || null,
+        inspection_date: formData.inspection_date || null,
+        inspection_time: formData.inspection_time || null,
+        inspection_timezone: formData.inspection_timezone || null,
         install_date: formData.install_date || null,
-        internal_notes: formData.internal_notes || '',
+        install_time: formData.install_time || null,
+        install_timezone: formData.install_timezone || null,
         updated_at: new Date().toISOString(),
       }
 
@@ -332,12 +360,64 @@ function ProjectDetail() {
         .eq('id', id)
 
       if (error) throw error
-      alert('Project updated successfully')
       await fetchProject()
     } catch (error) {
       console.error('Error saving project:', error)
       alert('Error saving project')
     }
+  }
+
+  const saveTimeoutRef = useRef(null)
+
+  const handleAutoSave = (updatedFormData) => {
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+
+    // Set new timeout for debounced save (1 second delay)
+    saveTimeoutRef.current = setTimeout(async () => {
+      // Automatically set stage to "scheduled" if install_date is filled out
+      let projectStage = updatedFormData.project_stage
+      if (updatedFormData.install_date && updatedFormData.install_date !== '') {
+        projectStage = 'scheduled'
+      } else {
+        // If no install_date, keep in sold
+        if (projectStage === 'scheduled') {
+          projectStage = 'sold'
+        }
+      }
+
+      const updateData = {
+        project_stage: projectStage,
+        installer_id: updatedFormData.installer_id || null,
+        inspection_date: updatedFormData.inspection_date || null,
+        inspection_time: updatedFormData.inspection_time || null,
+        inspection_timezone: updatedFormData.inspection_timezone || null,
+        install_date: updatedFormData.install_date || null,
+        install_time: updatedFormData.install_time || null,
+        install_timezone: updatedFormData.install_timezone || null,
+        updated_at: new Date().toISOString(),
+      }
+
+      try {
+        const { error } = await supabase
+          .from('projects')
+          .update(updateData)
+          .eq('id', id)
+
+        if (error) {
+          console.error('Error auto-saving project:', error)
+        } else {
+          // Update local state to reflect the stage change if it happened
+          if (projectStage !== updatedFormData.project_stage) {
+            setFormData({ ...updatedFormData, project_stage: projectStage })
+          }
+        }
+      } catch (error) {
+        console.error('Error auto-saving project:', error)
+      }
+    }, 1000) // 1 second debounce
   }
 
   if (loading) {
@@ -472,7 +552,11 @@ function ProjectDetail() {
               <label>Project Stage</label>
               <select
                 value={formData.project_stage}
-                onChange={(e) => setFormData({ ...formData, project_stage: e.target.value })}
+                onChange={(e) => {
+                  const updated = { ...formData, project_stage: e.target.value }
+                  setFormData(updated)
+                  handleAutoSave(updated)
+                }}
               >
                 <option value="sold">Sold</option>
                 <option value="scheduled">Scheduled</option>
@@ -486,11 +570,15 @@ function ProjectDetail() {
               <label>Installer</label>
               <select
                 value={formData.installer_id || ''}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
-                  installer_id: e.target.value,
-                  installer: installers.find(i => i.id === e.target.value)?.name || ''
-                })}
+                onChange={(e) => {
+                  const updated = { 
+                    ...formData, 
+                    installer_id: e.target.value,
+                    installer: installers.find(i => i.id === e.target.value)?.name || ''
+                  }
+                  setFormData(updated)
+                  handleAutoSave(updated)
+                }}
               >
                 <option value="">Select an installer</option>
                 {installers.map(installer => (
@@ -501,26 +589,92 @@ function ProjectDetail() {
               </select>
             </div>
             <div className="form-group">
+              <label>Inspection Date</label>
+              <input
+                type="date"
+                value={formData.inspection_date}
+                onChange={(e) => {
+                  const updated = { ...formData, inspection_date: e.target.value }
+                  setFormData(updated)
+                  handleAutoSave(updated)
+                }}
+              />
+            </div>
+            <div className="form-group">
+              <label>Inspection Time</label>
+              <input
+                type="time"
+                value={formData.inspection_time}
+                onChange={(e) => {
+                  const updated = { ...formData, inspection_time: e.target.value }
+                  setFormData(updated)
+                  handleAutoSave(updated)
+                }}
+              />
+            </div>
+            <div className="form-group">
+              <label>Inspection Time Zone</label>
+              <select
+                value={formData.inspection_timezone}
+                onChange={(e) => {
+                  const updated = { ...formData, inspection_timezone: e.target.value }
+                  setFormData(updated)
+                  handleAutoSave(updated)
+                }}
+              >
+                <option value="America/New_York">Eastern Time (ET)</option>
+                <option value="America/Chicago">Central Time (CT)</option>
+                <option value="America/Denver">Mountain Time (MT)</option>
+                <option value="America/Phoenix">Arizona Time (MST)</option>
+                <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                <option value="America/Anchorage">Alaska Time (AKT)</option>
+                <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+              </select>
+            </div>
+            <div className="form-group">
               <label>Install Date</label>
               <input
                 type="date"
                 value={formData.install_date}
-                onChange={(e) => setFormData({ ...formData, install_date: e.target.value })}
+                onChange={(e) => {
+                  const updated = { ...formData, install_date: e.target.value }
+                  setFormData(updated)
+                  handleAutoSave(updated)
+                }}
               />
             </div>
+            <div className="form-group">
+              <label>Install Time</label>
+              <input
+                type="time"
+                value={formData.install_time}
+                onChange={(e) => {
+                  const updated = { ...formData, install_time: e.target.value }
+                  setFormData(updated)
+                  handleAutoSave(updated)
+                }}
+              />
+            </div>
+            <div className="form-group">
+              <label>Install Time Zone</label>
+              <select
+                value={formData.install_timezone}
+                onChange={(e) => {
+                  const updated = { ...formData, install_timezone: e.target.value }
+                  setFormData(updated)
+                  handleAutoSave(updated)
+                }}
+              >
+                <option value="America/New_York">Eastern Time (ET)</option>
+                <option value="America/Chicago">Central Time (CT)</option>
+                <option value="America/Denver">Mountain Time (MT)</option>
+                <option value="America/Phoenix">Arizona Time (MST)</option>
+                <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                <option value="America/Anchorage">Alaska Time (AKT)</option>
+                <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+              </select>
+            </div>
           </div>
-          <div className="form-group">
-            <label>Internal Notes</label>
-            <textarea
-              rows="8"
-              value={formData.internal_notes}
-              onChange={(e) => setFormData({ ...formData, internal_notes: e.target.value })}
-              placeholder="Add internal notes about this project..."
-            />
-          </div>
-          <button className="btn-primary" onClick={handleSave}>
-            Save Changes
-          </button>
         </div>
         </div>
 

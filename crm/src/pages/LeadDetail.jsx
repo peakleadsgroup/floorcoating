@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import './LeadDetail.css'
@@ -1048,10 +1048,12 @@ Date: _______________`,
                     >
                       <option value="">Select a rep...</option>
                       {reps
-                        .filter(rep => newAppointment.location_type === 'Virtual' 
-                          ? rep.role === 'Sales' 
-                          : rep.role === 'Installer'
-                        )
+                        .filter(rep => {
+                          const repRoles = rep.roles || (rep.role ? [rep.role] : [])
+                          const rolesArray = Array.isArray(repRoles) ? repRoles : [repRoles]
+                          const requiredRole = newAppointment.location_type === 'Virtual' ? 'Sales' : 'Installer'
+                          return rolesArray.includes(requiredRole)
+                        })
                         .map(rep => (
                           <option key={rep.id} value={rep.id}>
                             {rep.name}
@@ -1076,7 +1078,11 @@ Date: _______________`,
                 <input
                   type="text"
                   value={formData.first_name}
-                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                  onChange={(e) => {
+                    const updated = { ...formData, first_name: e.target.value }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
                 />
               </div>
               <div className="form-group">
@@ -1084,7 +1090,11 @@ Date: _______________`,
                 <input
                   type="text"
                   value={formData.last_name}
-                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                  onChange={(e) => {
+                    const updated = { ...formData, last_name: e.target.value }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
                 />
               </div>
               <div className="form-group">
@@ -1092,7 +1102,11 @@ Date: _______________`,
                 <input
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => {
+                    const updated = { ...formData, phone: e.target.value }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
                   placeholder="1234567890"
                   maxLength={10}
                 />
@@ -1102,7 +1116,11 @@ Date: _______________`,
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) => {
+                    const updated = { ...formData, email: e.target.value }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
                   placeholder="example@domain.com"
                 />
               </div>
@@ -1111,7 +1129,11 @@ Date: _______________`,
                 <input
                   type="text"
                   value={formData.street_address}
-                  onChange={(e) => setFormData({ ...formData, street_address: e.target.value })}
+                  onChange={(e) => {
+                    const updated = { ...formData, street_address: e.target.value }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
                 />
               </div>
               <div className="form-group">
@@ -1119,7 +1141,11 @@ Date: _______________`,
                 <input
                   type="text"
                   value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  onChange={(e) => {
+                    const updated = { ...formData, city: e.target.value }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
                 />
               </div>
               <div className="form-group">
@@ -1127,7 +1153,11 @@ Date: _______________`,
                 <input
                   type="text"
                   value={formData.state}
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  onChange={(e) => {
+                    const updated = { ...formData, state: e.target.value }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
                   maxLength={2}
                   placeholder="CA"
                 />
@@ -1137,7 +1167,11 @@ Date: _______________`,
                 <input
                   type="text"
                   value={formData.zip}
-                  onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
+                  onChange={(e) => {
+                    const updated = { ...formData, zip: e.target.value }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
                   maxLength={10}
                   placeholder="12345"
                 />
@@ -1146,7 +1180,11 @@ Date: _______________`,
                 <label>Source</label>
                 <select
                   value={formData.source}
-                  onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                  onChange={(e) => {
+                    const updated = { ...formData, source: e.target.value }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
                 >
                   <option value="">Select a source</option>
                   <option value="Meta">Meta</option>
@@ -1161,14 +1199,32 @@ Date: _______________`,
                 <input
                   type="number"
                   value={formData.estimated_sqft}
-                  onChange={(e) => setFormData({ ...formData, estimated_sqft: e.target.value })}
+                  onChange={(e) => {
+                    const updated = { ...formData, estimated_sqft: e.target.value }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
                 />
               </div>
               <div className="form-group">
                 <label>Sales Stage</label>
                 <select
                   value={formData.sales_stage}
-                  onChange={(e) => setFormData({ ...formData, sales_stage: e.target.value })}
+                  onChange={(e) => {
+                    const newStage = e.target.value
+                    // If moving to Lost, show confirmation first
+                    if (newStage === 'lost' && (!lead || lead.sales_stage !== 'lost')) {
+                      const confirmed = window.confirm(
+                        'Important! Only move someone to Lost if they rejected a quote or if they have asked us to stop contacting them. Anyone else should go in Not Interested for a slow drip.\n\nDo you want to continue?'
+                      )
+                      if (!confirmed) {
+                        return // Don't change the stage
+                      }
+                    }
+                    const updated = { ...formData, sales_stage: newStage }
+                    setFormData(updated)
+                    handleAutoSave(updated)
+                  }}
                 >
                   <option value="new">New</option>
                   <option value="follow_up">Follow Up</option>

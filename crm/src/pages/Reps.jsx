@@ -9,10 +9,11 @@ function Reps() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingRep, setEditingRep] = useState(null)
+  const [roleFilter, setRoleFilter] = useState('') // Filter by role
   
   const [formData, setFormData] = useState({
     name: '',
-    role: 'Sales',
+    roles: ['Sales'], // Array of selected roles
     email: '',
     phone: '',
   })
@@ -26,7 +27,6 @@ function Reps() {
       const { data, error } = await supabase
         .from('reps')
         .select('*')
-        .order('role', { ascending: true })
         .order('name', { ascending: true })
 
       if (error) throw error
@@ -47,13 +47,18 @@ function Reps() {
       return
     }
 
+    if (formData.roles.length === 0) {
+      alert('Please select at least one role')
+      return
+    }
+
     try {
       if (editingRep) {
         const { error } = await supabase
           .from('reps')
           .update({
             name: formData.name,
-            role: formData.role,
+            roles: formData.roles,
             email: formData.email || null,
             phone: formData.phone || null,
             updated_at: new Date().toISOString(),
@@ -61,22 +66,20 @@ function Reps() {
           .eq('id', editingRep.id)
 
         if (error) throw error
-        alert('Rep updated successfully')
       } else {
         const { error } = await supabase
           .from('reps')
           .insert([{
             name: formData.name,
-            role: formData.role,
+            roles: formData.roles,
             email: formData.email || null,
             phone: formData.phone || null,
           }])
 
         if (error) throw error
-        alert('Rep created successfully')
       }
 
-      setFormData({ name: '', role: 'Sales', email: '', phone: '' })
+      setFormData({ name: '', roles: ['Sales'], email: '', phone: '' })
       setShowForm(false)
       setEditingRep(null)
       await fetchReps()
@@ -88,9 +91,11 @@ function Reps() {
 
   const handleEdit = (rep) => {
     setEditingRep(rep)
+    // Handle both old format (role) and new format (roles array)
+    const roles = rep.roles || (rep.role ? [rep.role] : ['Sales'])
     setFormData({
       name: rep.name,
-      role: rep.role,
+      roles: Array.isArray(roles) ? roles : [roles],
       email: rep.email || '',
       phone: rep.phone || '',
     })
@@ -118,15 +123,31 @@ function Reps() {
   }
 
   const handleCancel = () => {
-    setFormData({ name: '', role: 'Sales', email: '', phone: '' })
+    setFormData({ name: '', roles: ['Sales'], email: '', phone: '' })
     setShowForm(false)
     setEditingRep(null)
   }
 
-  const repsByRole = ROLE_OPTIONS.map(role => ({
-    role,
-    reps: reps.filter(rep => rep.role === role),
-  }))
+  const handleRoleToggle = (role) => {
+    const currentRoles = formData.roles || []
+    if (currentRoles.includes(role)) {
+      // Remove role if already selected (but must have at least one)
+      if (currentRoles.length > 1) {
+        setFormData({ ...formData, roles: currentRoles.filter(r => r !== role) })
+      }
+    } else {
+      // Add role
+      setFormData({ ...formData, roles: [...currentRoles, role] })
+    }
+  }
+
+  // Filter reps based on selected role filter
+  const filteredReps = roleFilter
+    ? reps.filter(rep => {
+        const repRoles = rep.roles || (rep.role ? [rep.role] : [])
+        return Array.isArray(repRoles) ? repRoles.includes(roleFilter) : repRoles === roleFilter
+      })
+    : reps
 
   if (loading) {
     return <div className="loading">Loading reps...</div>
@@ -160,16 +181,19 @@ function Reps() {
                 />
               </div>
               <div className="form-group">
-                <label>Role *</label>
-                <select
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  required
-                >
+                <label>Roles *</label>
+                <div className="role-checkboxes">
                   {ROLE_OPTIONS.map(role => (
-                    <option key={role} value={role}>{role}</option>
+                    <label key={role} className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={formData.roles.includes(role)}
+                        onChange={() => handleRoleToggle(role)}
+                      />
+                      <span>{role}</span>
+                    </label>
                   ))}
-                </select>
+                </div>
               </div>
               <div className="form-group">
                 <label>Email</label>
@@ -203,50 +227,66 @@ function Reps() {
         </div>
       )}
 
-      <div className="reps-by-role">
-        {repsByRole.map(({ role, reps: roleReps }) => (
-          <div key={role} className="role-section">
-            <h2>{role} ({roleReps.length})</h2>
-            {roleReps.length === 0 ? (
-              <p className="no-reps">No reps in this role</p>
-            ) : (
-              <div className="reps-list">
-                {roleReps.map(rep => (
-                  <div key={rep.id} className="rep-card">
-                    <div className="rep-info">
-                      <h3>{rep.name}</h3>
-                      <span className="rep-role">{rep.role}</span>
-                      {rep.email && (
-                        <div className="rep-contact">
-                          <strong>Email:</strong> {rep.email}
-                        </div>
-                      )}
-                      {rep.phone && (
-                        <div className="rep-contact">
-                          <strong>Phone:</strong> {rep.phone}
-                        </div>
-                      )}
+      <div className="card">
+        <div className="reps-filter">
+          <label>Filter by Role:</label>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+          >
+            <option value="">All Roles</option>
+            {ROLE_OPTIONS.map(role => (
+              <option key={role} value={role}>{role}</option>
+            ))}
+          </select>
+        </div>
+        
+        <div className="reps-list">
+          {filteredReps.length === 0 ? (
+            <p className="no-reps">No reps found</p>
+          ) : (
+            filteredReps.map(rep => {
+              const repRoles = rep.roles || (rep.role ? [rep.role] : [])
+              const displayRoles = Array.isArray(repRoles) ? repRoles : [repRoles]
+              return (
+                <div key={rep.id} className="rep-card">
+                  <div className="rep-info">
+                    <h3>{rep.name}</h3>
+                    <div className="rep-roles">
+                      {displayRoles.map((role, idx) => (
+                        <span key={idx} className="rep-role-badge">{role}</span>
+                      ))}
                     </div>
-                    <div className="rep-actions">
-                      <button 
-                        className="btn-secondary" 
-                        onClick={() => handleEdit(rep)}
-                      >
-                        Edit
-                      </button>
-                      <button 
-                        className="btn-danger" 
-                        onClick={() => handleDelete(rep)}
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    {rep.email && (
+                      <div className="rep-contact">
+                        <strong>Email:</strong> {rep.email}
+                      </div>
+                    )}
+                    {rep.phone && (
+                      <div className="rep-contact">
+                        <strong>Phone:</strong> {rep.phone}
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+                  <div className="rep-actions">
+                    <button 
+                      className="btn-secondary" 
+                      onClick={() => handleEdit(rep)}
+                    >
+                      Edit
+                    </button>
+                    <button 
+                      className="btn-danger" 
+                      onClick={() => handleDelete(rep)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
       </div>
     </div>
   )

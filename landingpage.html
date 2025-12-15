@@ -169,6 +169,62 @@
       border-color: #1a365d;
     }
     
+    /* Text Input Styles */
+    .quiz-input {
+      width: 100%;
+      padding: 1rem;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: inherit;
+      margin-bottom: 1rem;
+      transition: border-color 0.3s ease;
+    }
+    
+    .quiz-input:focus {
+      outline: none;
+      border-color: #1a365d;
+    }
+    
+    .quiz-subtext {
+      font-size: 0.85rem;
+      color: #666;
+      margin-top: -0.5rem;
+      margin-bottom: 1rem;
+      line-height: 1.4;
+    }
+    
+    .quiz-form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .quiz-submit-btn {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      background: #f97316;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      font-family: inherit;
+      margin-top: 0.5rem;
+    }
+    
+    .quiz-submit-btn:hover {
+      background: #ea580c;
+    }
+    
+    .quiz-submit-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
     /* Close Button */
     .quiz-close {
       position: absolute;
@@ -215,6 +271,10 @@
       .quiz-btn {
         width: 100%;
       }
+      
+      .quiz-form-row {
+        grid-template-columns: 1fr;
+      }
     }
     
     /* Hide quiz initially if needed */
@@ -234,8 +294,7 @@
       
       <!-- Logo -->
       <div class="quiz-logo">
-        <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/PeakFloorCoating-1000x250-NoBack.png?raw=true" alt="Peak Floor Coating" style="max-width: 200px; height: auto; margin-bottom: 0.5rem;">
-        <div class="logo-subtext">Premium Floor Coatings</div>
+        <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/PeakFloorCoating-1000x250-NoBack.png?raw=true" alt="Peak Floor Coating" style="max-width: 280px; height: auto; margin-bottom: 0.5rem;">
       </div>
       
       <!-- Headline -->
@@ -250,18 +309,61 @@
       
       <!-- Question -->
       <div class="quiz-question" id="questionText">Are you a homeowner?</div>
+      <div class="quiz-subtext" id="questionSubtext"></div>
       
-      <!-- Answer Buttons -->
-      <div class="quiz-answers">
-        <button class="quiz-btn" onclick="selectAnswer('yes')">Yes</button>
-        <button class="quiz-btn" onclick="selectAnswer('no')">No</button>
+      <!-- Answer Buttons/Inputs Container -->
+      <div id="answerContainer">
+        <div class="quiz-answers">
+          <button class="quiz-btn" onclick="selectAnswer('yes')">Yes</button>
+          <button class="quiz-btn" onclick="selectAnswer('no')">No</button>
+        </div>
       </div>
     </div>
   </div>
   
   <script>
     let currentQuestion = 1;
-    const totalQuestions = 5; // Adjust based on your quiz length
+    const totalQuestions = 7;
+    const quizAnswers = {};
+    
+    const questions = [
+      {
+        question: 'Are you a homeowner?',
+        type: 'yesno',
+        answers: ['Yes', 'No']
+      },
+      {
+        question: 'What floor are you upgrading?',
+        type: 'multiple',
+        answers: ['Garage', 'Basement', 'Patio', 'Other']
+      },
+      {
+        question: 'When would you like your floors completed?',
+        type: 'multiple',
+        answers: ['ASAP', 'Within a month', 'Within 3 months', 'Not sure']
+      },
+      {
+        question: 'What do you want most in your new floors?',
+        type: 'multiple',
+        answers: ['Upgrade look', 'Increase value', 'Make tougher']
+      },
+      {
+        question: 'What is the location of this project?',
+        subtext: 'Please make sure your address is full and correct so we can confirm you are within our service area',
+        type: 'text',
+        placeholder: 'Enter full address'
+      },
+      {
+        question: 'Who will we be making this quote out to?',
+        type: 'name',
+        fields: ['First Name', 'Last Name']
+      },
+      {
+        question: 'Where can we reach you with your quote?',
+        type: 'contact',
+        fields: ['Phone', 'Email']
+      }
+    ];
     
     function updateProgress() {
       const progress = (currentQuestion / totalQuestions) * 100;
@@ -269,6 +371,9 @@
     }
     
     function selectAnswer(answer) {
+      // Store answer
+      quizAnswers[`question${currentQuestion}`] = answer;
+      
       // Remove selected class from all buttons
       const buttons = document.querySelectorAll('.quiz-btn');
       buttons.forEach(btn => btn.classList.remove('selected'));
@@ -276,52 +381,183 @@
       // Add selected class to clicked button
       event.target.classList.add('selected');
       
-      // Store answer (you can customize this)
-      console.log('Question', currentQuestion, 'Answer:', answer);
-      
       // Move to next question after a short delay
       setTimeout(() => {
         currentQuestion++;
         updateProgress();
         
         if (currentQuestion <= totalQuestions) {
-          // Update question text (you can customize questions here)
           updateQuestion();
         } else {
-          // Quiz complete - redirect or show form
-          window.location.href = 'contact.html';
+          // Quiz complete - submit or redirect
+          submitQuiz();
         }
       }, 300);
     }
     
-    function updateQuestion() {
-      const questions = [
-        'Are you a homeowner?',
-        'What type of space needs coating?',
-        'What is your zip code?',
-        'When are you looking to get started?',
-        'What is your budget range?'
-      ];
+    function handleTextInput() {
+      const input = document.getElementById('textInput');
+      const value = input.value.trim();
       
-      if (currentQuestion <= questions.length) {
-        document.getElementById('questionText').textContent = questions[currentQuestion - 1];
-        
-        // Reset button states
-        const buttons = document.querySelectorAll('.quiz-btn');
-        buttons.forEach(btn => btn.classList.remove('selected'));
-        
-        // Update button text based on question (customize as needed)
-        if (currentQuestion === 2) {
-          buttons[0].textContent = 'Garage';
-          buttons[1].textContent = 'Other';
-        } else if (currentQuestion === 3) {
-          buttons[0].textContent = 'Enter Zip';
-          buttons[1].textContent = 'Skip';
-        } else {
-          buttons[0].textContent = 'Yes';
-          buttons[1].textContent = 'No';
-        }
+      if (value) {
+        quizAnswers[`question${currentQuestion}`] = value;
+        setTimeout(() => {
+          currentQuestion++;
+          updateProgress();
+          if (currentQuestion <= totalQuestions) {
+            updateQuestion();
+          } else {
+            submitQuiz();
+          }
+        }, 300);
       }
+    }
+    
+    function handleNameInput() {
+      const firstName = document.getElementById('firstName').value.trim();
+      const lastName = document.getElementById('lastName').value.trim();
+      
+      if (firstName && lastName) {
+        quizAnswers[`question${currentQuestion}_firstName`] = firstName;
+        quizAnswers[`question${currentQuestion}_lastName`] = lastName;
+        setTimeout(() => {
+          currentQuestion++;
+          updateProgress();
+          if (currentQuestion <= totalQuestions) {
+            updateQuestion();
+          } else {
+            submitQuiz();
+          }
+        }, 300);
+      }
+    }
+    
+    function handleContactInput() {
+      const phone = document.getElementById('phone').value.trim();
+      const email = document.getElementById('email').value.trim();
+      
+      if (phone && email) {
+        quizAnswers[`question${currentQuestion}_phone`] = phone;
+        quizAnswers[`question${currentQuestion}_email`] = email;
+        setTimeout(() => {
+          currentQuestion++;
+          updateProgress();
+          if (currentQuestion <= totalQuestions) {
+            updateQuestion();
+          } else {
+            submitQuiz();
+          }
+        }, 300);
+      }
+    }
+    
+    function updateQuestion() {
+      const questionData = questions[currentQuestion - 1];
+      const questionText = document.getElementById('questionText');
+      const questionSubtext = document.getElementById('questionSubtext');
+      const answerContainer = document.getElementById('answerContainer');
+      
+      questionText.textContent = questionData.question;
+      questionSubtext.textContent = questionData.subtext || '';
+      questionSubtext.style.display = questionData.subtext ? 'block' : 'none';
+      
+      // Clear previous answers
+      answerContainer.innerHTML = '';
+      
+      if (questionData.type === 'yesno' || questionData.type === 'multiple') {
+        const answersDiv = document.createElement('div');
+        answersDiv.className = 'quiz-answers';
+        
+        questionData.answers.forEach((answer, index) => {
+          const btn = document.createElement('button');
+          btn.className = 'quiz-btn';
+          btn.textContent = answer;
+          btn.onclick = () => selectAnswer(answer);
+          answersDiv.appendChild(btn);
+        });
+        
+        answerContainer.appendChild(answersDiv);
+      } else if (questionData.type === 'text') {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'textInput';
+        input.className = 'quiz-input';
+        input.placeholder = questionData.placeholder || '';
+        input.onkeypress = (e) => {
+          if (e.key === 'Enter') {
+            handleTextInput();
+          }
+        };
+        
+        const submitBtn = document.createElement('button');
+        submitBtn.className = 'quiz-submit-btn';
+        submitBtn.textContent = 'Continue';
+        submitBtn.onclick = handleTextInput;
+        
+        answerContainer.appendChild(input);
+        answerContainer.appendChild(submitBtn);
+      } else if (questionData.type === 'name') {
+        const formRow = document.createElement('div');
+        formRow.className = 'quiz-form-row';
+        
+        const firstNameInput = document.createElement('input');
+        firstNameInput.type = 'text';
+        firstNameInput.id = 'firstName';
+        firstNameInput.className = 'quiz-input';
+        firstNameInput.placeholder = 'First Name';
+        
+        const lastNameInput = document.createElement('input');
+        lastNameInput.type = 'text';
+        lastNameInput.id = 'lastName';
+        lastNameInput.className = 'quiz-input';
+        lastNameInput.placeholder = 'Last Name';
+        
+        formRow.appendChild(firstNameInput);
+        formRow.appendChild(lastNameInput);
+        
+        const submitBtn = document.createElement('button');
+        submitBtn.className = 'quiz-submit-btn';
+        submitBtn.textContent = 'Continue';
+        submitBtn.onclick = handleNameInput;
+        
+        answerContainer.appendChild(formRow);
+        answerContainer.appendChild(submitBtn);
+      } else if (questionData.type === 'contact') {
+        const phoneInput = document.createElement('input');
+        phoneInput.type = 'tel';
+        phoneInput.id = 'phone';
+        phoneInput.className = 'quiz-input';
+        phoneInput.placeholder = 'Phone Number';
+        
+        const emailInput = document.createElement('input');
+        emailInput.type = 'email';
+        emailInput.id = 'email';
+        emailInput.className = 'quiz-input';
+        emailInput.placeholder = 'Email Address';
+        
+        const submitBtn = document.createElement('button');
+        submitBtn.className = 'quiz-submit-btn';
+        submitBtn.textContent = 'Get My Free Quote';
+        submitBtn.onclick = handleContactInput;
+        
+        answerContainer.appendChild(phoneInput);
+        answerContainer.appendChild(emailInput);
+        answerContainer.appendChild(submitBtn);
+      }
+    }
+    
+    function submitQuiz() {
+      // Store all answers in localStorage or send to server
+      console.log('Quiz Answers:', quizAnswers);
+      
+      // Build query string for redirect
+      const params = new URLSearchParams();
+      Object.keys(quizAnswers).forEach(key => {
+        params.append(key, quizAnswers[key]);
+      });
+      
+      // Redirect to contact page with answers
+      window.location.href = 'contact.html?' + params.toString();
     }
     
     function closeQuiz() {
@@ -331,7 +567,7 @@
     // Initialize progress bar
     updateProgress();
     
-    // Optional: Show quiz after page load with a slight delay
+    // Show quiz after page load with a slight delay
     window.addEventListener('load', function() {
       setTimeout(() => {
         document.getElementById('quizOverlay').style.display = 'flex';

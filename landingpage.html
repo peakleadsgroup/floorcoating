@@ -509,12 +509,17 @@
         .color-slider-track {
             display: flex;
             will-change: transform;
+            transition: transform 0.1s ease-out;
         }
         .color-slider-track.scrolling {
             animation: scrollColors 30s linear infinite;
         }
         .color-slider-track.paused {
             animation-play-state: paused;
+        }
+        .color-slider-track.dragging {
+            transition: none;
+            animation: none;
         }
         .color-slider-track.fast-forward {
             animation: scrollColors 10s linear infinite;
@@ -596,31 +601,10 @@
         .slider-arrow:active {
             transform: scale(0.95);
         }
-        .slider-dots {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            align-items: center;
-            flex-wrap: wrap;
-            max-width: 300px;
-        }
         @media (max-width: 768px) {
             .slider-arrow {
                 display: none;
             }
-        }
-        .slider-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #ccc;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .slider-dot.active {
-            background: #4CAF50;
-            transform: scale(1.2);
         }
         @media (max-width: 600px) {
             .form-container {
@@ -868,7 +852,6 @@
         </div>
         <div class="slider-controls">
             <button class="slider-arrow" id="prevColorBtn" aria-label="Previous color">‹</button>
-            <div class="slider-dots" id="colorDots"></div>
             <button class="slider-arrow" id="nextColorBtn" aria-label="Next color">›</button>
         </div>
     </div>
@@ -1835,16 +1818,15 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
 
         function initColorSlider() {
             const sliderTrack = document.getElementById('colorSliderTrack');
-            const dotsContainer = document.getElementById('colorDots');
+            sliderContainer = document.getElementById('colorSliderContainer');
             
-            if (!sliderTrack || !dotsContainer) {
+            if (!sliderTrack || !sliderContainer) {
                 console.error('Color slider elements not found');
                 return;
             }
             
             // Clear any existing content
             sliderTrack.innerHTML = '';
-            dotsContainer.innerHTML = '';
             
             // Create slides - duplicate the array for seamless infinite scroll
             const allColors = [...colorImages, ...colorImages];
@@ -1857,21 +1839,11 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                     <img src="${color.url}" alt="${color.name}" class="color-image">
                     <div class="color-name">${color.name}</div>
                 `;
-                slide.onclick = () => pauseOnColorClick(index % colorImages.length);
                 sliderTrack.appendChild(slide);
             });
             
-            // Create dots for each unique color
-            colorImages.forEach((color, index) => {
-                const dot = document.createElement('button');
-                dot.className = 'slider-dot';
-                dot.setAttribute('aria-label', `Go to ${color.name}`);
-                dot.onclick = () => pauseOnColorClick(index);
-                dotsContainer.appendChild(dot);
-            });
-            
-            // Ensure scrolling class is applied
-            sliderTrack.classList.remove('paused', 'fast-forward', 'reverse');
+            // Ensure scrolling class is applied initially
+            sliderTrack.classList.remove('paused', 'fast-forward', 'reverse', 'dragging');
             sliderTrack.classList.add('scrolling');
             
             // Set up arrow buttons for desktop
@@ -1885,12 +1857,99 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                 nextBtn.onclick = () => speedUpForward();
             }
             
-            // Set up touch events for mobile swipe
-            const sliderContainer = document.getElementById('colorSliderContainer');
-            if (sliderContainer) {
-                sliderContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
-                sliderContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
+            // Set up drag handlers after layout
+            setTimeout(() => {
+                const slideWidth = sliderTrack.offsetWidth / 2.5; // Show 2.5 slides at once
+                
+                // Mouse events for desktop drag
+                sliderContainer.addEventListener('mousedown', (e) => handleDragStart(e, sliderTrack, slideWidth));
+                sliderContainer.addEventListener('mousemove', (e) => handleDragMove(e, sliderTrack, slideWidth));
+                sliderContainer.addEventListener('mouseup', () => handleDragEnd(sliderTrack));
+                sliderContainer.addEventListener('mouseleave', () => handleDragEnd(sliderTrack));
+                
+                // Touch events for mobile drag
+                sliderContainer.addEventListener('touchstart', (e) => handleDragStart(e, sliderTrack, slideWidth), { passive: false });
+                sliderContainer.addEventListener('touchmove', (e) => handleDragMove(e, sliderTrack, slideWidth), { passive: false });
+                sliderContainer.addEventListener('touchend', () => handleDragEnd(sliderTrack));
+            }, 100);
+            
+            // Mouse events for desktop drag
+            sliderContainer.addEventListener('mousedown', (e) => handleDragStart(e, sliderTrack, slideWidth));
+            sliderContainer.addEventListener('mousemove', (e) => handleDragMove(e, sliderTrack, slideWidth));
+            sliderContainer.addEventListener('mouseup', () => handleDragEnd(sliderTrack));
+            sliderContainer.addEventListener('mouseleave', () => handleDragEnd(sliderTrack));
+            
+            // Touch events for mobile drag
+            sliderContainer.addEventListener('touchstart', (e) => handleDragStart(e, sliderTrack, slideWidth), { passive: false });
+            sliderContainer.addEventListener('touchmove', (e) => handleDragMove(e, sliderTrack, slideWidth), { passive: false });
+            sliderContainer.addEventListener('touchend', () => handleDragEnd(sliderTrack));
+            
+            // Prevent image drag
+            sliderTrack.querySelectorAll('img').forEach(img => {
+                img.addEventListener('dragstart', (e) => e.preventDefault());
+            });
+        }
+
+        function handleDragStart(e, sliderTrack, slideWidth) {
+            isDragging = true;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            dragStartX = clientX;
+            
+            // Get current transform
+            const style = window.getComputedStyle(sliderTrack);
+            const matrix = new DOMMatrix(style.transform);
+            currentTranslateX = matrix.m41;
+            baseTranslateX = currentTranslateX;
+            
+            // Pause animation and enable dragging
+            sliderTrack.classList.add('dragging', 'paused');
+            sliderContainer.classList.add('dragging');
+            
+            e.preventDefault();
+        }
+
+        function handleDragMove(e, sliderTrack, slideWidth) {
+            if (!isDragging) return;
+            
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const diffX = clientX - dragStartX;
+            const newTranslateX = baseTranslateX + diffX;
+            
+            // Calculate total width
+            const totalWidth = slideWidth * colorImages.length;
+            
+            // Handle infinite scroll wrapping
+            let finalTranslateX = newTranslateX;
+            if (finalTranslateX > 0) {
+                finalTranslateX = finalTranslateX - totalWidth;
+            } else if (finalTranslateX < -totalWidth) {
+                finalTranslateX = finalTranslateX + totalWidth;
             }
+            
+            // Apply transform in real-time
+            sliderTrack.style.transform = `translateX(${finalTranslateX}px)`;
+            
+            e.preventDefault();
+        }
+
+        function handleDragEnd(sliderTrack) {
+            if (!isDragging) return;
+            
+            isDragging = false;
+            sliderTrack.classList.remove('dragging');
+            sliderContainer.classList.remove('dragging');
+            
+            // Get final position
+            const style = window.getComputedStyle(sliderTrack);
+            const matrix = new DOMMatrix(style.transform);
+            currentTranslateX = matrix.m41;
+            
+            // Resume scrolling animation
+            sliderTrack.classList.remove('paused');
+            sliderTrack.style.transform = '';
+            
+            // Reset to normal scrolling
+            resetSpeed();
         }
 
         function pauseOnColorClick(colorIndex) {
@@ -1901,11 +1960,6 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             
             // Pause the animation
             sliderTrack.classList.add('paused');
-            
-            // Update active dot
-            document.querySelectorAll('.slider-dot').forEach((dot, i) => {
-                dot.classList.toggle('active', i === colorIndex);
-            });
             
             // Resume scrolling after 3 seconds
             setTimeout(() => {
@@ -1950,29 +2004,6 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             }
         }
 
-        function handleTouchStart(e) {
-            touchStartX = e.changedTouches[0].screenX;
-        }
-
-        function handleTouchEnd(e) {
-            touchEndX = e.changedTouches[0].screenX;
-            handleSwipe();
-        }
-
-        function handleSwipe() {
-            const swipeThreshold = 50; // Minimum distance for a swipe
-            const diff = touchStartX - touchEndX;
-            
-            if (Math.abs(diff) > swipeThreshold) {
-                if (diff > 0) {
-                    // Swipe left - speed up forward
-                    speedUpForward();
-                } else {
-                    // Swipe right - reverse/backwards
-                    speedUpReverse();
-                }
-            }
-        }
 
         // Initialize color slider when page loads
         if (document.readyState === 'loading') {

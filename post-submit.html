@@ -23,6 +23,19 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), 
+                        url('https://github.com/peakleadsgroup/floorcoating/blob/main/images/1-HomePage.png?raw=true') center/cover no-repeat;
+            z-index: -1;
+            display: none;
         }
         .content-wrapper {
             display: flex;
@@ -170,12 +183,15 @@
         }
         @media (max-width: 600px) {
             body {
+                background: transparent;
+            }
+            body::before {
+                display: block;
                 background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), 
                             url('https://github.com/peakleadsgroup/floorcoating/blob/main/images/20251215_1506_Garage%20Interior%20Background_remix_01kchstc5jefavg6t82g3asvdm.png?raw=true');
                 background-size: cover;
                 background-position: center center;
                 background-repeat: no-repeat;
-                background-attachment: fixed;
             }
             .congrats-header {
                 font-size: 26px;

@@ -2435,29 +2435,12 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                     body: JSON.stringify(webhookData),
                     mode: 'no-cors'
                 }).finally(() => {
-                    // Route based on REDIRECT_MODE configuration
-                    if (REDIRECT_MODE === 'phone') {
-                        showContactScreen();
-                    } else if (REDIRECT_MODE === 'calendar') {
-                        showCalendarScreen();
-                    } else if (REDIRECT_MODE === 'none') {
-                        showConfirmationScreen();
-                    } else {
-                        // Default to external calendar redirect
-                        redirectToCalendar();
-                    }
+                    // Redirect to post-submit page
+                    window.location.href = 'post-submit.html';
                 });
             } else {
-                // No webhook configured, just show confirmation
-                if (REDIRECT_MODE === 'phone') {
-                    showContactScreen();
-                } else if (REDIRECT_MODE === 'calendar') {
-                    showCalendarScreen();
-                } else if (REDIRECT_MODE === 'none') {
-                    showConfirmationScreen();
-                } else {
-                    redirectToCalendar();
-                }
+                // No webhook configured, redirect to post-submit page
+                window.location.href = 'post-submit.html';
             }
         }
 
@@ -2750,26 +2733,12 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                     body: JSON.stringify(webhookData),
                     mode: 'no-cors'
                 }).finally(() => {
-                    if (REDIRECT_MODE === 'phone') {
-                        showContactScreenBottom();
-                    } else if (REDIRECT_MODE === 'calendar') {
-                        showCalendarScreenBottom();
-                    } else if (REDIRECT_MODE === 'none') {
-                        showConfirmationScreenBottom();
-                    } else {
-                        redirectToCalendarBottom();
-                    }
+                    // Redirect to post-submit page
+                    window.location.href = 'post-submit.html';
                 });
             } else {
-                if (REDIRECT_MODE === 'phone') {
-                    showContactScreenBottom();
-                } else if (REDIRECT_MODE === 'calendar') {
-                    showCalendarScreenBottom();
-                } else if (REDIRECT_MODE === 'none') {
-                    showConfirmationScreenBottom();
-                } else {
-                    redirectToCalendarBottom();
-                }
+                // No webhook configured, redirect to post-submit page
+                window.location.href = 'post-submit.html';
             }
         }
 
@@ -4165,7 +4134,7 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             const zip = document.getElementById('zipCodeInput').value.trim();
             
             // Validate
-            if (!name || !phone || !email) {
+            if (!firstName || !lastName || !phone || !email) {
                 alert('Please fill in all fields');
                 return;
             }
@@ -4194,14 +4163,14 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                     },
                     body: JSON.stringify(quoteData),
                     mode: 'no-cors'
+                }).finally(() => {
+                    // Redirect to post-submit page
+                    window.location.href = 'post-submit.html';
                 });
+            } else {
+                // No webhook configured, redirect to post-submit page
+                window.location.href = 'post-submit.html';
             }
-            
-            // Show success message or redirect
-            alert('Thank you! We\'ll reach out to you soon with your quote.');
-            
-            // Optionally redirect or show thank you message
-            // window.location.href = 'contact.html';
         }
 
         // Allow Enter key to submit zip code

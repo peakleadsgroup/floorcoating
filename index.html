@@ -156,7 +156,22 @@
     .instagram h2 { font-size:3rem; margin-bottom:1rem; color:#1a365d; }
     .instagram p { font-size:1.2rem; color:#666; margin-bottom:2rem; }
     .instagram-handle { font-size:1.3rem; font-weight:700; color:#1a365d; margin-bottom:3rem; }
-    .instagram-widget { background:white; padding:3rem; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.1); min-height:400px; display:flex; align-items:center; justify-content:center; }
+    .instagram-widget {
+      background:white;
+      padding:1.5rem;
+      border-radius:12px;
+      box-shadow:0 4px 20px rgba(0,0,0,0.1);
+      max-width:900px;
+      margin:0 auto;
+      overflow:hidden;
+    }
+    .instagram-widget iframe {
+      border:none;
+      width:100%;
+      height:600px;
+      border-radius:8px;
+      overflow:hidden;
+    }
     .instagram-widget-placeholder { color:#999; font-size:1.1rem; }
     
     /* Final CTA */
@@ -590,7 +605,6 @@
           src="https://www.instagram.com/peakfloorcoating/embed"
           title="Peak Floor Coating Instagram feed"
           loading="lazy"
-          style="border:none; width:100%; max-width:800px; height:500px; overflow:hidden;"
         ></iframe>
       </div>
       <a href="https://instagram.com/peakfloorcoating" target="_blank" class="service-cta" style="margin-top:2rem;">Follow Us on Instagram</a>

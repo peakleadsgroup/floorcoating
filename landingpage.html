@@ -494,7 +494,7 @@
             width: 100%;
         }
         .color-gallery-title {
-            font-size: 22px;
+            font-size: 24px;
             color: #2c3e50;
             margin-bottom: 20px;
             text-align: center;
@@ -617,7 +617,7 @@
             width: 100%;
         }
         .reviews-title {
-            font-size: 22px;
+            font-size: 24px;
             color: #2c3e50;
             margin-bottom: 20px;
             text-align: center;
@@ -725,7 +725,7 @@
             text-align: center;
         }
         .zip-checker-title {
-            font-size: 22px;
+            font-size: 24px;
             color: #2c3e50;
             margin-bottom: 20px;
             font-weight: bold;
@@ -943,7 +943,7 @@
                 padding: 25px 15px;
             }
             .color-gallery-title {
-                font-size: 20px;
+                font-size: 24px;
             }
             .color-image {
                 height: 180px;
@@ -2683,16 +2683,6 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             sliderTrack.style.transition = 'none'; // Remove transition for instant response
             sliderTrack.style.transform = `translateX(${currentX}px)`; // Set explicit position
             
-            if (reviewsSliderContainer) {
-                reviewsSliderContainer.classList.add('dragging');
-            }
-            
-            e.preventDefault();
-        }
-            e.preventDefault();
-            
-            sliderTrack.classList.add('dragging', 'paused');
-            sliderTrack.style.transition = 'none';
             if (reviewsSliderContainer) {
                 reviewsSliderContainer.classList.add('dragging');
             }

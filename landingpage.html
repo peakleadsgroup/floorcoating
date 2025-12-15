@@ -36,7 +36,8 @@
         body {
             font-family: 'Arial', sans-serif;
             background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), 
-                        url('https://github.com/peakleadsgroup/floorcoating/blob/main/images/1-HomePage.png?raw=true') center/cover no-repeat fixed;
+                        url('https://github.com/peakleadsgroup/floorcoating/blob/main/images/1-HomePage.png?raw=true') center/cover no-repeat;
+            background-attachment: fixed;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -1036,6 +1037,9 @@
             }
         }
         @media (max-width: 600px) {
+            body {
+                background-attachment: scroll;
+            }
             .form-container {
                 padding: 25px;
                 margin: 10px;
@@ -1048,7 +1052,12 @@
                 font-size: 24px;
             }
             .color-image {
+                width: 180px;
                 height: 180px;
+                object-fit: cover;
+            }
+            .color-slide {
+                min-width: 180px;
             }
             .color-name {
                 font-size: 16px;

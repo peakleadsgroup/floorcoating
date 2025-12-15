@@ -15,7 +15,8 @@
         body {
             font-family: 'Arial', sans-serif;
             background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), 
-                        url('https://github.com/peakleadsgroup/floorcoating/blob/main/images/1-HomePage.png?raw=true') center/cover no-repeat fixed;
+                        url('https://github.com/peakleadsgroup/floorcoating/blob/main/images/1-HomePage.png?raw=true') center/cover no-repeat;
+            background-attachment: fixed;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -168,6 +169,9 @@
             height: 24px;
         }
         @media (max-width: 600px) {
+            body {
+                background-attachment: scroll;
+            }
             .congrats-header {
                 font-size: 26px;
             }

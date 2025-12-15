@@ -527,12 +527,17 @@
         .color-slider-track.reverse {
             animation: scrollColorsReverse 30s linear infinite;
         }
+        /* Seamless loop - when animation completes, it instantly resets to start */
+        .color-slider-track.scrolling,
+        .color-slider-track.fast-forward {
+            animation-fill-mode: none;
+        }
         @keyframes scrollColors {
             0% {
-                transform: translateX(var(--drag-offset, 0));
+                transform: translateX(0);
             }
             100% {
-                transform: translateX(calc(-50% + var(--drag-offset, 0)));
+                transform: translateX(-50%);
             }
         }
         @keyframes scrollColorsReverse {
@@ -1884,6 +1889,14 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
 
         function handleDragStart(e, sliderTrack) {
             isDragging = true;
+            isManualScrolling = false;
+            
+            // Stop any manual scrolling
+            if (manualScrollAnimationId) {
+                cancelAnimationFrame(manualScrollAnimationId);
+                manualScrollAnimationId = null;
+            }
+            
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             dragStartX = clientX;
             
@@ -1908,6 +1921,7 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             
             // Pause animation and enable dragging
             sliderTrack.classList.add('dragging', 'paused');
+            sliderTrack.style.transition = 'none'; // Remove transition for instant response
             if (sliderContainer) {
                 sliderContainer.classList.add('dragging');
             }
@@ -1923,28 +1937,37 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             const diffX = clientX - dragStartX;
             const newTranslateX = baseTranslateX + diffX;
             
-            // Calculate total width
+            // Calculate total width (one set of images)
             const totalWidth = slideWidth * colorImages.length;
             
-            // Handle infinite scroll wrapping
+            // Handle infinite scroll wrapping - seamless loop
             let finalTranslateX = newTranslateX;
-            if (finalTranslateX > 0) {
-                finalTranslateX = finalTranslateX - totalWidth;
-            } else if (finalTranslateX < -totalWidth) {
+            
+            // If we go past the end (50% point), reset to beginning seamlessly
+            if (finalTranslateX <= -totalWidth) {
                 finalTranslateX = finalTranslateX + totalWidth;
+                baseTranslateX = finalTranslateX;
+                dragStartX = clientX;
+            }
+            // If we go before the start, wrap to end
+            else if (finalTranslateX > 0) {
+                finalTranslateX = finalTranslateX - totalWidth;
+                baseTranslateX = finalTranslateX;
+                dragStartX = clientX;
             }
             
             // Store current position
             currentTranslateX = finalTranslateX;
             
-            // Apply transform in real-time
+            // Apply transform immediately for smooth dragging
             sliderTrack.style.transform = `translateX(${finalTranslateX}px)`;
             
             e.preventDefault();
         }
 
-        let manualScrollInterval = null;
+        let manualScrollAnimationId = null;
         let manualScrollPosition = 0;
+        let isManualScrolling = false;
 
         function handleDragEnd(sliderTrack) {
             if (!isDragging) return;
@@ -1960,29 +1983,52 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             const slideWidth = parseFloat(sliderTrack.dataset.slideWidth) || (sliderTrack.offsetWidth / 2.5);
             const totalWidth = slideWidth * colorImages.length;
             
-            // Normalize to one cycle range
+            // Normalize to one cycle range (0 to -totalWidth)
             let normalizedX = finalX;
-            while (normalizedX <= -totalWidth) normalizedX += totalWidth;
-            while (normalizedX > 0) normalizedX -= totalWidth;
-            
-            // Store current position and start manual scrolling from here
-            manualScrollPosition = normalizedX;
-            
-            // Stop any existing manual scroll
-            if (manualScrollInterval) {
-                clearInterval(manualScrollInterval);
+            while (normalizedX <= -totalWidth) {
+                normalizedX += totalWidth;
+            }
+            while (normalizedX > 0) {
+                normalizedX -= totalWidth;
             }
             
-            // Remove animation classes
+            // Store current position
+            manualScrollPosition = normalizedX;
+            
+            // Stop any existing animations
+            if (manualScrollAnimationId) {
+                cancelAnimationFrame(manualScrollAnimationId);
+            }
+            
+            // Remove all animation classes
             sliderTrack.classList.remove('paused', 'scrolling', 'fast-forward', 'reverse');
             
-            // Start manual scrolling from current position
-            const scrollSpeed = 0.5; // pixels per frame
-            const fps = 60;
-            const interval = 1000 / fps;
+            // Smoothly transition back to auto-scroll
+            isManualScrolling = true;
+            startManualScroll(sliderTrack, slideWidth, totalWidth);
+        }
+
+        function startManualScroll(sliderTrack, slideWidth, totalWidth) {
+            const scrollSpeed = 0.3; // pixels per frame (slower = smoother)
+            let lastTime = performance.now();
             
-            manualScrollInterval = setInterval(() => {
-                manualScrollPosition -= scrollSpeed;
+            function animate(currentTime) {
+                if (!isManualScrolling && !isDragging) {
+                    // Switch back to CSS animation after a short delay
+                    setTimeout(() => {
+                        sliderTrack.style.transform = '';
+                        sliderTrack.classList.add('scrolling');
+                        resetSpeed();
+                    }, 100);
+                    return;
+                }
+                
+                const deltaTime = currentTime - lastTime;
+                lastTime = currentTime;
+                
+                // Smooth scrolling based on time delta
+                const frameSpeed = scrollSpeed * (deltaTime / 16.67); // Normalize to 60fps
+                manualScrollPosition -= frameSpeed;
                 
                 // Wrap around when we reach the end
                 if (manualScrollPosition <= -totalWidth) {
@@ -1990,7 +2036,16 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                 }
                 
                 sliderTrack.style.transform = `translateX(${manualScrollPosition}px)`;
-            }, interval);
+                
+                manualScrollAnimationId = requestAnimationFrame(animate);
+            }
+            
+            manualScrollAnimationId = requestAnimationFrame(animate);
+            
+            // After 2 seconds, smoothly transition back to CSS animation
+            setTimeout(() => {
+                isManualScrolling = false;
+            }, 2000);
         }
 
         function pauseOnColorClick(colorIndex) {
@@ -2040,14 +2095,16 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             const sliderTrack = document.getElementById('colorSliderTrack');
             if (sliderTrack) {
                 // Stop manual scrolling if active
-                if (manualScrollInterval) {
-                    clearInterval(manualScrollInterval);
-                    manualScrollInterval = null;
+                if (manualScrollAnimationId) {
+                    cancelAnimationFrame(manualScrollAnimationId);
+                    manualScrollAnimationId = null;
                 }
+                isManualScrolling = false;
                 
-                sliderTrack.classList.remove('fast-forward', 'reverse', 'paused');
+                sliderTrack.classList.remove('fast-forward', 'reverse', 'paused', 'dragging');
                 sliderTrack.classList.add('scrolling');
                 sliderTrack.style.transform = '';
+                sliderTrack.style.transition = '';
                 isReversing = false;
             }
         }

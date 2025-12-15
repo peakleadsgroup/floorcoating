@@ -529,10 +529,10 @@
         }
         @keyframes scrollColors {
             0% {
-                transform: translateX(0);
+                transform: translateX(var(--drag-offset, 0));
             }
             100% {
-                transform: translateX(-50%);
+                transform: translateX(calc(-50% + var(--drag-offset, 0)));
             }
         }
         @keyframes scrollColorsReverse {
@@ -1861,28 +1861,20 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             setTimeout(() => {
                 const slideWidth = sliderTrack.offsetWidth / 2.5; // Show 2.5 slides at once
                 
+                // Store slideWidth for use in drag handlers
+                sliderTrack.dataset.slideWidth = slideWidth;
+                
                 // Mouse events for desktop drag
-                sliderContainer.addEventListener('mousedown', (e) => handleDragStart(e, sliderTrack, slideWidth));
-                sliderContainer.addEventListener('mousemove', (e) => handleDragMove(e, sliderTrack, slideWidth));
+                sliderContainer.addEventListener('mousedown', (e) => handleDragStart(e, sliderTrack));
+                sliderContainer.addEventListener('mousemove', (e) => handleDragMove(e, sliderTrack));
                 sliderContainer.addEventListener('mouseup', () => handleDragEnd(sliderTrack));
                 sliderContainer.addEventListener('mouseleave', () => handleDragEnd(sliderTrack));
                 
                 // Touch events for mobile drag
-                sliderContainer.addEventListener('touchstart', (e) => handleDragStart(e, sliderTrack, slideWidth), { passive: false });
-                sliderContainer.addEventListener('touchmove', (e) => handleDragMove(e, sliderTrack, slideWidth), { passive: false });
+                sliderContainer.addEventListener('touchstart', (e) => handleDragStart(e, sliderTrack), { passive: false });
+                sliderContainer.addEventListener('touchmove', (e) => handleDragMove(e, sliderTrack), { passive: false });
                 sliderContainer.addEventListener('touchend', () => handleDragEnd(sliderTrack));
             }, 100);
-            
-            // Mouse events for desktop drag
-            sliderContainer.addEventListener('mousedown', (e) => handleDragStart(e, sliderTrack, slideWidth));
-            sliderContainer.addEventListener('mousemove', (e) => handleDragMove(e, sliderTrack, slideWidth));
-            sliderContainer.addEventListener('mouseup', () => handleDragEnd(sliderTrack));
-            sliderContainer.addEventListener('mouseleave', () => handleDragEnd(sliderTrack));
-            
-            // Touch events for mobile drag
-            sliderContainer.addEventListener('touchstart', (e) => handleDragStart(e, sliderTrack, slideWidth), { passive: false });
-            sliderContainer.addEventListener('touchmove', (e) => handleDragMove(e, sliderTrack, slideWidth), { passive: false });
-            sliderContainer.addEventListener('touchend', () => handleDragEnd(sliderTrack));
             
             // Prevent image drag
             sliderTrack.querySelectorAll('img').forEach(img => {
@@ -1890,27 +1882,43 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             });
         }
 
-        function handleDragStart(e, sliderTrack, slideWidth) {
+        function handleDragStart(e, sliderTrack) {
             isDragging = true;
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             dragStartX = clientX;
             
-            // Get current transform
+            // Get current transform from computed style or inline style
             const style = window.getComputedStyle(sliderTrack);
-            const matrix = new DOMMatrix(style.transform);
-            currentTranslateX = matrix.m41;
-            baseTranslateX = currentTranslateX;
+            const transform = style.transform;
+            let currentX = 0;
+            
+            if (transform && transform !== 'none') {
+                const matrix = new DOMMatrix(transform);
+                currentX = matrix.m41;
+            } else if (sliderTrack.style.transform) {
+                // Parse from inline style
+                const match = sliderTrack.style.transform.match(/translateX\(([^)]+)\)/);
+                if (match) {
+                    currentX = parseFloat(match[1]);
+                }
+            }
+            
+            currentTranslateX = currentX;
+            baseTranslateX = currentX;
             
             // Pause animation and enable dragging
             sliderTrack.classList.add('dragging', 'paused');
-            sliderContainer.classList.add('dragging');
+            if (sliderContainer) {
+                sliderContainer.classList.add('dragging');
+            }
             
             e.preventDefault();
         }
 
-        function handleDragMove(e, sliderTrack, slideWidth) {
+        function handleDragMove(e, sliderTrack) {
             if (!isDragging) return;
             
+            const slideWidth = parseFloat(sliderTrack.dataset.slideWidth) || (sliderTrack.offsetWidth / 2.5);
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const diffX = clientX - dragStartX;
             const newTranslateX = baseTranslateX + diffX;
@@ -1926,30 +1934,63 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                 finalTranslateX = finalTranslateX + totalWidth;
             }
             
+            // Store current position
+            currentTranslateX = finalTranslateX;
+            
             // Apply transform in real-time
             sliderTrack.style.transform = `translateX(${finalTranslateX}px)`;
             
             e.preventDefault();
         }
 
+        let manualScrollInterval = null;
+        let manualScrollPosition = 0;
+
         function handleDragEnd(sliderTrack) {
             if (!isDragging) return;
             
             isDragging = false;
             sliderTrack.classList.remove('dragging');
-            sliderContainer.classList.remove('dragging');
+            if (sliderContainer) {
+                sliderContainer.classList.remove('dragging');
+            }
             
-            // Get final position
-            const style = window.getComputedStyle(sliderTrack);
-            const matrix = new DOMMatrix(style.transform);
-            currentTranslateX = matrix.m41;
+            // Get the final dragged position
+            const finalX = currentTranslateX;
+            const slideWidth = parseFloat(sliderTrack.dataset.slideWidth) || (sliderTrack.offsetWidth / 2.5);
+            const totalWidth = slideWidth * colorImages.length;
             
-            // Resume scrolling animation
-            sliderTrack.classList.remove('paused');
-            sliderTrack.style.transform = '';
+            // Normalize to one cycle range
+            let normalizedX = finalX;
+            while (normalizedX <= -totalWidth) normalizedX += totalWidth;
+            while (normalizedX > 0) normalizedX -= totalWidth;
             
-            // Reset to normal scrolling
-            resetSpeed();
+            // Store current position and start manual scrolling from here
+            manualScrollPosition = normalizedX;
+            
+            // Stop any existing manual scroll
+            if (manualScrollInterval) {
+                clearInterval(manualScrollInterval);
+            }
+            
+            // Remove animation classes
+            sliderTrack.classList.remove('paused', 'scrolling', 'fast-forward', 'reverse');
+            
+            // Start manual scrolling from current position
+            const scrollSpeed = 0.5; // pixels per frame
+            const fps = 60;
+            const interval = 1000 / fps;
+            
+            manualScrollInterval = setInterval(() => {
+                manualScrollPosition -= scrollSpeed;
+                
+                // Wrap around when we reach the end
+                if (manualScrollPosition <= -totalWidth) {
+                    manualScrollPosition += totalWidth;
+                }
+                
+                sliderTrack.style.transform = `translateX(${manualScrollPosition}px)`;
+            }, interval);
         }
 
         function pauseOnColorClick(colorIndex) {
@@ -1998,8 +2039,15 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
         function resetSpeed() {
             const sliderTrack = document.getElementById('colorSliderTrack');
             if (sliderTrack) {
+                // Stop manual scrolling if active
+                if (manualScrollInterval) {
+                    clearInterval(manualScrollInterval);
+                    manualScrollInterval = null;
+                }
+                
                 sliderTrack.classList.remove('fast-forward', 'reverse', 'paused');
                 sliderTrack.classList.add('scrolling');
+                sliderTrack.style.transform = '';
                 isReversing = false;
             }
         }

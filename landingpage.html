@@ -980,6 +980,10 @@
             flex-shrink: 0;
             border-radius: 12px;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
         }
         .gallery-slide img {
             width: 100%;
@@ -1075,12 +1079,20 @@
             .question {
                 font-size: 18px;
             }
-            .gallery-slide img {
-                object-fit: cover;
-                height: 300px;
-            }
             .gallery-slide {
                 min-width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            .gallery-slide img {
+                object-fit: contain;
+                width: 100%;
+                height: auto;
+                max-height: 300px;
+                display: block;
+            }
+            .gallery-slider-track {
+                gap: 0;
             }
         }
     </style>

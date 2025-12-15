@@ -30,12 +30,17 @@
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            right: 0;
+            bottom: 0;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
             background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), 
                         url('https://github.com/peakleadsgroup/floorcoating/blob/main/images/1-HomePage.png?raw=true') center/cover no-repeat;
             z-index: -1;
             display: none;
+            will-change: transform;
+            transform: translateZ(0);
         }
         .content-wrapper {
             display: flex;
@@ -192,6 +197,13 @@
                 background-size: cover;
                 background-position: center center;
                 background-repeat: no-repeat;
+                width: 100vw;
+                height: 100vh;
+                height: 100dvh;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
             }
             .congrats-header {
                 font-size: 26px;

@@ -511,10 +511,16 @@
             will-change: transform;
         }
         .color-slider-track.scrolling {
-            animation: scrollColors 60s linear infinite;
+            animation: scrollColors 30s linear infinite;
         }
         .color-slider-track.paused {
             animation-play-state: paused;
+        }
+        .color-slider-track.fast-forward {
+            animation: scrollColors 10s linear infinite;
+        }
+        .color-slider-track.reverse {
+            animation: scrollColorsReverse 30s linear infinite;
         }
         @keyframes scrollColors {
             0% {
@@ -522,6 +528,14 @@
             }
             100% {
                 transform: translateX(-50%);
+            }
+        }
+        @keyframes scrollColorsReverse {
+            0% {
+                transform: translateX(-50%);
+            }
+            100% {
+                transform: translateX(0);
             }
         }
         .color-slide {
@@ -559,6 +573,29 @@
             gap: 15px;
             margin-top: 20px;
         }
+        .slider-arrow {
+            background: #4CAF50;
+            border: none;
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 24px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .slider-arrow:hover {
+            background: #45a049;
+            transform: scale(1.1);
+        }
+        .slider-arrow:active {
+            transform: scale(0.95);
+        }
         .slider-dots {
             display: flex;
             gap: 8px;
@@ -566,6 +603,11 @@
             align-items: center;
             flex-wrap: wrap;
             max-width: 300px;
+        }
+        @media (max-width: 768px) {
+            .slider-arrow {
+                display: none;
+            }
         }
         .slider-dot {
             width: 10px;
@@ -825,7 +867,9 @@
             </div>
         </div>
         <div class="slider-controls">
+            <button class="slider-arrow" id="prevColorBtn" aria-label="Previous color">‹</button>
             <div class="slider-dots" id="colorDots"></div>
+            <button class="slider-arrow" id="nextColorBtn" aria-label="Next color">›</button>
         </div>
     </div>
     </div>
@@ -1757,6 +1801,11 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
         // ============================================
         // COLOR GALLERY SLIDER
         // ============================================
+        let touchStartX = 0;
+        let touchEndX = 0;
+        let isReversing = false;
+        let speedTimeout = null;
+        
         const colorImages = [
             { url: 'https://github.com/peakleadsgroup/floorcoating/blob/main/images/Basil.jpg.jpg?raw=true', name: 'Basil' },
             { url: 'https://github.com/peakleadsgroup/floorcoating/blob/main/images/Blue-jay.jpg.jpg?raw=true', name: 'Blue Jay' },
@@ -1783,6 +1832,9 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             { url: 'https://github.com/peakleadsgroup/floorcoating/blob/main/images/Smoke.jpg.jpg?raw=true', name: 'Smoke' },
             { url: 'https://github.com/peakleadsgroup/floorcoating/blob/main/images/Twilight.jpg-1.webp?raw=true', name: 'Twilight' }
         ];
+
+        let isReversing = false;
+        let speedTimeout = null;
 
         function initColorSlider() {
             const sliderTrack = document.getElementById('colorSliderTrack');
@@ -1811,10 +1863,29 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                 dot.onclick = () => pauseOnColorClick(index);
                 dotsContainer.appendChild(dot);
             });
+            
+            // Set up arrow buttons for desktop
+            const prevBtn = document.getElementById('prevColorBtn');
+            const nextBtn = document.getElementById('nextColorBtn');
+            
+            if (prevBtn) {
+                prevBtn.onclick = () => speedUpReverse();
+            }
+            if (nextBtn) {
+                nextBtn.onclick = () => speedUpForward();
+            }
+            
+            // Set up touch events for mobile swipe
+            const sliderContainer = document.getElementById('colorSliderContainer');
+            sliderContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
+            sliderContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
         }
 
         function pauseOnColorClick(colorIndex) {
             const sliderTrack = document.getElementById('colorSliderTrack');
+            
+            // Reset any speed changes
+            resetSpeed();
             
             // Pause the animation
             sliderTrack.classList.add('paused');
@@ -1828,6 +1899,63 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             setTimeout(() => {
                 sliderTrack.classList.remove('paused');
             }, 3000);
+        }
+
+        function speedUpForward() {
+            const sliderTrack = document.getElementById('colorSliderTrack');
+            resetSpeed();
+            sliderTrack.classList.remove('reverse');
+            sliderTrack.classList.add('fast-forward');
+            
+            // Reset to normal speed after 2 seconds
+            if (speedTimeout) clearTimeout(speedTimeout);
+            speedTimeout = setTimeout(() => {
+                resetSpeed();
+            }, 2000);
+        }
+
+        function speedUpReverse() {
+            const sliderTrack = document.getElementById('colorSliderTrack');
+            resetSpeed();
+            sliderTrack.classList.remove('scrolling');
+            sliderTrack.classList.add('reverse');
+            
+            // Reset to normal forward speed after 2 seconds
+            if (speedTimeout) clearTimeout(speedTimeout);
+            speedTimeout = setTimeout(() => {
+                resetSpeed();
+            }, 2000);
+        }
+
+        function resetSpeed() {
+            const sliderTrack = document.getElementById('colorSliderTrack');
+            sliderTrack.classList.remove('fast-forward', 'reverse');
+            sliderTrack.classList.add('scrolling');
+            isReversing = false;
+        }
+
+        function handleTouchStart(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        }
+
+        function handleTouchEnd(e) {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }
+
+        function handleSwipe() {
+            const swipeThreshold = 50; // Minimum distance for a swipe
+            const diff = touchStartX - touchEndX;
+            
+            if (Math.abs(diff) > swipeThreshold) {
+                if (diff > 0) {
+                    // Swipe left - speed up forward
+                    speedUpForward();
+                } else {
+                    // Swipe right - reverse/backwards
+                    speedUpReverse();
+                }
+            }
         }
 
         // Initialize color slider when page loads

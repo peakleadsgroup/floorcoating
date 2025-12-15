@@ -4229,13 +4229,48 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                 if(comps.postal_code && zipInput) zipInput.value = comps.postal_code.long_name;
                 validateAddressForm();
             });
+            
+            // For the bottom quiz form
+            const addressInputBottom = document.getElementById('streetBottom');
+            if (addressInputBottom) {
+                const autocompleteBottom = new google.maps.places.Autocomplete(addressInputBottom, {
+                    types: ['address'],
+                    componentRestrictions: { country: ['us'] },
+                    fields: ['address_components','formatted_address','geometry']
+                });
+                
+                autocompleteBottom.addListener('place_changed', ()=>{
+                    const place = autocompleteBottom.getPlace();
+                    if(!place || !place.address_components) return;
+                    const comps = Object.fromEntries(place.address_components.flatMap(c => c.types.map(t => [t, c])));
+                    
+                    let streetAddress = '';
+                    if(comps.street_number) streetAddress += comps.street_number.long_name + ' ';
+                    if(comps.route) streetAddress += comps.route.long_name;
+                    if(streetAddress.trim()) addressInputBottom.value = streetAddress.trim();
+                    
+                    const cityFieldBottom = document.getElementById('cityFieldBottom');
+                    const stateZipRowBottom = document.getElementById('stateZipRowBottom');
+                    if (streetAddress.trim()) {
+                        cityFieldBottom.classList.remove('hidden-initially');
+                        stateZipRowBottom.classList.remove('hidden-initially');
+                    }
+                    
+                    const cityInputBottom = document.getElementById('cityBottom');
+                    const stateInputBottom = document.getElementById('stateBottom');
+                    const zipInputBottom = document.getElementById('zipBottom');
+                    
+                    if(comps.locality && cityInputBottom) cityInputBottom.value = comps.locality.long_name;
+                    else if(comps.sublocality && cityInputBottom) cityInputBottom.value = comps.sublocality.long_name;
+                    if(comps.administrative_area_level_1 && stateInputBottom) stateInputBottom.value = comps.administrative_area_level_1.short_name;
+                    if(comps.postal_code && zipInputBottom) zipInputBottom.value = comps.postal_code.long_name;
+                    validateAddressFormBottom();
+                });
+            }
         };
     </script>
-    <!-- PLACEHOLDER: Add your Google Maps API key here -->
-    <!--
     <script async defer
-      src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places&callback=__attachPlaces">
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyANMfDpc1o2RoVn2qtQM091Rs840U0O7QE&libraries=places&callback=__attachPlaces">
     </script>
-    -->
 </body>
 </html>

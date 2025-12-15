@@ -222,7 +222,6 @@
     <script>
         function createConfetti() {
             const container = document.getElementById('confettiContainer');
-            container.innerHTML = '';
             
             const colors = ['#ffc107', '#4CAF50', '#2196f3', '#f97316', '#9c27b0'];
             const confettiCount = 50;
@@ -235,16 +234,28 @@
                 confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
                 confetti.style.width = (Math.random() * 10 + 5) + 'px';
                 confetti.style.height = (Math.random() * 10 + 5) + 'px';
-                confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                // Increased duration from 2-5s to 4-8s for longer animation
+                confetti.style.animationDuration = (Math.random() * 4 + 4) + 's';
                 confetti.style.animationDelay = Math.random() * 0.5 + 's';
                 
                 container.appendChild(confetti);
             }
         }
 
-        // Create confetti when page loads
+        // Create confetti when page loads and continue creating waves
         window.addEventListener('load', function() {
             createConfetti();
+            
+            // Create additional waves of confetti every 2 seconds for 10 seconds
+            let waveCount = 0;
+            const maxWaves = 5;
+            const waveInterval = setInterval(function() {
+                waveCount++;
+                createConfetti();
+                if (waveCount >= maxWaves) {
+                    clearInterval(waveInterval);
+                }
+            }, 2000);
         });
     </script>
 </body>

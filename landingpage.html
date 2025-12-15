@@ -1039,6 +1039,7 @@
         @media (max-width: 600px) {
             body {
                 background-attachment: scroll;
+                background-size: 100% auto;
             }
             .form-container {
                 padding: 25px;
@@ -1073,6 +1074,11 @@
             }
             .question {
                 font-size: 18px;
+            }
+            .gallery-slide img {
+                object-fit: contain;
+                height: auto;
+                max-height: 300px;
             }
         }
     </style>

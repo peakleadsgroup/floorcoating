@@ -858,7 +858,7 @@
         </div>
     </div>
 
-        <!-- Color Gallery Slider Section -->
+    <!-- Color Gallery Slider Section -->
     <div class="color-gallery-section">
         <h2 class="color-gallery-title">Explore Our Color Options</h2>
         <div class="color-slider-container" id="colorSliderContainer">
@@ -1840,6 +1840,15 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             const sliderTrack = document.getElementById('colorSliderTrack');
             const dotsContainer = document.getElementById('colorDots');
             
+            if (!sliderTrack || !dotsContainer) {
+                console.error('Color slider elements not found');
+                return;
+            }
+            
+            // Clear any existing content
+            sliderTrack.innerHTML = '';
+            dotsContainer.innerHTML = '';
+            
             // Create slides - duplicate the array for seamless infinite scroll
             const allColors = [...colorImages, ...colorImages];
             
@@ -1864,6 +1873,10 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                 dotsContainer.appendChild(dot);
             });
             
+            // Ensure scrolling class is applied
+            sliderTrack.classList.remove('paused', 'fast-forward', 'reverse');
+            sliderTrack.classList.add('scrolling');
+            
             // Set up arrow buttons for desktop
             const prevBtn = document.getElementById('prevColorBtn');
             const nextBtn = document.getElementById('nextColorBtn');
@@ -1877,8 +1890,10 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             
             // Set up touch events for mobile swipe
             const sliderContainer = document.getElementById('colorSliderContainer');
-            sliderContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
-            sliderContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
+            if (sliderContainer) {
+                sliderContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
+                sliderContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
+            }
         }
 
         function pauseOnColorClick(colorIndex) {
@@ -1903,8 +1918,9 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
 
         function speedUpForward() {
             const sliderTrack = document.getElementById('colorSliderTrack');
+            if (!sliderTrack) return;
             resetSpeed();
-            sliderTrack.classList.remove('reverse');
+            sliderTrack.classList.remove('reverse', 'paused');
             sliderTrack.classList.add('fast-forward');
             
             // Reset to normal speed after 2 seconds
@@ -1916,8 +1932,9 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
 
         function speedUpReverse() {
             const sliderTrack = document.getElementById('colorSliderTrack');
+            if (!sliderTrack) return;
             resetSpeed();
-            sliderTrack.classList.remove('scrolling');
+            sliderTrack.classList.remove('scrolling', 'paused');
             sliderTrack.classList.add('reverse');
             
             // Reset to normal forward speed after 2 seconds
@@ -1929,9 +1946,11 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
 
         function resetSpeed() {
             const sliderTrack = document.getElementById('colorSliderTrack');
-            sliderTrack.classList.remove('fast-forward', 'reverse');
-            sliderTrack.classList.add('scrolling');
-            isReversing = false;
+            if (sliderTrack) {
+                sliderTrack.classList.remove('fast-forward', 'reverse', 'paused');
+                sliderTrack.classList.add('scrolling');
+                isReversing = false;
+            }
         }
 
         function handleTouchStart(e) {
@@ -1959,8 +1978,19 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
         }
 
         // Initialize color slider when page loads
-        window.addEventListener('load', function() {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initColorSlider);
+        } else {
+            // DOM is already loaded
             initColorSlider();
+        }
+        
+        // Also try on window load as backup
+        window.addEventListener('load', function() {
+            const sliderTrack = document.getElementById('colorSliderTrack');
+            if (sliderTrack && sliderTrack.children.length === 0) {
+                initColorSlider();
+            }
         });
 
         window.__attachPlaces = function(){

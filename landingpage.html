@@ -736,7 +736,8 @@
         }
         .zip-checker-form {
             display: flex;
-            gap: 10px;
+            flex-direction: column;
+            gap: 15px;
             margin-bottom: 15px;
         }
         .zip-input {
@@ -745,12 +746,13 @@
             border: 2px solid #e9ecef;
             border-radius: 8px;
             font-size: 16px;
-            text-align: center;
-            letter-spacing: 2px;
+            background: #f8f9fa;
+            width: 100%;
         }
         .zip-input:focus {
             outline: none;
-            border-color: #4CAF50;
+            border-color: #2196f3;
+            background: #fff;
         }
         .zip-check-btn {
             padding: 15px 30px;
@@ -1303,14 +1305,17 @@
         
         <!-- Zip Code Input Form -->
         <div class="zip-checker-form" id="zipCheckerForm">
-            <input 
-                type="text" 
-                id="zipCodeInput" 
-                class="zip-input" 
-                placeholder="Enter your zip code" 
-                maxlength="5"
-                pattern="[0-9]{5}"
-            >
+            <div class="address-field">
+                <label class="address-label" for="zipCodeInput">Zip Code</label>
+                <input 
+                    type="text" 
+                    id="zipCodeInput" 
+                    class="zip-input" 
+                    placeholder="Zip Code" 
+                    maxlength="5"
+                    pattern="[0-9]{5}"
+                >
+            </div>
             <button class="zip-check-btn" id="zipCheckBtn" onclick="checkZipCode()">Check</button>
         </div>
         <div class="zip-error" id="zipError" style="display: none;"></div>

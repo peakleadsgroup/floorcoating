@@ -512,7 +512,7 @@
             transition: transform 0.1s ease-out;
         }
         .color-slider-track.scrolling {
-            animation: scrollColors 30s linear infinite;
+            animation: scrollColors 18s linear infinite;
         }
         .color-slider-track.paused {
             animation-play-state: paused;
@@ -522,10 +522,10 @@
             animation: none;
         }
         .color-slider-track.fast-forward {
-            animation: scrollColors 10s linear infinite;
+            animation: scrollColors 6s linear infinite;
         }
         .color-slider-track.reverse {
-            animation: scrollColorsReverse 30s linear infinite;
+            animation: scrollColorsReverse 18s linear infinite;
         }
         /* Seamless loop - when animation completes, it instantly resets to start */
         .color-slider-track.scrolling,
@@ -640,7 +640,7 @@
             transition: transform 0.1s ease-out;
         }
         .reviews-slider-track.scrolling {
-            animation: scrollReviews 40s linear infinite;
+            animation: scrollReviews 24s linear infinite;
         }
         .reviews-slider-track.paused {
             animation-play-state: paused;
@@ -650,10 +650,10 @@
             animation: none;
         }
         .reviews-slider-track.fast-forward {
-            animation: scrollReviews 15s linear infinite;
+            animation: scrollReviews 9s linear infinite;
         }
         .reviews-slider-track.reverse {
-            animation: scrollReviewsReverse 40s linear infinite;
+            animation: scrollReviewsReverse 24s linear infinite;
         }
         @keyframes scrollReviews {
             0% {
@@ -868,7 +868,7 @@
             }
         }
         .success-title {
-            font-size: 28px;
+            font-size: 24px;
             color: #2c3e50;
             margin-bottom: 10px;
             font-weight: bold;
@@ -957,7 +957,7 @@
             transition: transform 0.1s ease-out;
         }
         .gallery-slider-track.scrolling {
-            animation: scrollGallery 50s linear infinite;
+            animation: scrollGallery 30s linear infinite;
         }
         .gallery-slider-track.dragging {
             transition: none;
@@ -3230,7 +3230,7 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
         }
 
         function startManualScroll(sliderTrack, slideWidth, totalWidth) {
-            const scrollSpeed = 0.3;
+            const scrollSpeed = 0.5;
             let lastTime = performance.now();
             
             function animate(currentTime) {
@@ -3581,7 +3581,7 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
         }
 
         function startManualScrollReviews(sliderTrack, slideWidth, totalWidth) {
-            const scrollSpeed = 0.3;
+            const scrollSpeed = 0.5;
             let lastTime = performance.now();
             
             function animate(currentTime) {
@@ -3694,7 +3694,7 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
 
         let galleryAnimationId = null;
         let galleryManualScrollPosition = 0;
-        let galleryScrollSpeed = 0.3;
+        let galleryScrollSpeed = 0.5;
         let isDraggingGallery = false;
         let galleryDragStartX = 0;
         let galleryCurrentTranslateX = 0;

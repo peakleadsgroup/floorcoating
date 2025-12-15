@@ -2287,7 +2287,7 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             dragStartX = clientX;
             
-            // Get current transform from computed style or inline style
+            // Get current transform from computed style - this reads the ACTUAL rendered position
             const style = window.getComputedStyle(sliderTrack);
             const transform = style.transform;
             let currentX = 0;
@@ -2303,12 +2303,33 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                 }
             }
             
+            // If we're using CSS animation and haven't initialized manualScrollPosition yet,
+            // sync it with the current position
+            if (!isManualScrolling && manualScrollPosition === 0 && currentX !== 0) {
+                manualScrollPosition = currentX;
+            }
+            
+            // Normalize the position to handle wrapping
+            const slideWidth = parseFloat(sliderTrack.dataset.slideWidth) || (sliderTrack.offsetWidth / 2.5);
+            const totalWidth = slideWidth * colorImages.length;
+            
+            // Normalize currentX to be within the valid range (-totalWidth to 0)
+            while (currentX > 0) {
+                currentX -= totalWidth;
+            }
+            while (currentX <= -totalWidth) {
+                currentX += totalWidth;
+            }
+            
             currentTranslateX = currentX;
             baseTranslateX = currentX;
             
-            // Pause animation and enable dragging
-            sliderTrack.classList.add('dragging', 'paused');
+            // Stop CSS animation immediately and set the position explicitly
+            sliderTrack.classList.remove('scrolling', 'paused', 'fast-forward', 'reverse');
+            sliderTrack.classList.add('dragging');
             sliderTrack.style.transition = 'none'; // Remove transition for instant response
+            sliderTrack.style.transform = `translateX(${currentX}px)`; // Set explicit position
+            
             if (sliderContainer) {
                 sliderContainer.classList.add('dragging');
             }
@@ -2635,8 +2656,40 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                 }
             }
             
+            // If we're using CSS animation and haven't initialized manualScrollPositionReviews yet,
+            // sync it with the current position
+            if (!isManualScrollingReviews && reviewsManualScrollPosition === 0 && currentX !== 0) {
+                reviewsManualScrollPosition = currentX;
+            }
+            
+            // Normalize the position to handle wrapping
+            const slideWidth = parseFloat(sliderTrack.dataset.slideWidth) || (sliderTrack.offsetWidth / 1.5);
+            const totalWidth = slideWidth * reviews.length;
+            
+            // Normalize currentX to be within the valid range (-totalWidth to 0)
+            while (currentX > 0) {
+                currentX -= totalWidth;
+            }
+            while (currentX <= -totalWidth) {
+                currentX += totalWidth;
+            }
+            
             currentTranslateXReviews = currentX;
             baseTranslateXReviews = currentX;
+            
+            // Stop CSS animation immediately and set the position explicitly
+            sliderTrack.classList.remove('scrolling', 'paused', 'fast-forward', 'reverse');
+            sliderTrack.classList.add('dragging');
+            sliderTrack.style.transition = 'none'; // Remove transition for instant response
+            sliderTrack.style.transform = `translateX(${currentX}px)`; // Set explicit position
+            
+            if (reviewsSliderContainer) {
+                reviewsSliderContainer.classList.add('dragging');
+            }
+            
+            e.preventDefault();
+        }
+            e.preventDefault();
             
             sliderTrack.classList.add('dragging', 'paused');
             sliderTrack.style.transition = 'none';

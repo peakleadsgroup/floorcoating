@@ -13,6 +13,9 @@
     .header { background:white; padding:1rem 0; box-shadow:0 2px 10px rgba(0,0,0,0.1); position:sticky; top:0; z-index:1000; }
     .nav-container { max-width:1400px; margin:0 auto; display:flex; justify-content:center; align-items:center; padding:0 2rem; position:relative; }
     .logo { height:50px; position:absolute; left:2rem; }
+    .nav-links { display:flex; list-style:none; gap:2rem; align-items:center; }
+    .nav-links a { text-decoration:none; color:#1a365d; font-weight:600; font-size:0.95rem; transition:color .3s; }
+    .nav-links a:hover { color:#f97316; }
     .nav-right { position:absolute; right:2rem; display:flex; align-items:center; gap:1.5rem; }
     .nav-phone { color:#1a365d; font-weight:700; font-size:1rem; text-decoration:none; }
     .cta-btn { background:#f97316; color:#fff!important; padding:.75rem 1.5rem; border-radius:6px; text-decoration:none; font-weight:700; transition:background .3s; display:inline-block; }
@@ -126,6 +129,9 @@
         position:static;
         height:40px;
       }
+      .nav-links {
+        display:none;
+      }
       .nav-right {
         position:static;
         gap:0.75rem;
@@ -164,9 +170,18 @@
       <a href="index.html">
         <img src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/PeakFloorCoating-1000x250-NoBack.png?raw=true" alt="Peak Floor Coating" class="logo">
       </a>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="index.html#home">Home</a></li>
+          <li><a href="index.html#services">Services</a></li>
+          <li><a href="index.html#gallery">Gallery</a></li>
+          <li><a href="index.html#about">About</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </nav>
       <div class="nav-right">
         <a href="tel:9193634740" class="nav-phone">(919) 363-4740</a>
-        <a href="tel:9193634740" class="cta-btn">Call Now</a>
+        <a href="contact.html" class="cta-btn">Get Free Quote</a>
       </div>
     </div>
   </header>

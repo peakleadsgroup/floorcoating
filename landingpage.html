@@ -239,7 +239,7 @@
             gap: 15px;
             margin-bottom: 20px;
         }
-        #phone, #phone2 {
+        #phone, #phone2, #phoneBottom, #phone2Bottom {
             padding: 15px;
             border: 2px solid #e9ecef;
             border-radius: 8px;
@@ -247,7 +247,7 @@
             background: #f8f9fa;
             width: 100%;
         }
-        #phone:focus, #phone2:focus {
+        #phone:focus, #phone2:focus, #phoneBottom:focus, #phone2Bottom:focus {
             outline: none;
             border-color: #2196f3;
             background: #fff;
@@ -748,6 +748,7 @@
             font-size: 16px;
             background: #f8f9fa;
             width: 100%;
+            text-align: center;
         }
         .zip-input:focus {
             outline: none;
@@ -1305,17 +1306,14 @@
         
         <!-- Zip Code Input Form -->
         <div class="zip-checker-form" id="zipCheckerForm">
-            <div class="address-field">
-                <label class="address-label" for="zipCodeInput">Zip Code</label>
-                <input 
-                    type="text" 
-                    id="zipCodeInput" 
-                    class="zip-input" 
-                    placeholder="Zip Code" 
-                    maxlength="5"
-                    pattern="[0-9]{5}"
-                >
-            </div>
+            <input 
+                type="text" 
+                id="zipCodeInput" 
+                class="zip-input" 
+                placeholder="Zip Code" 
+                maxlength="5"
+                pattern="[0-9]{5}"
+            >
             <button class="zip-check-btn" id="zipCheckBtn" onclick="checkZipCode()">Check</button>
         </div>
         <div class="zip-error" id="zipError" style="display: none;"></div>

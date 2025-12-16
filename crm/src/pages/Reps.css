@@ -250,22 +250,6 @@
   border-color: #cbd5e1;
 }
 
-.btn-zip-codes {
-  background: #3b82f6;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-  font-size: 0.875rem;
-}
-
-.btn-zip-codes:hover {
-  background: #2563eb;
-}
-
 /* Modal Styles */
 .modal-overlay {
   position: fixed;

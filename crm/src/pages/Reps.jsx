@@ -10,15 +10,14 @@ function Reps() {
   const [showForm, setShowForm] = useState(false)
   const [editingRep, setEditingRep] = useState(null)
   const [roleFilter, setRoleFilter] = useState('') // Filter by role
-  const [showZipModal, setShowZipModal] = useState(false)
-  const [zipRep, setZipRep] = useState(null)
-  const [zipCodes, setZipCodes] = useState('')
+  const [showEditModal, setShowEditModal] = useState(false)
   
   const [formData, setFormData] = useState({
     name: '',
     roles: ['Sales'], // Array of selected roles
     email: '',
     phone: '',
+    zip_codes: '',
   })
 
   useEffect(() => {
@@ -64,6 +63,7 @@ function Reps() {
             roles: formData.roles,
             email: formData.email || null,
             phone: formData.phone || null,
+            zip_codes: formData.zip_codes?.trim() || null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingRep.id)
@@ -77,13 +77,15 @@ function Reps() {
             roles: formData.roles,
             email: formData.email || null,
             phone: formData.phone || null,
+            zip_codes: formData.zip_codes?.trim() || null,
           }])
 
         if (error) throw error
       }
 
-      setFormData({ name: '', roles: ['Sales'], email: '', phone: '' })
+      setFormData({ name: '', roles: ['Sales'], email: '', phone: '', zip_codes: '' })
       setShowForm(false)
+      setShowEditModal(false)
       setEditingRep(null)
       await fetchReps()
     } catch (error) {
@@ -101,8 +103,9 @@ function Reps() {
       roles: Array.isArray(roles) ? roles : [roles],
       email: rep.email || '',
       phone: rep.phone || '',
+      zip_codes: rep.zip_codes || '',
     })
-    setShowForm(true)
+    setShowEditModal(true)
   }
 
   const handleDelete = async (rep) => {
@@ -126,9 +129,16 @@ function Reps() {
   }
 
   const handleCancel = () => {
-    setFormData({ name: '', roles: ['Sales'], email: '', phone: '' })
+    setFormData({ name: '', roles: ['Sales'], email: '', phone: '', zip_codes: '' })
     setShowForm(false)
+    setShowEditModal(false)
     setEditingRep(null)
+  }
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false)
+    setEditingRep(null)
+    setFormData({ name: '', roles: ['Sales'], email: '', phone: '', zip_codes: '' })
   }
 
   const handleRoleToggle = (role) => {
@@ -144,40 +154,6 @@ function Reps() {
     }
   }
 
-  const handleOpenZipModal = (rep) => {
-    setZipRep(rep)
-    setZipCodes(rep.zip_codes || '')
-    setShowZipModal(true)
-  }
-
-  const handleCloseZipModal = () => {
-    setShowZipModal(false)
-    setZipRep(null)
-    setZipCodes('')
-  }
-
-  const handleSaveZipCodes = async () => {
-    if (!zipRep) return
-
-    try {
-      const { error } = await supabase
-        .from('reps')
-        .update({
-          zip_codes: zipCodes.trim() || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', zipRep.id)
-
-      if (error) throw error
-
-      alert('Zip codes updated successfully')
-      handleCloseZipModal()
-      await fetchReps()
-    } catch (error) {
-      console.error('Error saving zip codes:', error)
-      alert('Error saving zip codes')
-    }
-  }
 
   // Filter reps based on selected role filter
   const filteredReps = roleFilter
@@ -252,6 +228,19 @@ function Reps() {
                   maxLength={10}
                 />
               </div>
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label>Zip Codes (comma-separated)</label>
+                <textarea
+                  value={formData.zip_codes}
+                  onChange={(e) => setFormData({ ...formData, zip_codes: e.target.value })}
+                  placeholder="12345, 67890, 11111"
+                  rows={4}
+                  className="zip-codes-textarea"
+                />
+                <p className="form-hint">
+                  Enter zip codes separated by commas (e.g., 12345, 67890, 11111)
+                </p>
+              </div>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
               <button type="submit" className="btn-primary">
@@ -317,13 +306,6 @@ function Reps() {
                           Edit
                         </button>
                         <button 
-                          className="btn-zip-codes" 
-                          onClick={() => handleOpenZipModal(rep)}
-                          title="Edit Zip Codes"
-                        >
-                          Zip Codes
-                        </button>
-                        <button 
                           className="btn-danger" 
                           onClick={() => handleDelete(rep)}
                         >
@@ -339,38 +321,86 @@ function Reps() {
         )}
       </div>
 
-      {/* Zip Codes Modal */}
-      {showZipModal && zipRep && (
-        <div className="modal-overlay" onClick={handleCloseZipModal}>
+      {/* Edit Rep Modal */}
+      {showEditModal && editingRep && (
+        <div className="modal-overlay" onClick={handleCloseEditModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Edit Zip Codes - {zipRep.name}</h2>
-              <button className="modal-close" onClick={handleCloseZipModal}>
+              <h2>Edit Rep - {editingRep.name}</h2>
+              <button className="modal-close" onClick={handleCloseEditModal}>
                 ×
               </button>
             </div>
             <div className="modal-body">
-              <div className="form-group">
-                <label>Zip Codes (comma-separated)</label>
-                <textarea
-                  value={zipCodes}
-                  onChange={(e) => setZipCodes(e.target.value)}
-                  placeholder="12345, 67890, 11111"
-                  rows={8}
-                  className="zip-codes-textarea"
-                />
-                <p className="form-hint">
-                  Enter zip codes separated by commas (e.g., 12345, 67890, 11111)
-                </p>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-primary" onClick={handleSaveZipCodes}>
-                Save
-              </button>
-              <button className="btn-secondary" onClick={handleCloseZipModal}>
-                Cancel
-              </button>
+              <form onSubmit={handleSubmit}>
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>Name *</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Rep name"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Roles *</label>
+                    <div className="role-checkboxes">
+                      {ROLE_OPTIONS.map(role => (
+                        <label key={role} className="checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={formData.roles.includes(role)}
+                            onChange={() => handleRoleToggle(role)}
+                          />
+                          <span>{role}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Email</label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="email@example.com"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Phone</label>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="1234567890"
+                      maxLength={10}
+                    />
+                  </div>
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label>Zip Codes (comma-separated)</label>
+                    <textarea
+                      value={formData.zip_codes}
+                      onChange={(e) => setFormData({ ...formData, zip_codes: e.target.value })}
+                      placeholder="12345, 67890, 11111"
+                      rows={4}
+                      className="zip-codes-textarea"
+                    />
+                    <p className="form-hint">
+                      Enter zip codes separated by commas (e.g., 12345, 67890, 11111)
+                    </p>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="submit" className="btn-primary">
+                    Update Rep
+                  </button>
+                  <button type="button" className="btn-secondary" onClick={handleCloseEditModal}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

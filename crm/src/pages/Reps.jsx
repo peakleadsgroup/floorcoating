@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import './Reps.css'
 
-const ROLE_OPTIONS = ['Sales', 'Project Management', 'Installer']
+const ROLE_OPTIONS = ['Sales', 'Project Management', 'Installer', 'Demo']
 
 function Reps() {
   const [reps, setReps] = useState([])

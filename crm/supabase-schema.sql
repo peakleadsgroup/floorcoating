@@ -90,7 +90,7 @@ CREATE TABLE appointments (
 CREATE TABLE reps (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
-  roles JSONB DEFAULT '[]'::jsonb, -- Array of roles: ['Sales', 'Project Management', 'Installer']
+  roles JSONB DEFAULT '[]'::jsonb, -- Array of roles: ['Sales', 'Project Management', 'Installer', 'Demo']
   email TEXT,
   phone TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

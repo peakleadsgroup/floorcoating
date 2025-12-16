@@ -93,6 +93,7 @@ CREATE TABLE reps (
   roles JSONB DEFAULT '[]'::jsonb, -- Array of roles: ['Sales', 'Project Management', 'Installer', 'Demo']
   email TEXT,
   phone TEXT,
+  zip_codes TEXT, -- Comma-separated list of zip codes
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

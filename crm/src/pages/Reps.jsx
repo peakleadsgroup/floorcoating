@@ -10,6 +10,9 @@ function Reps() {
   const [showForm, setShowForm] = useState(false)
   const [editingRep, setEditingRep] = useState(null)
   const [roleFilter, setRoleFilter] = useState('') // Filter by role
+  const [showZipModal, setShowZipModal] = useState(false)
+  const [zipRep, setZipRep] = useState(null)
+  const [zipCodes, setZipCodes] = useState('')
   
   const [formData, setFormData] = useState({
     name: '',
@@ -138,6 +141,41 @@ function Reps() {
     } else {
       // Add role
       setFormData({ ...formData, roles: [...currentRoles, role] })
+    }
+  }
+
+  const handleOpenZipModal = (rep) => {
+    setZipRep(rep)
+    setZipCodes(rep.zip_codes || '')
+    setShowZipModal(true)
+  }
+
+  const handleCloseZipModal = () => {
+    setShowZipModal(false)
+    setZipRep(null)
+    setZipCodes('')
+  }
+
+  const handleSaveZipCodes = async () => {
+    if (!zipRep) return
+
+    try {
+      const { error } = await supabase
+        .from('reps')
+        .update({
+          zip_codes: zipCodes.trim() || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', zipRep.id)
+
+      if (error) throw error
+
+      alert('Zip codes updated successfully')
+      handleCloseZipModal()
+      await fetchReps()
+    } catch (error) {
+      console.error('Error saving zip codes:', error)
+      alert('Error saving zip codes')
     }
   }
 
@@ -279,6 +317,13 @@ function Reps() {
                           Edit
                         </button>
                         <button 
+                          className="btn-zip-codes" 
+                          onClick={() => handleOpenZipModal(rep)}
+                          title="Edit Zip Codes"
+                        >
+                          Zip Codes
+                        </button>
+                        <button 
                           className="btn-danger" 
                           onClick={() => handleDelete(rep)}
                         >
@@ -293,6 +338,43 @@ function Reps() {
           </table>
         )}
       </div>
+
+      {/* Zip Codes Modal */}
+      {showZipModal && zipRep && (
+        <div className="modal-overlay" onClick={handleCloseZipModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Edit Zip Codes - {zipRep.name}</h2>
+              <button className="modal-close" onClick={handleCloseZipModal}>
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Zip Codes (comma-separated)</label>
+                <textarea
+                  value={zipCodes}
+                  onChange={(e) => setZipCodes(e.target.value)}
+                  placeholder="12345, 67890, 11111"
+                  rows={8}
+                  className="zip-codes-textarea"
+                />
+                <p className="form-hint">
+                  Enter zip codes separated by commas (e.g., 12345, 67890, 11111)
+                </p>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-primary" onClick={handleSaveZipCodes}>
+                Save
+              </button>
+              <button className="btn-secondary" onClick={handleCloseZipModal}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

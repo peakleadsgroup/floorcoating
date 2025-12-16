@@ -47,6 +47,34 @@
   gap: 1rem;
 }
 
+.rep-info {
+  padding: 0.5rem 1rem;
+  background: #f1f5f9;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.rep-name {
+  color: #1a365d;
+  font-weight: 600;
+}
+
+.rep-roles {
+  color: #64748b;
+  font-weight: 400;
+  font-size: 0.8em;
+}
+
+.rep-loading {
+  color: #64748b;
+  font-style: italic;
+}
+
+.rep-error {
+  color: #dc2626;
+  font-size: 0.8em;
+}
+
 .logo {
   text-decoration: none;
   color: #1a365d;

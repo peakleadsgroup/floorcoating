@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigateWithRepId } from '../hooks/useNavigateWithRepId'
 import { supabase } from '../lib/supabase'
 import KanbanBoard from '../components/KanbanBoard'
 import './SalesBoard.css'
@@ -23,7 +23,7 @@ function SalesBoard() {
   const [leads, setLeads] = useState([])
   const [unreadMessages, setUnreadMessages] = useState([])
   const [loading, setLoading] = useState(true)
-  const navigate = useNavigate()
+  const navigate = useNavigateWithRepId()
 
   useEffect(() => {
     fetchLeads()

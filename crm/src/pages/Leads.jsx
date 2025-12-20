@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { sendEmailWebhook } from '../lib/webhooks'
+import { sendEmailWebhook, sendTextWebhook } from '../lib/webhooks'
 import './Leads.css'
 
 // Function to convert URLs to clickable links and render HTML for emails
@@ -214,7 +214,7 @@ export default function Leads() {
 
       if (error) throw error
 
-      // If it's an email, send webhook to Make.com
+      // Send webhook based on message type
       if (newMessage.message_type === 'email') {
         if (!selectedLead.email) {
           console.error('Cannot send email: Lead has no email address')
@@ -234,7 +234,7 @@ export default function Leads() {
             body: htmlBody,
           })
 
-          console.log('Webhook sent successfully, updating message status')
+          console.log('Email webhook sent successfully, updating message status')
 
           // Update message status to 'sent' after webhook is sent
           if (insertedData) {
@@ -251,7 +251,43 @@ export default function Leads() {
             }
           }
         } catch (webhookError) {
-          console.error('Webhook failed:', webhookError)
+          console.error('Email webhook failed:', webhookError)
+          // Don't throw - message is already saved, just log the error
+          alert('Message saved but webhook failed. Check console for details.')
+        }
+      } else if (newMessage.message_type === 'text') {
+        if (!selectedLead.phone) {
+          console.error('Cannot send text: Lead has no phone number')
+          alert('Cannot send text: Lead has no phone number')
+          return
+        }
+
+        console.log('Sending text webhook for:', selectedLead.phone)
+        
+        try {
+          await sendTextWebhook({
+            phone: selectedLead.phone,
+            message: newMessage.content.trim(),
+          })
+
+          console.log('Text webhook sent successfully, updating message status')
+
+          // Update message status to 'sent' after webhook is sent
+          if (insertedData) {
+            const { error: updateError } = await supabase
+              .from('message_logs')
+              .update({ 
+                status: 'sent',
+                sent_at: new Date().toISOString()
+              })
+              .eq('id', insertedData.id)
+
+            if (updateError) {
+              console.error('Error updating message status:', updateError)
+            }
+          }
+        } catch (webhookError) {
+          console.error('Text webhook failed:', webhookError)
           // Don't throw - message is already saved, just log the error
           alert('Message saved but webhook failed. Check console for details.')
         }

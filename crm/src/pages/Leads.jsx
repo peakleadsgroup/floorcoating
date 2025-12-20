@@ -287,10 +287,25 @@ export default function Leads() {
             </div>
             <div className="message-modal-body">
               <div className="lead-info-header">
+                <p><strong>Name:</strong> {selectedLead.first_name} {selectedLead.last_name}</p>
                 <p><strong>Phone:</strong> {formatPhone(selectedLead.phone)}</p>
                 <p><strong>Email:</strong> {selectedLead.email || 'N/A'}</p>
                 {selectedLead.street_address && (
                   <p><strong>Address:</strong> {selectedLead.street_address}, {selectedLead.city}, {selectedLead.state} {selectedLead.zip}</p>
+                )}
+                <p><strong>Source:</strong> {selectedLead.source || 'N/A'}</p>
+                <p><strong>Created:</strong> {formatDate(selectedLead.created_at)}</p>
+                {selectedLead.homeowner && (
+                  <p><strong>Homeowner:</strong> {selectedLead.homeowner}</p>
+                )}
+                {selectedLead.floor_location && (
+                  <p><strong>Floor Location:</strong> {selectedLead.floor_location}</p>
+                )}
+                {selectedLead.project_timeline && (
+                  <p><strong>Project Timeline:</strong> {selectedLead.project_timeline}</p>
+                )}
+                {selectedLead.main_goal && (
+                  <p><strong>Main Goal:</strong> {selectedLead.main_goal}</p>
                 )}
               </div>
 
@@ -352,16 +367,6 @@ export default function Leads() {
                 )}
                 <div className="message-form-row">
                   <div className="form-group" style={{ flex: 1 }}>
-                    <select
-                      value={newMessage.message_type}
-                      onChange={(e) => setNewMessage({ ...newMessage, message_type: e.target.value, subject: e.target.value === 'email' ? newMessage.subject : '' })}
-                      className="message-type-select"
-                    >
-                      <option value="text">Text</option>
-                      <option value="email">Email</option>
-                    </select>
-                  </div>
-                  <div className="form-group" style={{ flex: 3 }}>
                     <textarea
                       value={newMessage.content}
                       onChange={(e) => setNewMessage({ ...newMessage, content: e.target.value })}
@@ -370,9 +375,20 @@ export default function Leads() {
                       className="message-content-input"
                     />
                   </div>
-                  <button type="submit" className="btn-primary send-message-btn">
-                    Send
-                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <select
+                      value={newMessage.message_type}
+                      onChange={(e) => setNewMessage({ ...newMessage, message_type: e.target.value, subject: e.target.value === 'email' ? newMessage.subject : '' })}
+                      className="message-type-select"
+                      style={{ width: '100%' }}
+                    >
+                      <option value="text">Text</option>
+                      <option value="email">Email</option>
+                    </select>
+                    <button type="submit" className="btn-primary send-message-btn">
+                      Send
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>

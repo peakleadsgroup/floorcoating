@@ -374,7 +374,7 @@ export default function Flow() {
             )
           })}
         </div>
-      ) : null}
+      )}
 
     </div>
   )

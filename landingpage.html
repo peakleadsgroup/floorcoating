@@ -1703,6 +1703,9 @@
         </div>
     </div>
 
+    <!-- Load Supabase config before main script -->
+    <script src="supabase-config.js"></script>
+    
     <script>
         // ============================================
         // CONFIGURATION - Change this to switch behavior
@@ -1731,9 +1734,15 @@
             ]
         };
         
-        // Webhook URL for form submissions
-        // PLACEHOLDER: Add your webhook URL here
-        const WEBHOOK_URL = 'YOUR_WEBHOOK_URL_HERE';
+        // Supabase Configuration
+        // Load from external config file (supabase-config.js)
+        // If config file doesn't exist or values aren't set, these will be used as fallback
+        const SUPABASE_URL = (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.url !== 'YOUR_SUPABASE_URL_HERE') 
+            ? SUPABASE_CONFIG.url 
+            : 'YOUR_SUPABASE_URL_HERE';
+        const SUPABASE_ANON_KEY = (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.anonKey !== 'YOUR_SUPABASE_ANON_KEY_HERE') 
+            ? SUPABASE_CONFIG.anonKey 
+            : 'YOUR_SUPABASE_ANON_KEY_HERE';
         
         // Calendar Webhook URL for calendar bookings
         const CALENDAR_WEBHOOK_URL = 'YOUR_CALENDAR_WEBHOOK_URL_HERE';
@@ -2532,36 +2541,36 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
     timeZone: 'America/New_York'
 })} EST`;
 
-            const webhookData = {
-                homeowner: finalData.homeowner,
-                floor_location: finalData.floorLocation,
-                project_timeline: finalData.projectTimeline,
-                main_goal: finalData.mainGoal,
-                street_address: finalData.address.street,
-                city: finalData.address.city,
-                state: finalData.address.state,
-                zip: finalData.address.zip,
-                phone: finalData.phone,
-                first_name: finalData.firstName,
-                last_name: finalData.lastName,
-                full_name: `${finalData.firstName} ${finalData.lastName}`,
-                full_summary: fullSummary,
-                full_summary_html: fullSummaryHTML,
-                timestamp: new Date().toISOString(),
-                form_type: 'floor_coating_qualification',
-                clientATID: 'recBGmshJCpkj4Jsl',
-                adATID: new URLSearchParams(window.location.search).get('adATID'),
-                event_id: eventId
-            };
-            
-            if (WEBHOOK_URL !== 'YOUR_WEBHOOK_URL_HERE') {
-                fetch(WEBHOOK_URL, {
+            // Save to Supabase
+            if (SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY_HERE') {
+                fetch(`${SUPABASE_URL}/rest/v1/leads`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Prefer': 'return=minimal'
                     },
-                    body: JSON.stringify(webhookData),
-                    mode: 'no-cors'
+                    body: JSON.stringify({
+                        first_name: finalData.firstName,
+                        last_name: finalData.lastName,
+                        phone: finalData.phone,
+                        street_address: finalData.address.street,
+                        city: finalData.address.city,
+                        state: finalData.address.state,
+                        zip: finalData.address.zip,
+                        homeowner: finalData.homeowner,
+                        floor_location: finalData.floorLocation,
+                        project_timeline: finalData.projectTimeline,
+                        main_goal: finalData.mainGoal,
+                        source: 'landing_page'
+                    })
+                }).then(response => {
+                    if (!response.ok) {
+                        console.error('Error saving lead:', response.statusText);
+                    }
+                }).catch(error => {
+                    console.error('Error saving lead:', error);
                 }).finally(() => {
                     // Redirect to post-submit page
                     window.location.href = 'post-submit.html';
@@ -2832,40 +2841,42 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             
             const fullSummaryHTML = `Floor Coating Lead Information:<BR><BR>Name: ${finalData.firstName} ${finalData.lastName}<BR>Phone: ${formatPhoneForDisplay(finalData.phone)}<BR><BR>Homeowner: ${finalData.homeowner === 'yes' ? 'Yes' : 'No'}<BR>Floor Location: ${getFloorLocationDisplay(finalData.floorLocation)}<BR>Project Timeline: ${getProjectTimelineDisplay(finalData.projectTimeline)}<BR>Main Goal: ${getMainGoalDisplay(finalData.mainGoal)}<BR><BR>Address:<BR>${finalData.address.street}<BR>${finalData.address.city}, ${finalData.address.state} ${finalData.address.zip}<BR><BR>Lead generated on: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York' })} EST`;
             
-            const webhookData = {
-                homeowner: finalData.homeowner,
-                floor_location: finalData.floorLocation,
-                project_timeline: finalData.projectTimeline,
-                main_goal: finalData.mainGoal,
-                street_address: finalData.address.street,
-                city: finalData.address.city,
-                state: finalData.address.state,
-                zip: finalData.address.zip,
-                phone: finalData.phone,
-                first_name: finalData.firstName,
-                last_name: finalData.lastName,
-                full_name: `${finalData.firstName} ${finalData.lastName}`,
-                full_summary: fullSummary,
-                full_summary_html: fullSummaryHTML,
-                timestamp: new Date().toISOString(),
-                form_type: 'floor_coating_qualification',
-                clientATID: 'recBGmshJCpkj4Jsl',
-                adATID: new URLSearchParams(window.location.search).get('adATID'),
-                event_id: eventIdBottom
-            };
-            
-            if (WEBHOOK_URL !== 'YOUR_WEBHOOK_URL_HERE') {
-                fetch(WEBHOOK_URL, {
+            // Save to Supabase
+            if (SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY_HERE') {
+                fetch(`${SUPABASE_URL}/rest/v1/leads`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(webhookData),
-                    mode: 'no-cors'
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({
+                        first_name: finalData.firstName,
+                        last_name: finalData.lastName,
+                        phone: finalData.phone,
+                        street_address: finalData.address.street,
+                        city: finalData.address.city,
+                        state: finalData.address.state,
+                        zip: finalData.address.zip,
+                        homeowner: finalData.homeowner,
+                        floor_location: finalData.floorLocation,
+                        project_timeline: finalData.projectTimeline,
+                        main_goal: finalData.mainGoal,
+                        source: 'landing_page'
+                    })
+                }).then(response => {
+                    if (!response.ok) {
+                        console.error('Error saving lead:', response.statusText);
+                    }
+                }).catch(error => {
+                    console.error('Error saving lead:', error);
                 }).finally(() => {
                     // Redirect to post-submit page
                     window.location.href = 'post-submit.html';
                 });
             } else {
-                // No webhook configured, redirect to post-submit page
+                // No Supabase configured, redirect to post-submit page
                 window.location.href = 'post-submit.html';
             }
         }
@@ -4257,31 +4268,36 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                 return;
             }
             
-            // Build webhook data
-            const quoteData = {
-                name: name,
-                phone: phone,
-                email: email,
-                zip: zip,
-                source: 'zip_code_checker',
-                timestamp: new Date().toISOString()
-            };
-            
-            // Send to webhook (placeholder)
-            if (WEBHOOK_URL !== 'YOUR_WEBHOOK_URL_HERE') {
-                fetch(WEBHOOK_URL, {
+            // Save to Supabase
+            if (SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY_HERE') {
+                fetch(`${SUPABASE_URL}/rest/v1/leads`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Prefer': 'return=minimal'
                     },
-                    body: JSON.stringify(quoteData),
-                    mode: 'no-cors'
+                    body: JSON.stringify({
+                        first_name: firstName,
+                        last_name: lastName,
+                        phone: phone,
+                        email: email,
+                        zip: zip,
+                        source: 'zip_code_checker'
+                    })
+                }).then(response => {
+                    if (!response.ok) {
+                        console.error('Error saving lead:', response.statusText);
+                    }
+                }).catch(error => {
+                    console.error('Error saving lead:', error);
                 }).finally(() => {
                     // Redirect to post-submit page
                     window.location.href = 'post-submit.html';
                 });
             } else {
-                // No webhook configured, redirect to post-submit page
+                // No Supabase configured, redirect to post-submit page
                 window.location.href = 'post-submit.html';
             }
         }

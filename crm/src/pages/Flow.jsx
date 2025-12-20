@@ -1,29 +1,98 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import './Flow.css'
 
 export default function Flow() {
   const [steps, setSteps] = useState([])
   const [editingStep, setEditingStep] = useState(null)
+  const [showStepTypeDropdown, setShowStepTypeDropdown] = useState(false)
+  const dropdownRef = useRef(null)
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowStepTypeDropdown(false)
+      }
+    }
+
+    if (showStepTypeDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [showStepTypeDropdown])
 
   function addStep(type) {
     const newStep = {
       id: Date.now(),
-      type: type, // 'email', 'text', or 'call'
+      type: type, // 'email' or 'text'
       subject: type === 'email' ? '' : null,
       content: '',
-      day: 1, // days after lead is created
+      day: 0, // days after lead is created (0 = same day/immediately)
       time: '9:00 AM', // time of day
-      timeType: 'specific', // 'immediately' or 'specific'
+      timeType: 'immediately', // 'immediately' or 'specific'
       enabled: true
     }
-    setSteps([...steps, newStep])
+    const updatedSteps = [...steps, newStep]
+    setSteps(sortSteps(updatedSteps))
     setEditingStep(newStep.id)
+    setShowStepTypeDropdown(false)
   }
 
+  function sortSteps(stepsToSort) {
+    return [...stepsToSort].sort((a, b) => {
+      // First sort by day (treat immediately as day 0)
+      const dayA = a.timeType === 'immediately' ? 0 : a.day
+      const dayB = b.timeType === 'immediately' ? 0 : b.day
+      
+      if (dayA !== dayB) {
+        return dayA - dayB
+      }
+      
+      // If same day, sort by time
+      if (a.timeType === 'immediately' && b.timeType === 'immediately') {
+        return 0
+      }
+      if (a.timeType === 'immediately') return -1
+      if (b.timeType === 'immediately') return 1
+      
+      // Parse time for comparison
+      const timeA = parseTime(a.time)
+      const timeB = parseTime(b.time)
+      return timeA - timeB
+    })
+  }
+
+  function parseTime(timeStr) {
+    const [time, period] = timeStr.split(' ')
+    const [hours, minutes] = time.split(':').map(Number)
+    let totalMinutes = hours * 60 + minutes
+    if (period === 'PM' && hours !== 12) totalMinutes += 12 * 60
+    if (period === 'AM' && hours === 12) totalMinutes -= 12 * 60
+    return totalMinutes
+  }
+
+  const groupedSteps = useMemo(() => {
+    const sorted = sortSteps(steps)
+    const groups = {}
+    
+    sorted.forEach(step => {
+      const day = step.timeType === 'immediately' ? 0 : step.day
+      if (!groups[day]) {
+        groups[day] = []
+      }
+      groups[day].push(step)
+    })
+    
+    return groups
+  }, [steps])
+
   function updateStep(stepId, updates) {
-    setSteps(steps.map(step => 
+    const updatedSteps = steps.map(step => 
       step.id === stepId ? { ...step, ...updates } : step
-    ))
+    )
+    setSteps(sortSteps(updatedSteps))
   }
 
   function deleteStep(stepId) {
@@ -34,16 +103,33 @@ export default function Flow() {
   }
 
   function moveStep(stepId, direction) {
-    const index = steps.findIndex(s => s.id === stepId)
+    const sorted = sortSteps(steps)
+    const index = sorted.findIndex(s => s.id === stepId)
     if (index === -1) return
     
     const newIndex = direction === 'up' ? index - 1 : index + 1
-    if (newIndex < 0 || newIndex >= steps.length) return
+    if (newIndex < 0 || newIndex >= sorted.length) return
     
-    const newSteps = [...steps]
-    const [removed] = newSteps.splice(index, 1)
-    newSteps.splice(newIndex, 0, removed)
-    setSteps(newSteps)
+    // Get the step we're moving
+    const step = sorted[index]
+    const targetStep = sorted[newIndex]
+    
+    // Swap day/time to maintain chronological order
+    if (direction === 'up') {
+      // Move earlier - swap with previous step's timing
+      const tempDay = step.day
+      const tempTime = step.time
+      const tempTimeType = step.timeType
+      updateStep(stepId, { day: targetStep.day, time: targetStep.time, timeType: targetStep.timeType })
+      updateStep(targetStep.id, { day: tempDay, time: tempTime, timeType: tempTimeType })
+    } else {
+      // Move later - swap with next step's timing
+      const tempDay = step.day
+      const tempTime = step.time
+      const tempTimeType = step.timeType
+      updateStep(stepId, { day: targetStep.day, time: targetStep.time, timeType: targetStep.timeType })
+      updateStep(targetStep.id, { day: tempDay, time: tempTime, timeType: tempTimeType })
+    }
   }
 
   function toggleStepEnabled(stepId) {
@@ -60,63 +146,89 @@ export default function Flow() {
       </div>
 
       <div className="flow-actions">
-        <button className="btn-primary" onClick={() => addStep('email')}>
-          + Add Email Step
-        </button>
-        <button className="btn-primary" onClick={() => addStep('text')}>
-          + Add Text Step
-        </button>
-        <button className="btn-primary" onClick={() => addStep('call')}>
-          + Add Call Step
-        </button>
+        <div className="add-step-container" ref={dropdownRef}>
+          <button 
+            className="btn-primary" 
+            onClick={() => setShowStepTypeDropdown(!showStepTypeDropdown)}
+          >
+            + Add Step
+          </button>
+          {showStepTypeDropdown && (
+            <div className="step-type-dropdown">
+              <button 
+                className="dropdown-item"
+                onClick={() => addStep('email')}
+              >
+                📧 Email
+              </button>
+              <button 
+                className="dropdown-item"
+                onClick={() => addStep('text')}
+              >
+                💬 Text
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {steps.length === 0 ? (
         <div className="empty-state">
-          <p>No steps yet. Click the buttons above to add email or text steps to your flow.</p>
+          <p>No steps yet. Click "Add Step" above to add email or text steps to your flow.</p>
         </div>
       ) : (
         <div className="flow-steps">
-          {steps.map((step, index) => (
-            <div key={step.id} className={`flow-step ${!step.enabled ? 'disabled' : ''}`}>
-              <div className="step-header">
-                <div className="step-number">Step {index + 1}</div>
-                <div className="step-type-badge">
-                  {step.type === 'email' ? '📧 Email' : step.type === 'text' ? '💬 Text' : '📞 Call'}
+          {Object.keys(groupedSteps).sort((a, b) => parseInt(a) - parseInt(b)).map(day => {
+            const daySteps = groupedSteps[day]
+            const dayLabel = day === '0' ? 'Day 0 (Immediately/Same Day)' : `Day ${day}`
+            
+            return (
+              <div key={day} className="day-group">
+                <div className="day-header">
+                  <h3>{dayLabel}</h3>
+                  <span className="day-step-count">{daySteps.length} step{daySteps.length !== 1 ? 's' : ''}</span>
                 </div>
-                <div className="step-actions">
-                  <button 
-                    className="btn-icon" 
-                    onClick={() => moveStep(step.id, 'up')}
-                    disabled={index === 0}
-                    title="Move up"
-                  >
-                    ↑
-                  </button>
-                  <button 
-                    className="btn-icon" 
-                    onClick={() => moveStep(step.id, 'down')}
-                    disabled={index === steps.length - 1}
-                    title="Move down"
-                  >
-                    ↓
-                  </button>
-                  <button 
-                    className="btn-icon" 
-                    onClick={() => toggleStepEnabled(step.id)}
-                    title={step.enabled ? 'Disable' : 'Enable'}
-                  >
-                    {step.enabled ? '✓' : '○'}
-                  </button>
-                  <button 
-                    className="btn-icon btn-danger" 
-                    onClick={() => deleteStep(step.id)}
-                    title="Delete"
-                  >
-                    ×
-                  </button>
-                </div>
-              </div>
+                {daySteps.map((step, stepIndex) => {
+                  const globalIndex = steps.findIndex(s => s.id === step.id)
+                  return (
+                    <div key={step.id} className={`flow-step ${!step.enabled ? 'disabled' : ''}`}>
+                      <div className="step-header">
+                        <div className="step-type-badge">
+                          {step.type === 'email' ? '📧 Email' : '💬 Text'}
+                        </div>
+                        <div className="step-actions">
+                          <button 
+                            className="btn-icon" 
+                            onClick={() => moveStep(step.id, 'up')}
+                            disabled={globalIndex === 0}
+                            title="Move earlier"
+                          >
+                            ↑
+                          </button>
+                          <button 
+                            className="btn-icon" 
+                            onClick={() => moveStep(step.id, 'down')}
+                            disabled={globalIndex === steps.length - 1}
+                            title="Move later"
+                          >
+                            ↓
+                          </button>
+                          <button 
+                            className="btn-icon" 
+                            onClick={() => toggleStepEnabled(step.id)}
+                            title={step.enabled ? 'Disable' : 'Enable'}
+                          >
+                            {step.enabled ? '✓' : '○'}
+                          </button>
+                          <button 
+                            className="btn-icon btn-danger" 
+                            onClick={() => deleteStep(step.id)}
+                            title="Delete"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
 
               {editingStep === step.id ? (
                 <div className="step-editor">
@@ -137,7 +249,7 @@ export default function Flow() {
                     <textarea
                       value={step.content}
                       onChange={(e) => updateStep(step.id, { content: e.target.value })}
-                      placeholder={step.type === 'email' ? 'Email body...' : step.type === 'text' ? 'Text message...' : 'Call script/notes...'}
+                      placeholder={step.type === 'email' ? 'Email body...' : 'Text message...'}
                       rows={8}
                     />
                     <small className="form-hint">
@@ -171,10 +283,11 @@ export default function Flow() {
                         </label>
                         {step.timeType === 'specific' && (
                           <div className="specific-timing">
+                            <span className="timing-text">Day</span>
                             <input
                               type="number"
                               value={step.day}
-                              onChange={(e) => updateStep(step.id, { day: parseInt(e.target.value) || 1 })}
+                              onChange={(e) => updateStep(step.id, { day: parseInt(e.target.value) || 0 })}
                               min="0"
                               className="day-input"
                             />
@@ -220,8 +333,12 @@ export default function Flow() {
                   </div>
                 </div>
               )}
-            </div>
-          ))}
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })}
         </div>
       )}
 

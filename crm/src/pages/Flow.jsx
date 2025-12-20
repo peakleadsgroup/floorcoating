@@ -5,6 +5,7 @@ import './Flow.css'
 export default function Flow() {
   const [steps, setSteps] = useState([])
   const [editingStep, setEditingStep] = useState(null)
+  const [editingStepData, setEditingStepData] = useState(null) // Local state for editing
   const [showStepTypeDropdown, setShowStepTypeDropdown] = useState(false)
   const [viewingLogsForStep, setViewingLogsForStep] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -118,7 +119,9 @@ export default function Flow() {
       
       // Refresh steps from database
       await fetchFlowSteps()
+      // Set editing with local state copy
       setEditingStep(data.id)
+      setEditingStepData({ ...data })
     } catch (err) {
       console.error('Error adding step:', err)
       alert('Failed to add step. Please try again.')
@@ -196,7 +199,8 @@ export default function Flow() {
     return groups
   }, [steps])
 
-  const editingStepObj = editingStep ? steps.find(s => s.id === editingStep) : null
+  // Use local editing state if available, otherwise fall back to steps array
+  const editingStepObj = editingStepData || (editingStep ? steps.find(s => s.id === editingStep) : null)
 
   // Validate step before saving
   function isStepValid(step) {
@@ -226,34 +230,50 @@ export default function Flow() {
   }
 
   async function handleSave() {
-    // Get the latest step data from the steps array
-    const currentStep = editingStep ? steps.find(s => s.id === editingStep) : null
-    if (currentStep && isStepValid(currentStep)) {
-      // Recalculate step_order based on updated timing
-      const allSteps = steps.map(s => 
-        s.id === currentStep.id ? currentStep : s
-      )
-      const sorted = sortStepsForOrder(allSteps)
-      
-      // Update step_order for all steps if needed
-      const orderUpdates = sorted.map((step, index) => ({
-        id: step.id,
-        step_order: index
-      }))
-
+    // Use local editing state
+    if (editingStepData && isStepValid(editingStepData)) {
       try {
-        // Update all step orders
-        for (const update of orderUpdates) {
+        // Map frontend field names to database field names
+        const dbUpdates = {
+          subject: editingStepData.subject,
+          content: editingStepData.content,
+          day: editingStepData.day,
+          time: editingStepData.time,
+          time_type: editingStepData.time_type,
+          enabled: editingStepData.enabled
+        }
+
+        // Update the step in database
+        const { error } = await supabase
+          .from('flow_steps')
+          .update(dbUpdates)
+          .eq('id', editingStepData.id)
+
+        if (error) throw error
+
+        // Recalculate step_order based on updated timing
+        const { data: allSteps, error: fetchError } = await supabase
+          .from('flow_steps')
+          .select('*')
+          .order('step_order', { ascending: true })
+
+        if (fetchError) throw fetchError
+
+        const sorted = sortStepsForOrder(allSteps)
+        
+        // Update step_order for all steps if needed
+        for (let i = 0; i < sorted.length; i++) {
           await supabase
             .from('flow_steps')
-            .update({ step_order: update.step_order })
-            .eq('id', update.id)
+            .update({ step_order: i })
+            .eq('id', sorted[i].id)
         }
 
         await fetchFlowSteps()
         setEditingStep(null)
+        setEditingStepData(null)
       } catch (err) {
-        console.error('Error saving step order:', err)
+        console.error('Error saving step:', err)
         alert('Failed to save. Please try again.')
       }
     }
@@ -262,63 +282,25 @@ export default function Flow() {
   // Check if current step is valid for button state
   const isCurrentStepValid = editingStepObj ? isStepValid(editingStepObj) : false
 
-  async function updateStep(stepId, updates) {
-    try {
+  // Update local editing state (no database call)
+  function updateEditingStep(updates) {
+    if (!editingStepData) return
+    
+    setEditingStepData(prev => {
+      const updated = { ...prev }
+      
       // Map frontend field names to database field names
-      const dbUpdates = {}
-      if (updates.timeType !== undefined) dbUpdates.time_type = updates.timeType
-      if (updates.subject !== undefined) dbUpdates.subject = updates.subject
-      if (updates.content !== undefined) dbUpdates.content = updates.content
-      if (updates.day !== undefined) dbUpdates.day = updates.day
-      if (updates.time !== undefined) dbUpdates.time = updates.time
-      if (updates.enabled !== undefined) dbUpdates.enabled = updates.enabled
-
-      const { error } = await supabase
-        .from('flow_steps')
-        .update(dbUpdates)
-        .eq('id', stepId)
-
-      if (error) throw error
-
-      // If timing changed, we need to recalculate step_order for all steps
-      if (updates.timeType !== undefined || updates.day !== undefined || updates.time !== undefined) {
-        await recalculateStepOrders()
-      } else {
-        // Just refresh steps
-        await fetchFlowSteps()
-      }
-    } catch (err) {
-      console.error('Error updating step:', err)
-      alert('Failed to update step. Please try again.')
-    }
+      if (updates.timeType !== undefined) updated.time_type = updates.timeType
+      if (updates.subject !== undefined) updated.subject = updates.subject
+      if (updates.content !== undefined) updated.content = updates.content
+      if (updates.day !== undefined) updated.day = updates.day
+      if (updates.time !== undefined) updated.time = updates.time
+      if (updates.enabled !== undefined) updated.enabled = updates.enabled
+      
+      return updated
+    })
   }
 
-  async function recalculateStepOrders() {
-    try {
-      // Get all steps
-      const { data: allSteps, error: fetchError } = await supabase
-        .from('flow_steps')
-        .select('*')
-        .order('step_order', { ascending: true })
-
-      if (fetchError) throw fetchError
-
-      // Sort by day and time
-      const sorted = sortStepsForOrder(allSteps)
-
-      // Update step_order for all steps
-      for (let i = 0; i < sorted.length; i++) {
-        await supabase
-          .from('flow_steps')
-          .update({ step_order: i })
-          .eq('id', sorted[i].id)
-      }
-
-      await fetchFlowSteps()
-    } catch (err) {
-      console.error('Error recalculating step orders:', err)
-    }
-  }
 
   async function deleteStep(stepId) {
     if (!confirm('Are you sure you want to delete this step? This cannot be undone.')) {
@@ -464,13 +446,19 @@ export default function Flow() {
 
       {/* Modal for editing/adding steps */}
       {editingStepObj && (
-        <div className="modal-overlay" onClick={() => setEditingStep(null)}>
+        <div className="modal-overlay" onClick={() => {
+          setEditingStep(null)
+          setEditingStepData(null)
+        }}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{editingStepObj.id ? 'Edit Step' : 'Add New Step'}</h2>
               <button 
                 className="btn-icon btn-close" 
-                onClick={() => setEditingStep(null)}
+                onClick={() => {
+                  setEditingStep(null)
+                  setEditingStepData(null)
+                }}
                 title="Close"
               >
                 ×
@@ -490,7 +478,7 @@ export default function Flow() {
                     <input
                       type="text"
                       value={editingStepObj.subject || ''}
-                      onChange={(e) => updateStep(editingStepObj.id, { subject: e.target.value })}
+                      onChange={(e) => updateEditingStep({ subject: e.target.value })}
                       placeholder="Subject line"
                       className={(!editingStepObj.subject || editingStepObj.subject.trim() === '') ? 'error' : ''}
                     />
@@ -503,8 +491,8 @@ export default function Flow() {
                 <div className="form-group">
                   <label>Message Content <span className="required">*</span></label>
                   <textarea
-                    value={editingStepObj.content}
-                    onChange={(e) => updateStep(editingStepObj.id, { content: e.target.value })}
+                    value={editingStepObj.content || ''}
+                    onChange={(e) => updateEditingStep({ content: e.target.value })}
                     placeholder={editingStepObj.type === 'email' ? 'Email body...' : 'Text message...'}
                     rows={10}
                     className={(!editingStepObj.content || editingStepObj.content.trim() === '') ? 'error' : ''}
@@ -525,8 +513,8 @@ export default function Flow() {
                         <input
                           type="radio"
                           name={`timing-${editingStepObj.id}`}
-                      checked={editingStepObj.time_type === 'immediately'}
-                      onChange={() => updateStep(editingStepObj.id, { timeType: 'immediately' })}
+                          checked={editingStepObj.time_type === 'immediately'}
+                          onChange={() => updateEditingStep({ timeType: 'immediately' })}
                         />
                         <span>Immediately</span>
                       </label>
@@ -536,8 +524,8 @@ export default function Flow() {
                         <input
                           type="radio"
                           name={`timing-${editingStepObj.id}`}
-                      checked={editingStepObj.time_type === 'specific'}
-                      onChange={() => updateStep(editingStepObj.id, { timeType: 'specific' })}
+                          checked={editingStepObj.time_type === 'specific'}
+                          onChange={() => updateEditingStep({ timeType: 'specific' })}
                         />
                         <span>Day</span>
                       </label>
@@ -547,15 +535,15 @@ export default function Flow() {
                           <input
                             type="number"
                             value={editingStepObj.day}
-                            onChange={(e) => updateStep(editingStepObj.id, { day: parseInt(e.target.value) || 0 })}
+                            onChange={(e) => updateEditingStep({ day: parseInt(e.target.value) || 0 })}
                             min="0"
                             className="day-input"
                           />
                           <span className="timing-text">at</span>
                           <input
                             type="text"
-                            value={editingStepObj.time}
-                            onChange={(e) => updateStep(editingStepObj.id, { time: e.target.value })}
+                            value={editingStepObj.time || ''}
+                            onChange={(e) => updateEditingStep({ time: e.target.value })}
                             placeholder="9:00 AM"
                             className="time-input"
                           />
@@ -574,6 +562,7 @@ export default function Flow() {
                   onClick={() => {
                     deleteStep(editingStepObj.id)
                     setEditingStep(null)
+                    setEditingStepData(null)
                   }}
                 >
                   Delete Step
@@ -582,7 +571,10 @@ export default function Flow() {
               <div className="modal-footer-right">
                 <button 
                   className="btn-secondary" 
-                  onClick={() => setEditingStep(null)}
+                  onClick={() => {
+                    setEditingStep(null)
+                    setEditingStepData(null)
+                  }}
                 >
                   Cancel
                 </button>
@@ -636,7 +628,10 @@ export default function Flow() {
                           </button>
                           <button 
                             className="btn-icon btn-edit" 
-                            onClick={() => setEditingStep(step.id)}
+                            onClick={() => {
+                              setEditingStep(step.id)
+                              setEditingStepData({ ...step })
+                            }}
                             title="Edit"
                           >
                             ✎

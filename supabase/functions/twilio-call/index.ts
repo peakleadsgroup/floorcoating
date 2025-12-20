@@ -40,35 +40,50 @@ async function generateAccessToken(): Promise<string> {
 
   // Base64URL encoding helper
   const base64urlEncode = (input: string | Uint8Array): string => {
-    let binary: string
+    let base64: string
     if (input instanceof Uint8Array) {
-      // Convert Uint8Array to binary string efficiently
-      binary = Array.from(input, byte => String.fromCharCode(byte)).join('')
+      // Convert Uint8Array to base64
+      const binary = Array.from(input, byte => String.fromCharCode(byte)).join('')
+      base64 = btoa(binary)
     } else {
-      binary = input
+      // For strings, encode to base64 directly
+      base64 = btoa(input)
     }
-    const base64 = btoa(binary)
+    // Convert to base64url (URL-safe base64)
     return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
   }
 
-  const encodedHeader = base64urlEncode(JSON.stringify(header))
-  const encodedPayload = base64urlEncode(JSON.stringify(payload))
+  const headerJson = JSON.stringify(header)
+  const payloadJson = JSON.stringify(payload)
+  const encodedHeader = base64urlEncode(headerJson)
+  const encodedPayload = base64urlEncode(payloadJson)
 
-  // HMAC-SHA256 signature
-  const keyData = new TextEncoder().encode(TWILIO_API_KEY_SECRET!)
-  const messageData = new TextEncoder().encode(`${encodedHeader}.${encodedPayload}`)
+  // Create the message to sign: base64url(header).base64url(payload)
+  const messageToSign = `${encodedHeader}.${encodedPayload}`
+
+  // HMAC-SHA256 signature using the API Key Secret
+  // The secret must be UTF-8 encoded
+  const keyBytes = new TextEncoder().encode(TWILIO_API_KEY_SECRET!)
+  const messageBytes = new TextEncoder().encode(messageToSign)
   
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
-    keyData,
+    keyBytes,
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']
   )
 
-      const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData)
-      const signatureArray = new Uint8Array(signature)
-      const encodedSignature = base64urlEncode(signatureArray)
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageBytes)
+  const signatureArray = new Uint8Array(signature)
+  const encodedSignature = base64urlEncode(signatureArray)
+  
+  console.log('JWT construction:', {
+    headerJson,
+    payloadJson: JSON.stringify(payload), // Log the payload structure
+    messageToSignLength: messageToSign.length,
+    signatureLength: signatureArray.length,
+  })
 
   const token = `${encodedHeader}.${encodedPayload}.${encodedSignature}`
   

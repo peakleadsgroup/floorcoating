@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { sendEmailWebhook, sendTextWebhook } from '../lib/webhooks'
+import { sendEmailWebhook } from '../lib/webhooks'
 import './Leads.css'
 
 // Function to convert URLs to clickable links and render HTML for emails
@@ -256,41 +256,9 @@ export default function Leads() {
           alert('Message saved but webhook failed. Check console for details.')
         }
       } else if (newMessage.message_type === 'text') {
-        if (!selectedLead.phone) {
-          console.error('Cannot send text: Lead has no phone number')
-          alert('Cannot send text: Lead has no phone number')
-          return
-        }
-
-        console.log('Sending text webhook for:', selectedLead.phone)
-        
-        try {
-          await sendTextWebhook({
-            phone: selectedLead.phone,
-            message: newMessage.content.trim(),
-          })
-
-          console.log('Text webhook sent successfully, updating message status')
-
-          // Update message status to 'sent' after webhook is sent
-          if (insertedData) {
-            const { error: updateError } = await supabase
-              .from('message_logs')
-              .update({ 
-                status: 'sent',
-                sent_at: new Date().toISOString()
-              })
-              .eq('id', insertedData.id)
-
-            if (updateError) {
-              console.error('Error updating message status:', updateError)
-            }
-          }
-        } catch (webhookError) {
-          console.error('Text webhook failed:', webhookError)
-          // Don't throw - message is already saved, just log the error
-          alert('Message saved but webhook failed. Check console for details.')
-        }
+        // Text messages are saved to database with status 'pending'
+        // Your messaging program will pull from Supabase and send the messages
+        console.log('Text message saved to database. Status: pending')
       }
 
       setNewMessage({ message_type: 'text', subject: '', content: '' })

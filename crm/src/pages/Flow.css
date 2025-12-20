@@ -63,8 +63,14 @@
   transition: background 0.2s;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: #45a049;
+}
+
+.btn-primary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .btn-secondary {
@@ -254,6 +260,22 @@
   color: #999;
   font-size: 12px;
   margin-top: -5px;
+}
+
+.required {
+  color: #d32f2f;
+}
+
+.form-group input.error,
+.form-group textarea.error {
+  border-color: #d32f2f;
+}
+
+.error-text {
+  color: #d32f2f;
+  font-size: 12px;
+  display: block;
+  margin-top: 4px;
 }
 
 .timing-controls {

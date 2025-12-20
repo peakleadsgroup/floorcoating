@@ -90,6 +90,44 @@ export default function Flow() {
 
   const editingStepObj = editingStep ? steps.find(s => s.id === editingStep) : null
 
+  // Validate step before saving
+  function isStepValid(step) {
+    if (!step) return false
+    
+    // Content is always required
+    if (!step.content || step.content.trim() === '') {
+      return false
+    }
+    
+    // Subject is required for emails
+    if (step.type === 'email' && (!step.subject || step.subject.trim() === '')) {
+      return false
+    }
+    
+    // If specific timing, day and time must be set
+    if (step.timeType === 'specific') {
+      if (step.day === undefined || step.day === null || step.day < 0) {
+        return false
+      }
+      if (!step.time || step.time.trim() === '') {
+        return false
+      }
+    }
+    
+    return true
+  }
+
+  function handleSave() {
+    // Get the latest step data from the steps array
+    const currentStep = editingStep ? steps.find(s => s.id === editingStep) : null
+    if (currentStep && isStepValid(currentStep)) {
+      setEditingStep(null)
+    }
+  }
+
+  // Check if current step is valid for button state
+  const isCurrentStepValid = editingStepObj ? isStepValid(editingStepObj) : false
+
   function updateStep(stepId, updates) {
     const updatedSteps = steps.map(step => 
       step.id === stepId ? { ...step, ...updates } : step
@@ -165,24 +203,32 @@ export default function Flow() {
 
                 {editingStepObj.type === 'email' && (
                   <div className="form-group">
-                    <label>Email Subject</label>
+                    <label>Email Subject <span className="required">*</span></label>
                     <input
                       type="text"
                       value={editingStepObj.subject || ''}
                       onChange={(e) => updateStep(editingStepObj.id, { subject: e.target.value })}
                       placeholder="Subject line"
+                      className={(!editingStepObj.subject || editingStepObj.subject.trim() === '') ? 'error' : ''}
                     />
+                    {(!editingStepObj.subject || editingStepObj.subject.trim() === '') && (
+                      <small className="error-text">Subject is required</small>
+                    )}
                   </div>
                 )}
 
                 <div className="form-group">
-                  <label>Message Content</label>
+                  <label>Message Content <span className="required">*</span></label>
                   <textarea
                     value={editingStepObj.content}
                     onChange={(e) => updateStep(editingStepObj.id, { content: e.target.value })}
                     placeholder={editingStepObj.type === 'email' ? 'Email body...' : 'Text message...'}
                     rows={10}
+                    className={(!editingStepObj.content || editingStepObj.content.trim() === '') ? 'error' : ''}
                   />
+                  {(!editingStepObj.content || editingStepObj.content.trim() === '') && (
+                    <small className="error-text">Message content is required</small>
+                  )}
                   <small className="form-hint">
                     You can use variables: {'{FIRST NAME}'}, {'{LAST NAME}'}, {'{PHONE NUMBER}'}, {'{EMAIL}'}, {'{FLOOR TYPE}'}, {'{CALENDAR LINK}'}
                   </small>
@@ -259,7 +305,8 @@ export default function Flow() {
                 </button>
                 <button 
                   className="btn-primary" 
-                  onClick={() => setEditingStep(null)}
+                  onClick={handleSave}
+                  disabled={!isCurrentStepValid}
                 >
                   Save
                 </button>

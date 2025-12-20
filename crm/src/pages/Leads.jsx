@@ -194,17 +194,21 @@ export default function Leads() {
     }
   }
 
-  function getMessageStatusClass(status) {
-    switch (status) {
-      case 'sent':
-        return 'outbound'
-      case 'pending':
-        return 'pending'
-      case 'failed':
-        return 'failed'
-      default:
-        return 'outbound'
+  function getMessageClass(message) {
+    // All messages in message_logs are outbound (sent by us)
+    // Inbound messages would come from a different source (future feature)
+    // For now, all messages are outbound
+    const baseClass = 'outbound'
+    
+    // Add status classes for styling
+    if (message.status === 'pending') {
+      return `${baseClass} pending`
     }
+    if (message.status === 'failed') {
+      return `${baseClass} failed`
+    }
+    
+    return baseClass
   }
 
   if (loading && leads.length === 0) {
@@ -318,7 +322,7 @@ export default function Leads() {
                     {messages.map((message) => (
                       <div
                         key={message.id}
-                        className={`message-bubble ${getMessageStatusClass(message.status)}`}
+                        className={`message-bubble ${getMessageClass(message)}`}
                       >
                         <div className="message-bubble-header">
                           <span className="message-type-badge">

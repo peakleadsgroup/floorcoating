@@ -61,17 +61,43 @@ CREATE TRIGGER update_flow_steps_updated_at BEFORE UPDATE ON flow_steps
 ALTER TABLE flow_steps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE message_logs ENABLE ROW LEVEL SECURITY;
 
--- Policies for flow_steps (authenticated users can read/write)
+-- Policies for flow_steps (allow both authenticated and anon users)
 CREATE POLICY "Allow authenticated users to manage flow steps"
   ON flow_steps FOR ALL
   TO authenticated
   USING (true)
   WITH CHECK (true);
 
+CREATE POLICY "Allow anon users to read flow steps"
+  ON flow_steps FOR SELECT
+  TO anon
+  USING (true);
+
+CREATE POLICY "Allow anon users to insert flow steps"
+  ON flow_steps FOR INSERT
+  TO anon
+  WITH CHECK (true);
+
+CREATE POLICY "Allow anon users to update flow steps"
+  ON flow_steps FOR UPDATE
+  TO anon
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY "Allow anon users to delete flow steps"
+  ON flow_steps FOR DELETE
+  TO anon
+  USING (true);
+
 -- Policies for message_logs (authenticated users can read, service role can insert)
 CREATE POLICY "Allow authenticated users to read message logs"
   ON message_logs FOR SELECT
   TO authenticated
+  USING (true);
+
+CREATE POLICY "Allow anon users to read message logs"
+  ON message_logs FOR SELECT
+  TO anon
   USING (true);
 
 CREATE POLICY "Allow service role to insert message logs"

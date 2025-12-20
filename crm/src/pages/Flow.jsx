@@ -8,12 +8,12 @@ export default function Flow() {
   function addStep(type) {
     const newStep = {
       id: Date.now(),
-      type: type, // 'email' or 'text'
-      name: '',
+      type: type, // 'email', 'text', or 'call'
       subject: type === 'email' ? '' : null,
       content: '',
-      delay: 0, // hours after previous step
-      delayUnit: 'hours', // 'hours', 'days', 'minutes'
+      day: 1, // days after lead is created
+      time: '9:00 AM', // time of day
+      timeType: 'specific', // 'immediately' or 'specific'
       enabled: true
     }
     setSteps([...steps, newStep])
@@ -66,6 +66,9 @@ export default function Flow() {
         <button className="btn-primary" onClick={() => addStep('text')}>
           + Add Text Step
         </button>
+        <button className="btn-primary" onClick={() => addStep('call')}>
+          + Add Call Step
+        </button>
       </div>
 
       {steps.length === 0 ? (
@@ -78,7 +81,9 @@ export default function Flow() {
             <div key={step.id} className={`flow-step ${!step.enabled ? 'disabled' : ''}`}>
               <div className="step-header">
                 <div className="step-number">Step {index + 1}</div>
-                <div className="step-type-badge">{step.type === 'email' ? '📧 Email' : '💬 Text'}</div>
+                <div className="step-type-badge">
+                  {step.type === 'email' ? '📧 Email' : step.type === 'text' ? '💬 Text' : '📞 Call'}
+                </div>
                 <div className="step-actions">
                   <button 
                     className="btn-icon" 
@@ -115,16 +120,6 @@ export default function Flow() {
 
               {editingStep === step.id ? (
                 <div className="step-editor">
-                  <div className="form-group">
-                    <label>Step Name</label>
-                    <input
-                      type="text"
-                      value={step.name}
-                      onChange={(e) => updateStep(step.id, { name: e.target.value })}
-                      placeholder="e.g., Welcome Email"
-                    />
-                  </div>
-
                   {step.type === 'email' && (
                     <div className="form-group">
                       <label>Email Subject</label>
@@ -142,34 +137,59 @@ export default function Flow() {
                     <textarea
                       value={step.content}
                       onChange={(e) => updateStep(step.id, { content: e.target.value })}
-                      placeholder={step.type === 'email' ? 'Email body...' : 'Text message...'}
-                      rows={6}
+                      placeholder={step.type === 'email' ? 'Email body...' : step.type === 'text' ? 'Text message...' : 'Call script/notes...'}
+                      rows={8}
                     />
                     <small className="form-hint">
-                      {step.type === 'email' 
-                        ? 'You can use {firstName}, {lastName}, {phone}, {email} as variables'
-                        : 'You can use {firstName}, {lastName}, {phone}, {email} as variables'}
+                      You can use variables: {'{FIRST NAME}'}, {'{LAST NAME}'}, {'{PHONE NUMBER}'}, {'{EMAIL}'}, {'{FLOOR TYPE}'}, {'{CALENDAR LINK}'}
                     </small>
                   </div>
 
                   <div className="form-group">
-                    <label>Send Delay</label>
-                    <div className="delay-inputs">
-                      <input
-                        type="number"
-                        value={step.delay}
-                        onChange={(e) => updateStep(step.id, { delay: parseInt(e.target.value) || 0 })}
-                        min="0"
-                      />
-                      <select
-                        value={step.delayUnit}
-                        onChange={(e) => updateStep(step.id, { delayUnit: e.target.value })}
-                      >
-                        <option value="minutes">Minutes</option>
-                        <option value="hours">Hours</option>
-                        <option value="days">Days</option>
-                      </select>
-                      <span className="delay-hint">after {index === 0 ? 'lead is created' : 'previous step'}</span>
+                    <label>Send Timing</label>
+                    <div className="timing-controls">
+                      <div className="timing-option">
+                        <label className="radio-label">
+                          <input
+                            type="radio"
+                            name={`timing-${step.id}`}
+                            checked={step.timeType === 'immediately'}
+                            onChange={() => updateStep(step.id, { timeType: 'immediately' })}
+                          />
+                          <span>Immediately</span>
+                        </label>
+                      </div>
+                      <div className="timing-option">
+                        <label className="radio-label">
+                          <input
+                            type="radio"
+                            name={`timing-${step.id}`}
+                            checked={step.timeType === 'specific'}
+                            onChange={() => updateStep(step.id, { timeType: 'specific' })}
+                          />
+                          <span>Day</span>
+                        </label>
+                        {step.timeType === 'specific' && (
+                          <div className="specific-timing">
+                            <input
+                              type="number"
+                              value={step.day}
+                              onChange={(e) => updateStep(step.id, { day: parseInt(e.target.value) || 1 })}
+                              min="0"
+                              className="day-input"
+                            />
+                            <span className="timing-text">at</span>
+                            <input
+                              type="text"
+                              value={step.time}
+                              onChange={(e) => updateStep(step.id, { time: e.target.value })}
+                              placeholder="9:00 AM"
+                              className="time-input"
+                            />
+                            <span className="timing-hint">after lead is created</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -182,9 +202,6 @@ export default function Flow() {
                 </div>
               ) : (
                 <div className="step-preview" onClick={() => setEditingStep(step.id)}>
-                  <div className="step-preview-name">
-                    {step.name || `Untitled ${step.type === 'email' ? 'Email' : 'Text'}`}
-                  </div>
                   <div className="step-preview-content">
                     {step.type === 'email' && step.subject && (
                       <div className="preview-subject">Subject: {step.subject}</div>
@@ -194,7 +211,11 @@ export default function Flow() {
                     </div>
                   </div>
                   <div className="step-preview-meta">
-                    <span>Delay: {step.delay} {step.delayUnit}</span>
+                    <span>
+                      {step.timeType === 'immediately' 
+                        ? 'Immediately' 
+                        : `Day ${step.day} at ${step.time}`}
+                    </span>
                     {!step.enabled && <span className="disabled-badge">Disabled</span>}
                   </div>
                 </div>

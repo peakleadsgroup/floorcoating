@@ -23,9 +23,14 @@ CREATE POLICY "Allow anon users to delete flow steps"
   TO anon
   USING (true);
 
--- Policy for message_logs (allow anon users to read)
+-- Policy for message_logs (allow anon users to read and insert)
 CREATE POLICY "Allow anon users to read message logs"
   ON message_logs FOR SELECT
   TO anon
   USING (true);
+
+CREATE POLICY "Allow anon users to insert message logs"
+  ON message_logs FOR INSERT
+  TO anon
+  WITH CHECK (true);
 

@@ -100,6 +100,11 @@ CREATE POLICY "Allow anon users to read message logs"
   TO anon
   USING (true);
 
+CREATE POLICY "Allow anon users to insert message logs"
+  ON message_logs FOR INSERT
+  TO anon
+  WITH CHECK (true);
+
 CREATE POLICY "Allow service role to insert message logs"
   ON message_logs FOR INSERT
   TO service_role

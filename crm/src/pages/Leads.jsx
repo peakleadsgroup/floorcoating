@@ -498,15 +498,29 @@ export default function Leads() {
 
                         if (error) {
                           console.error('Error calling:', error)
-                          alert('Failed to initiate call. Check console for details.')
+                          const errorMsg = error.message || JSON.stringify(error)
+                          alert(`Failed to initiate call: ${errorMsg}\n\nCheck browser console and Supabase logs for details.`)
+                          return
+                        }
+
+                        if (data?.error) {
+                          console.error('Twilio error:', data)
+                          
+                          // Check for specific concurrency error
+                          const errorLower = (data.error || '').toLowerCase()
+                          if (errorLower.includes('concurrency') || errorLower.includes('10004')) {
+                            alert(`Call failed: Too many calls at once.\n\nPlease wait a few seconds and try again. Twilio accounts have limits on concurrent calls.\n\nError: ${data.error}`)
+                          } else {
+                            alert(`Call failed: ${data.error}\n\nStatus: ${data.status || 'Unknown'}\n\nCheck Supabase Edge Function logs for details.`)
+                          }
                           return
                         }
 
                         console.log('Call initiated:', data)
-                        alert(`Call initiated to ${formatPhone(selectedLead.phone)}`)
+                        alert(`Call initiated to ${formatPhone(selectedLead.phone)}\n\nCall SID: ${data?.call_sid || 'N/A'}`)
                       } catch (err) {
                         console.error('Error initiating call:', err)
-                        alert('Failed to initiate call. Please try again.')
+                        alert(`Failed to initiate call: ${err.message || 'Unknown error'}\n\nCheck browser console for details.`)
                       }
                     }}
                     style={{ whiteSpace: 'nowrap' }}

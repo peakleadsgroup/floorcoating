@@ -21,8 +21,11 @@ serve(async (req) => {
 
   try {
     const { phone_number, lead_id } = await req.json()
+    
+    console.log('Received request:', { phone_number, lead_id })
 
     if (!phone_number) {
+      console.error('Missing phone_number in request')
       return new Response(
         JSON.stringify({ error: 'Missing required field: phone_number' }),
         { 
@@ -35,9 +38,19 @@ serve(async (req) => {
       )
     }
 
-    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+    // Check credentials
+    const missingCredentials = []
+    if (!TWILIO_ACCOUNT_SID) missingCredentials.push('TWILIO_ACCOUNT_SID')
+    if (!TWILIO_AUTH_TOKEN) missingCredentials.push('TWILIO_AUTH_TOKEN')
+    if (!TWILIO_PHONE_NUMBER) missingCredentials.push('TWILIO_PHONE_NUMBER')
+    
+    if (missingCredentials.length > 0) {
+      console.error('Missing Twilio credentials:', missingCredentials)
       return new Response(
-        JSON.stringify({ error: 'Twilio credentials not configured' }),
+        JSON.stringify({ 
+          error: 'Twilio credentials not configured',
+          missing: missingCredentials
+        }),
         { 
           status: 500,
           headers: {
@@ -55,6 +68,8 @@ serve(async (req) => {
     } else if (!formattedPhone.startsWith('+')) {
       formattedPhone = `+${formattedPhone}`
     }
+    
+    console.log('Formatted phone:', { original: phone_number, formatted: formattedPhone })
 
     // Make Twilio API call to initiate the call
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Calls.json`
@@ -71,6 +86,13 @@ serve(async (req) => {
     formData.append('From', TWILIO_PHONE_NUMBER) // From your Twilio number
     formData.append('Twiml', twiml) // Inline TwiML for call handling
 
+    console.log('Making Twilio API call:', {
+      url: twilioUrl,
+      to: formattedPhone,
+      from: TWILIO_PHONE_NUMBER,
+      accountSid: TWILIO_ACCOUNT_SID?.substring(0, 10) + '...' // Log partial for security
+    })
+
     const response = await fetch(twilioUrl, {
       method: 'POST',
       headers: {
@@ -80,14 +102,58 @@ serve(async (req) => {
       body: formData.toString(),
     })
 
+    const responseText = await response.text()
+    
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Twilio API error:', errorText)
-      throw new Error(`Twilio API failed: ${response.status} - ${errorText}`)
+      console.error('Twilio API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: responseText,
+        to: formattedPhone,
+        from: TWILIO_PHONE_NUMBER
+      })
+      
+      // Try to parse error message from Twilio
+      let errorMessage = `Twilio API failed: ${response.status}`
+      let errorCode = null
+      try {
+        const errorJson = JSON.parse(responseText)
+        errorMessage = errorJson.message || errorMessage
+        errorCode = errorJson.code || errorJson.error_code
+        console.error('Twilio error details:', errorJson)
+        
+        // Special handling for concurrency errors
+        if (errorCode === 10004 || errorMessage.includes('concurrency')) {
+          errorMessage = 'Call concurrency limit exceeded. Please wait a few seconds before trying again.'
+        }
+      } catch (e) {
+        // Not JSON, use raw text
+        errorMessage = responseText || errorMessage
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          error: errorMessage,
+          status: response.status,
+          details: responseText
+        }),
+        {
+          status: response.status,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }
+      )
     }
 
-    const callData = await response.json()
-    console.log('Twilio call initiated:', callData)
+    const callData = JSON.parse(responseText)
+    console.log('Twilio call initiated successfully:', {
+      callSid: callData.sid,
+      status: callData.status,
+      to: callData.to,
+      from: callData.from
+    })
 
     // Optionally: Log the call to your database
     // You could create a calls table or add to message_logs

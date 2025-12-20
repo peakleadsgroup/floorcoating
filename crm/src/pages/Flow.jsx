@@ -329,15 +329,6 @@ export default function Flow() {
         </div>
       ) : null}
 
-      {steps.length > 0 && (
-        <div className="flow-summary">
-          <h3>Flow Summary</h3>
-          <p>Total Steps: {steps.length} ({steps.filter(s => s.enabled).length} enabled)</p>
-          <p className="summary-note">
-            Note: This flow is not yet saved. Database integration will be added next.
-          </p>
-        </div>
-      )}
     </div>
   )
 }

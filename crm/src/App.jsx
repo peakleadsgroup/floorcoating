@@ -29,12 +29,20 @@ function App() {
   async function fetchLeads() {
     try {
       setLoading(true)
+      console.log('Fetching leads from Supabase...')
       const { data, error } = await supabase
         .from('leads')
         .select('*')
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      console.log('Supabase response:', { data, error })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        throw error
+      }
+      
+      console.log('Leads fetched:', data?.length || 0, 'leads')
       setLeads(data || [])
       setError(null)
     } catch (err) {

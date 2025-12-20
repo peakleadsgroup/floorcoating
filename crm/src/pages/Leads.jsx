@@ -51,6 +51,8 @@ export default function Leads() {
     subject: '',
     content: '',
   })
+  const [isEditingLead, setIsEditingLead] = useState(false)
+  const [editedLeadData, setEditedLeadData] = useState(null)
   const messagesContainerRef = useRef(null)
 
   useEffect(() => {
@@ -148,7 +150,35 @@ export default function Leads() {
   // Handle lead click
   function handleLeadClick(lead) {
     setSelectedLead(lead)
+    setEditedLeadData({ ...lead })
+    setIsEditingLead(false)
     fetchMessages(lead.id)
+  }
+
+  // Handle save lead changes
+  async function handleSaveLeadChanges() {
+    if (!selectedLead || !editedLeadData) return
+
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update(editedLeadData)
+        .eq('id', selectedLead.id)
+
+      if (error) throw error
+
+      // Update the selected lead with new data
+      setSelectedLead({ ...selectedLead, ...editedLeadData })
+      setIsEditingLead(false)
+      
+      // Refresh the leads list
+      await fetchLeads()
+      
+      alert('Lead updated successfully')
+    } catch (err) {
+      console.error('Error updating lead:', err)
+      alert('Error updating lead. Please try again.')
+    }
   }
 
   // Handle send message
@@ -339,25 +369,170 @@ export default function Leads() {
             </div>
             <div className="message-modal-body">
               <div className="lead-info-header">
-                <p><strong>Name:</strong> {selectedLead.first_name} {selectedLead.last_name}</p>
-                <p><strong>Phone:</strong> {formatPhone(selectedLead.phone)}</p>
-                <p><strong>Email:</strong> {selectedLead.email || 'N/A'}</p>
-                {selectedLead.street_address && (
-                  <p><strong>Address:</strong> {selectedLead.street_address}, {selectedLead.city}, {selectedLead.state} {selectedLead.zip}</p>
-                )}
-                <p><strong>Source:</strong> {selectedLead.source || 'N/A'}</p>
-                <p><strong>Created:</strong> {formatDate(selectedLead.created_at)}</p>
-                {selectedLead.homeowner && (
-                  <p><strong>Homeowner:</strong> {selectedLead.homeowner}</p>
-                )}
-                {selectedLead.floor_location && (
-                  <p><strong>Floor Location:</strong> {selectedLead.floor_location}</p>
-                )}
-                {selectedLead.project_timeline && (
-                  <p><strong>Project Timeline:</strong> {selectedLead.project_timeline}</p>
-                )}
-                {selectedLead.main_goal && (
-                  <p><strong>Main Goal:</strong> {selectedLead.main_goal}</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gridColumn: '1 / -1' }}>
+                  <h3 style={{ margin: 0 }}>Lead Information</h3>
+                  {!isEditingLead ? (
+                    <button 
+                      className="btn-icon btn-edit-lead" 
+                      onClick={() => setIsEditingLead(true)}
+                      title="Edit Lead"
+                    >
+                      ✎
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button 
+                        className="btn-secondary" 
+                        onClick={() => {
+                          setIsEditingLead(false)
+                          setEditedLeadData({ ...selectedLead })
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        className="btn-primary" 
+                        onClick={handleSaveLeadChanges}
+                      >
+                        Save
+                      </button>
+                    </div>
+                  )}
+                </div>
+                
+                {isEditingLead ? (
+                  <>
+                    <div className="form-group">
+                      <label>First Name</label>
+                      <input
+                        type="text"
+                        value={editedLeadData?.first_name || ''}
+                        onChange={(e) => setEditedLeadData({ ...editedLeadData, first_name: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Last Name</label>
+                      <input
+                        type="text"
+                        value={editedLeadData?.last_name || ''}
+                        onChange={(e) => setEditedLeadData({ ...editedLeadData, last_name: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Phone</label>
+                      <input
+                        type="tel"
+                        value={editedLeadData?.phone || ''}
+                        onChange={(e) => setEditedLeadData({ ...editedLeadData, phone: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Email</label>
+                      <input
+                        type="email"
+                        value={editedLeadData?.email || ''}
+                        onChange={(e) => setEditedLeadData({ ...editedLeadData, email: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Street Address</label>
+                      <input
+                        type="text"
+                        value={editedLeadData?.street_address || ''}
+                        onChange={(e) => setEditedLeadData({ ...editedLeadData, street_address: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>City</label>
+                      <input
+                        type="text"
+                        value={editedLeadData?.city || ''}
+                        onChange={(e) => setEditedLeadData({ ...editedLeadData, city: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>State</label>
+                      <input
+                        type="text"
+                        value={editedLeadData?.state || ''}
+                        onChange={(e) => setEditedLeadData({ ...editedLeadData, state: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Zip</label>
+                      <input
+                        type="text"
+                        value={editedLeadData?.zip || ''}
+                        onChange={(e) => setEditedLeadData({ ...editedLeadData, zip: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Source</label>
+                      <input
+                        type="text"
+                        value={editedLeadData?.source || ''}
+                        onChange={(e) => setEditedLeadData({ ...editedLeadData, source: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Homeowner</label>
+                      <select
+                        value={editedLeadData?.homeowner || ''}
+                        onChange={(e) => setEditedLeadData({ ...editedLeadData, homeowner: e.target.value })}
+                      >
+                        <option value="">Select...</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Floor Location</label>
+                      <input
+                        type="text"
+                        value={editedLeadData?.floor_location || ''}
+                        onChange={(e) => setEditedLeadData({ ...editedLeadData, floor_location: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Project Timeline</label>
+                      <input
+                        type="text"
+                        value={editedLeadData?.project_timeline || ''}
+                        onChange={(e) => setEditedLeadData({ ...editedLeadData, project_timeline: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Main Goal</label>
+                      <input
+                        type="text"
+                        value={editedLeadData?.main_goal || ''}
+                        onChange={(e) => setEditedLeadData({ ...editedLeadData, main_goal: e.target.value })}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p><strong>Name:</strong> {selectedLead.first_name} {selectedLead.last_name}</p>
+                    <p><strong>Phone:</strong> {formatPhone(selectedLead.phone)}</p>
+                    <p><strong>Email:</strong> {selectedLead.email || 'N/A'}</p>
+                    {selectedLead.street_address && (
+                      <p><strong>Address:</strong> {selectedLead.street_address}, {selectedLead.city}, {selectedLead.state} {selectedLead.zip}</p>
+                    )}
+                    <p><strong>Source:</strong> {selectedLead.source || 'N/A'}</p>
+                    <p><strong>Created:</strong> {formatDate(selectedLead.created_at)}</p>
+                    {selectedLead.homeowner && (
+                      <p><strong>Homeowner:</strong> {selectedLead.homeowner}</p>
+                    )}
+                    {selectedLead.floor_location && (
+                      <p><strong>Floor Location:</strong> {selectedLead.floor_location}</p>
+                    )}
+                    {selectedLead.project_timeline && (
+                      <p><strong>Project Timeline:</strong> {selectedLead.project_timeline}</p>
+                    )}
+                    {selectedLead.main_goal && (
+                      <p><strong>Main Goal:</strong> {selectedLead.main_goal}</p>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -380,9 +555,8 @@ export default function Leads() {
                             {message.sent_at 
                               ? formatDate(message.sent_at)
                               : message.scheduled_for 
-                                ? `Scheduled: ${formatDate(message.scheduled_for)}`
+                                ? formatDate(message.scheduled_for)
                                 : formatDate(message.created_at)}
-                            {message.status === 'pending' && ' (Pending)'}
                             {message.status === 'failed' && ' (Failed)'}
                           </span>
                         </div>

@@ -335,6 +335,43 @@
   gap: 0.5rem 1.5rem;
 }
 
+.lead-info-header h3 {
+  margin: 0;
+  color: #1a365d;
+  font-size: 1.125rem;
+}
+
+.btn-edit-lead {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.btn-edit-lead:hover {
+  background: #e2e8f0;
+  color: #1a365d;
+}
+
+.lead-info-header .form-group {
+  margin: 0;
+}
+
+.lead-info-header .form-group label {
+  font-size: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.lead-info-header .form-group input,
+.lead-info-header .form-group select {
+  padding: 0.5rem;
+  font-size: 0.875rem;
+}
+
 .lead-info-header p {
   margin: 0;
   color: #475569;

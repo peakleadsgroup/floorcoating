@@ -185,25 +185,45 @@ export default function Leads() {
       if (error) throw error
 
       // If it's an email, send webhook to Make.com
-      if (newMessage.message_type === 'email' && selectedLead.email) {
+      if (newMessage.message_type === 'email') {
+        if (!selectedLead.email) {
+          console.error('Cannot send email: Lead has no email address')
+          alert('Cannot send email: Lead has no email address')
+          return
+        }
+
+        console.log('Sending email webhook for:', selectedLead.email)
+        
         // Convert content to HTML format (preserve line breaks)
         const htmlBody = newMessage.content.trim().replace(/\n/g, '<br />')
         
-        await sendEmailWebhook({
-          email: selectedLead.email,
-          subject: newMessage.subject.trim(),
-          body: htmlBody,
-        })
+        try {
+          await sendEmailWebhook({
+            email: selectedLead.email,
+            subject: newMessage.subject.trim(),
+            body: htmlBody,
+          })
 
-        // Update message status to 'sent' after webhook is sent
-        if (insertedData) {
-          await supabase
-            .from('message_logs')
-            .update({ 
-              status: 'sent',
-              sent_at: new Date().toISOString()
-            })
-            .eq('id', insertedData.id)
+          console.log('Webhook sent successfully, updating message status')
+
+          // Update message status to 'sent' after webhook is sent
+          if (insertedData) {
+            const { error: updateError } = await supabase
+              .from('message_logs')
+              .update({ 
+                status: 'sent',
+                sent_at: new Date().toISOString()
+              })
+              .eq('id', insertedData.id)
+
+            if (updateError) {
+              console.error('Error updating message status:', updateError)
+            }
+          }
+        } catch (webhookError) {
+          console.error('Webhook failed:', webhookError)
+          // Don't throw - message is already saved, just log the error
+          alert('Message saved but webhook failed. Check console for details.')
         }
       }
 

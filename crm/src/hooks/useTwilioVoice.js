@@ -24,12 +24,29 @@ export function useTwilioVoice() {
           }
         })
         
+        console.log('Token request response:', { tokenData, tokenError })
+        
+        // Supabase functions.invoke puts errors in the error field
         if (tokenError) {
-          throw new Error(tokenError.message || 'Failed to get token')
+          console.error('Token error details:', tokenError)
+          // Error might be a Response object or error message
+          const errorMsg = tokenError.message || tokenError.error || JSON.stringify(tokenError)
+          throw new Error(`Failed to get token: ${errorMsg}`)
         }
         
-        if (tokenData?.error || !tokenData?.token) {
-          throw new Error(tokenData?.error || 'Failed to get token')
+        // Also check if data contains an error
+        if (!tokenData) {
+          throw new Error('No data received from token endpoint')
+        }
+        
+        if (tokenData.error) {
+          console.error('Error in token data:', tokenData.error)
+          throw new Error(tokenData.error || 'Failed to get token')
+        }
+        
+        if (!tokenData.token) {
+          console.error('Token data:', tokenData)
+          throw new Error('Token not found in response. Response: ' + JSON.stringify(tokenData))
         }
 
         // Initialize Twilio Device

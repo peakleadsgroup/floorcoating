@@ -153,8 +153,26 @@ serve(async (req) => {
   // Handle POST requests
   if (req.method === 'POST') {
     try {
-      const requestBody = await req.json().catch(() => ({}))
-      const { phone_number, lead_id, action } = requestBody
+      let requestBody
+      try {
+        requestBody = await req.json()
+      } catch (e) {
+        console.error('Error parsing request body:', e)
+        return new Response(
+          JSON.stringify({ error: 'Invalid JSON in request body' }),
+          {
+            status: 400,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            },
+          }
+        )
+      }
+      
+      const { phone_number, lead_id, action } = requestBody || {}
+      
+      console.log('POST request received:', { action, hasPhoneNumber: !!phone_number, hasLeadId: !!lead_id })
       
       // Handle token request via POST
       if (action === 'token') {

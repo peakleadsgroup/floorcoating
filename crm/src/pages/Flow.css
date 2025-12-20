@@ -109,6 +109,15 @@
   cursor: not-allowed;
 }
 
+.btn-log {
+  color: #7b1fa2;
+  border-color: #7b1fa2;
+}
+
+.btn-log:hover:not(:disabled) {
+  background: #f3e5f5;
+}
+
 .btn-edit {
   color: #1976d2;
   border-color: #1976d2;
@@ -513,5 +522,52 @@
   margin-bottom: 20px;
   padding-bottom: 15px;
   border-bottom: 1px solid #eee;
+}
+
+.modal-log-content {
+  max-width: 800px;
+}
+
+.log-info {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.log-step-info {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 14px;
+}
+
+.log-step-info strong {
+  font-weight: 600;
+}
+
+.log-subject {
+  margin: 0;
+  color: #666;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.log-list {
+  min-height: 200px;
+}
+
+.log-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.log-empty p {
+  margin: 10px 0;
+}
+
+.log-note {
+  font-size: 12px;
+  color: #bbb;
+  font-style: italic;
 }
 

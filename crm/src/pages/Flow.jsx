@@ -5,6 +5,7 @@ export default function Flow() {
   const [steps, setSteps] = useState([])
   const [editingStep, setEditingStep] = useState(null)
   const [showStepTypeDropdown, setShowStepTypeDropdown] = useState(false)
+  const [viewingLogsForStep, setViewingLogsForStep] = useState(null)
   const dropdownRef = useRef(null)
 
   // Close dropdown when clicking outside
@@ -179,6 +180,48 @@ export default function Flow() {
         </div>
       </div>
 
+      {/* Modal for viewing step logs */}
+      {viewingLogsForStep && (
+        <div className="modal-overlay" onClick={() => setViewingLogsForStep(null)}>
+          <div className="modal-content modal-log-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Message Logs</h2>
+              <button 
+                className="btn-icon btn-close" 
+                onClick={() => setViewingLogsForStep(null)}
+                title="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="log-info">
+                <p className="log-step-info">
+                  Viewing logs for: <strong>{steps.find(s => s.id === viewingLogsForStep)?.type === 'email' ? '📧 Email' : '💬 Text'}</strong>
+                </p>
+                {steps.find(s => s.id === viewingLogsForStep)?.type === 'email' && steps.find(s => s.id === viewingLogsForStep)?.subject && (
+                  <p className="log-subject">Subject: {steps.find(s => s.id === viewingLogsForStep)?.subject}</p>
+                )}
+              </div>
+              <div className="log-list">
+                <div className="log-empty">
+                  <p>No logs yet. This will show which leads have received this message once database integration is complete.</p>
+                  <p className="log-note">Logs will include: lead name, contact info, send status, and timestamp.</p>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn-secondary" 
+                onClick={() => setViewingLogsForStep(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal for editing/adding steps */}
       {editingStepObj && (
         <div className="modal-overlay" onClick={() => setEditingStep(null)}>
@@ -340,6 +383,13 @@ export default function Flow() {
                           {step.type === 'email' ? '📧 Email' : '💬 Text'}
                         </div>
                         <div className="step-actions">
+                          <button 
+                            className="btn-icon btn-log" 
+                            onClick={() => setViewingLogsForStep(step.id)}
+                            title="View Logs"
+                          >
+                            📋
+                          </button>
                           <button 
                             className="btn-icon btn-edit" 
                             onClick={() => setEditingStep(step.id)}

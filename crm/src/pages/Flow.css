@@ -103,6 +103,15 @@
   cursor: not-allowed;
 }
 
+.btn-edit {
+  color: #1976d2;
+  border-color: #1976d2;
+}
+
+.btn-edit:hover:not(:disabled) {
+  background: #e3f2fd;
+}
+
 .btn-danger {
   color: #d32f2f;
   border-color: #d32f2f;
@@ -126,6 +135,17 @@
   flex-direction: column;
   gap: 30px;
   margin-bottom: 30px;
+}
+
+.editing-step-top {
+  margin-bottom: 40px;
+  padding-bottom: 30px;
+  border-bottom: 2px solid #4CAF50;
+}
+
+.flow-step.editing {
+  border-color: #4CAF50;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
 }
 
 .day-group {
@@ -177,10 +197,6 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.flow-step.disabled {
-  opacity: 0.6;
-  border-color: #ccc;
-}
 
 .step-header {
   display: flex;
@@ -313,15 +329,9 @@
 }
 
 .step-preview {
-  cursor: pointer;
   padding: 15px;
   background: #f9f9f9;
   border-radius: 6px;
-  transition: background 0.2s;
-}
-
-.step-preview:hover {
-  background: #f0f0f0;
 }
 
 

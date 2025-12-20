@@ -74,10 +74,17 @@ export default function Flow() {
   }
 
   const groupedSteps = useMemo(() => {
+    // If editing, show editing step at top, then sorted rest
     const sorted = sortSteps(steps)
     const groups = {}
+    const editingStepObj = editingStep ? steps.find(s => s.id === editingStep) : null
     
-    sorted.forEach(step => {
+    // If editing, separate the editing step
+    const stepsToGroup = editingStepObj 
+      ? sorted.filter(s => s.id !== editingStep) 
+      : sorted
+    
+    stepsToGroup.forEach(step => {
       const day = step.timeType === 'immediately' ? 0 : step.day
       if (!groups[day]) {
         groups[day] = []
@@ -85,8 +92,8 @@ export default function Flow() {
       groups[day].push(step)
     })
     
-    return groups
-  }, [steps])
+    return { groups, editingStep: editingStepObj }
+  }, [steps, editingStep])
 
   function updateStep(stepId, updates) {
     const updatedSteps = steps.map(step => 
@@ -102,39 +109,6 @@ export default function Flow() {
     }
   }
 
-  function moveStep(stepId, direction) {
-    const sorted = sortSteps(steps)
-    const index = sorted.findIndex(s => s.id === stepId)
-    if (index === -1) return
-    
-    const newIndex = direction === 'up' ? index - 1 : index + 1
-    if (newIndex < 0 || newIndex >= sorted.length) return
-    
-    // Get the step we're moving
-    const step = sorted[index]
-    const targetStep = sorted[newIndex]
-    
-    // Swap day/time to maintain chronological order
-    if (direction === 'up') {
-      // Move earlier - swap with previous step's timing
-      const tempDay = step.day
-      const tempTime = step.time
-      const tempTimeType = step.timeType
-      updateStep(stepId, { day: targetStep.day, time: targetStep.time, timeType: targetStep.timeType })
-      updateStep(targetStep.id, { day: tempDay, time: tempTime, timeType: tempTimeType })
-    } else {
-      // Move later - swap with next step's timing
-      const tempDay = step.day
-      const tempTime = step.time
-      const tempTimeType = step.timeType
-      updateStep(stepId, { day: targetStep.day, time: targetStep.time, timeType: targetStep.timeType })
-      updateStep(targetStep.id, { day: tempDay, time: tempTime, timeType: tempTimeType })
-    }
-  }
-
-  function toggleStepEnabled(stepId) {
-    updateStep(stepId, { enabled: !steps.find(s => s.id === stepId).enabled })
-  }
 
   return (
     <div className="page-content">
@@ -172,14 +146,121 @@ export default function Flow() {
         </div>
       </div>
 
-      {steps.length === 0 ? (
+      {/* Show editing step at top if editing */}
+      {groupedSteps.editingStep && (
+        <div className="flow-steps editing-step-top">
+          <div className="flow-step editing">
+            <div className="step-header">
+              <div className="step-type-badge">
+                {groupedSteps.editingStep.type === 'email' ? '📧 Email' : '💬 Text'}
+              </div>
+              <div className="step-actions">
+                <button 
+                  className="btn-icon btn-danger" 
+                  onClick={() => {
+                    deleteStep(groupedSteps.editingStep.id)
+                    setEditingStep(null)
+                  }}
+                  title="Delete"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <div className="step-editor">
+              {groupedSteps.editingStep.type === 'email' && (
+                <div className="form-group">
+                  <label>Email Subject</label>
+                  <input
+                    type="text"
+                    value={groupedSteps.editingStep.subject || ''}
+                    onChange={(e) => updateStep(groupedSteps.editingStep.id, { subject: e.target.value })}
+                    placeholder="Subject line"
+                  />
+                </div>
+              )}
+
+              <div className="form-group">
+                <label>Message Content</label>
+                <textarea
+                  value={groupedSteps.editingStep.content}
+                  onChange={(e) => updateStep(groupedSteps.editingStep.id, { content: e.target.value })}
+                  placeholder={groupedSteps.editingStep.type === 'email' ? 'Email body...' : 'Text message...'}
+                  rows={8}
+                />
+                <small className="form-hint">
+                  You can use variables: {'{FIRST NAME}'}, {'{LAST NAME}'}, {'{PHONE NUMBER}'}, {'{EMAIL}'}, {'{FLOOR TYPE}'}, {'{CALENDAR LINK}'}
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label>Send Timing</label>
+                <div className="timing-controls">
+                  <div className="timing-option">
+                    <label className="radio-label">
+                      <input
+                        type="radio"
+                        name={`timing-${groupedSteps.editingStep.id}`}
+                        checked={groupedSteps.editingStep.timeType === 'immediately'}
+                        onChange={() => updateStep(groupedSteps.editingStep.id, { timeType: 'immediately' })}
+                      />
+                      <span>Immediately</span>
+                    </label>
+                  </div>
+                  <div className="timing-option">
+                    <label className="radio-label">
+                      <input
+                        type="radio"
+                        name={`timing-${groupedSteps.editingStep.id}`}
+                        checked={groupedSteps.editingStep.timeType === 'specific'}
+                        onChange={() => updateStep(groupedSteps.editingStep.id, { timeType: 'specific' })}
+                      />
+                      <span>Day</span>
+                    </label>
+                    {groupedSteps.editingStep.timeType === 'specific' && (
+                      <div className="specific-timing">
+                        <span className="timing-text">Day</span>
+                        <input
+                          type="number"
+                          value={groupedSteps.editingStep.day}
+                          onChange={(e) => updateStep(groupedSteps.editingStep.id, { day: parseInt(e.target.value) || 0 })}
+                          min="0"
+                          className="day-input"
+                        />
+                        <span className="timing-text">at</span>
+                        <input
+                          type="text"
+                          value={groupedSteps.editingStep.time}
+                          onChange={(e) => updateStep(groupedSteps.editingStep.id, { time: e.target.value })}
+                          placeholder="9:00 AM"
+                          className="time-input"
+                        />
+                        <span className="timing-hint">after lead is created</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                className="btn-secondary" 
+                onClick={() => setEditingStep(null)}
+              >
+                Done Editing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {steps.length === 0 && !groupedSteps.editingStep ? (
         <div className="empty-state">
           <p>No steps yet. Click "Add Step" above to add email or text steps to your flow.</p>
         </div>
-      ) : (
+      ) : steps.length > 0 || groupedSteps.editingStep ? (
         <div className="flow-steps">
-          {Object.keys(groupedSteps).sort((a, b) => parseInt(a) - parseInt(b)).map(day => {
-            const daySteps = groupedSteps[day]
+          {Object.keys(groupedSteps.groups).sort((a, b) => parseInt(a) - parseInt(b)).map(day => {
+            const daySteps = groupedSteps.groups[day]
             const dayLabel = day === '0' ? 'Day 0 (Immediately/Same Day)' : `Day ${day}`
             
             return (
@@ -188,151 +269,41 @@ export default function Flow() {
                   <h3>{dayLabel}</h3>
                   <span className="day-step-count">{daySteps.length} step{daySteps.length !== 1 ? 's' : ''}</span>
                 </div>
-                {daySteps.map((step, stepIndex) => {
-                  const globalIndex = steps.findIndex(s => s.id === step.id)
+                {daySteps.map((step) => {
                   return (
-                    <div key={step.id} className={`flow-step ${!step.enabled ? 'disabled' : ''}`}>
+                    <div key={step.id} className="flow-step">
                       <div className="step-header">
                         <div className="step-type-badge">
                           {step.type === 'email' ? '📧 Email' : '💬 Text'}
                         </div>
                         <div className="step-actions">
                           <button 
-                            className="btn-icon" 
-                            onClick={() => moveStep(step.id, 'up')}
-                            disabled={globalIndex === 0}
-                            title="Move earlier"
+                            className="btn-icon btn-edit" 
+                            onClick={() => setEditingStep(step.id)}
+                            title="Edit"
                           >
-                            ↑
-                          </button>
-                          <button 
-                            className="btn-icon" 
-                            onClick={() => moveStep(step.id, 'down')}
-                            disabled={globalIndex === steps.length - 1}
-                            title="Move later"
-                          >
-                            ↓
-                          </button>
-                          <button 
-                            className="btn-icon" 
-                            onClick={() => toggleStepEnabled(step.id)}
-                            title={step.enabled ? 'Disable' : 'Enable'}
-                          >
-                            {step.enabled ? '✓' : '○'}
-                          </button>
-                          <button 
-                            className="btn-icon btn-danger" 
-                            onClick={() => deleteStep(step.id)}
-                            title="Delete"
-                          >
-                            ×
+                            ✎
                           </button>
                         </div>
                       </div>
 
-              {editingStep === step.id ? (
-                <div className="step-editor">
-                  {step.type === 'email' && (
-                    <div className="form-group">
-                      <label>Email Subject</label>
-                      <input
-                        type="text"
-                        value={step.subject || ''}
-                        onChange={(e) => updateStep(step.id, { subject: e.target.value })}
-                        placeholder="Subject line"
-                      />
-                    </div>
-                  )}
-
-                  <div className="form-group">
-                    <label>Message Content</label>
-                    <textarea
-                      value={step.content}
-                      onChange={(e) => updateStep(step.id, { content: e.target.value })}
-                      placeholder={step.type === 'email' ? 'Email body...' : 'Text message...'}
-                      rows={8}
-                    />
-                    <small className="form-hint">
-                      You can use variables: {'{FIRST NAME}'}, {'{LAST NAME}'}, {'{PHONE NUMBER}'}, {'{EMAIL}'}, {'{FLOOR TYPE}'}, {'{CALENDAR LINK}'}
-                    </small>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Send Timing</label>
-                    <div className="timing-controls">
-                      <div className="timing-option">
-                        <label className="radio-label">
-                          <input
-                            type="radio"
-                            name={`timing-${step.id}`}
-                            checked={step.timeType === 'immediately'}
-                            onChange={() => updateStep(step.id, { timeType: 'immediately' })}
-                          />
-                          <span>Immediately</span>
-                        </label>
-                      </div>
-                      <div className="timing-option">
-                        <label className="radio-label">
-                          <input
-                            type="radio"
-                            name={`timing-${step.id}`}
-                            checked={step.timeType === 'specific'}
-                            onChange={() => updateStep(step.id, { timeType: 'specific' })}
-                          />
-                          <span>Day</span>
-                        </label>
-                        {step.timeType === 'specific' && (
-                          <div className="specific-timing">
-                            <span className="timing-text">Day</span>
-                            <input
-                              type="number"
-                              value={step.day}
-                              onChange={(e) => updateStep(step.id, { day: parseInt(e.target.value) || 0 })}
-                              min="0"
-                              className="day-input"
-                            />
-                            <span className="timing-text">at</span>
-                            <input
-                              type="text"
-                              value={step.time}
-                              onChange={(e) => updateStep(step.id, { time: e.target.value })}
-                              placeholder="9:00 AM"
-                              className="time-input"
-                            />
-                            <span className="timing-hint">after lead is created</span>
+                      <div className="step-preview">
+                        <div className="step-preview-content">
+                          {step.type === 'email' && step.subject && (
+                            <div className="preview-subject">Subject: {step.subject}</div>
+                          )}
+                          <div className="preview-text">
+                            {step.content || 'No content yet...'}
                           </div>
-                        )}
+                        </div>
+                        <div className="step-preview-meta">
+                          <span>
+                            {step.timeType === 'immediately' 
+                              ? 'Immediately' 
+                              : `Day ${step.day} at ${step.time}`}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-
-                  <button 
-                    className="btn-secondary" 
-                    onClick={() => setEditingStep(null)}
-                  >
-                    Done Editing
-                  </button>
-                </div>
-              ) : (
-                <div className="step-preview" onClick={() => setEditingStep(step.id)}>
-                  <div className="step-preview-content">
-                    {step.type === 'email' && step.subject && (
-                      <div className="preview-subject">Subject: {step.subject}</div>
-                    )}
-                    <div className="preview-text">
-                      {step.content || 'No content yet...'}
-                    </div>
-                  </div>
-                  <div className="step-preview-meta">
-                    <span>
-                      {step.timeType === 'immediately' 
-                        ? 'Immediately' 
-                        : `Day ${step.day} at ${step.time}`}
-                    </span>
-                    {!step.enabled && <span className="disabled-badge">Disabled</span>}
-                  </div>
-                </div>
-              )}
                     </div>
                   )
                 })}
@@ -340,7 +311,7 @@ export default function Flow() {
             )
           })}
         </div>
-      )}
+      ) : null}
 
       {steps.length > 0 && (
         <div className="flow-summary">

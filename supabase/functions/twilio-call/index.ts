@@ -10,6 +10,66 @@ const TWILIO_API_KEY_SECRET = Deno.env.get('TWILIO_API_KEY_SECRET')
 const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER')
 const TWILIO_TWIML_APP_SID = Deno.env.get('TWILIO_TWIML_APP_SID') // TwiML App SID for outbound calls
 
+// Helper function to generate Twilio access token
+async function generateAccessToken(): Promise<string> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_API_KEY_SID || !TWILIO_API_KEY_SECRET) {
+    throw new Error('Twilio API Key credentials not configured')
+  }
+
+  if (!TWILIO_TWIML_APP_SID) {
+    throw new Error('TWILIO_TWIML_APP_SID not configured')
+  }
+
+  const header = { alg: 'HS256', typ: 'JWT' }
+  const now = Math.floor(Date.now() / 1000)
+  
+  const payload = {
+    jti: `${TWILIO_API_KEY_SID}-${now}`,
+    iss: TWILIO_API_KEY_SID,
+    sub: TWILIO_ACCOUNT_SID,
+    exp: now + 3600,
+    grants: {
+      identity: 'browser-user',
+      voice: {
+        outgoing: {
+          application_sid: TWILIO_TWIML_APP_SID,
+        }
+      }
+    }
+  }
+
+  // Base64URL encoding
+  const base64urlEncode = (str: string) => {
+    return btoa(str)
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '')
+  }
+
+  const encodedHeader = base64urlEncode(JSON.stringify(header))
+  const encodedPayload = base64urlEncode(JSON.stringify(payload))
+
+  // HMAC-SHA256 signature
+  const keyData = new TextEncoder().encode(TWILIO_API_KEY_SECRET!)
+  const messageData = new TextEncoder().encode(`${encodedHeader}.${encodedPayload}`)
+  
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData)
+  const signatureArray = new Uint8Array(signature)
+  const encodedSignature = base64urlEncode(
+    String.fromCharCode(...signatureArray)
+  )
+
+  return `${encodedHeader}.${encodedPayload}.${encodedSignature}`
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -58,91 +118,13 @@ serve(async (req) => {
     })
   }
 
-  // Handle token generation request (GET /token)
-  if (req.method === 'GET' && (pathname.includes('/token') || url.searchParams.has('token'))) {
+  // Handle token generation request (GET /token or POST with { action: 'token' })
+  const isGetTokenRequest = req.method === 'GET' && (pathname.includes('/token') || url.searchParams.has('token'))
+  
+  if (isGetTokenRequest) {
     try {
-      if (!TWILIO_ACCOUNT_SID || !TWILIO_API_KEY_SID || !TWILIO_API_KEY_SECRET) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Twilio API Key credentials not configured. Create an API Key in Twilio Console and set TWILIO_API_KEY_SID and TWILIO_API_KEY_SECRET secrets.' 
-          }),
-          { 
-            status: 500,
-            headers: {
-              'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*',
-            },
-          }
-        )
-      }
-
-      // Generate JWT access token for Twilio Voice SDK
-      const header = { alg: 'HS256', typ: 'JWT' }
-      const now = Math.floor(Date.now() / 1000)
-      
-      if (!TWILIO_TWIML_APP_SID) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'TWILIO_TWIML_APP_SID not configured. Please create a TwiML App in Twilio Console and set the App SID as a secret.' 
-          }),
-          { 
-            status: 500,
-            headers: {
-              'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*',
-            },
-          }
-        )
-      }
-      
-      const payload = {
-        jti: `${TWILIO_API_KEY_SID}-${now}`,
-        iss: TWILIO_API_KEY_SID,
-        sub: TWILIO_ACCOUNT_SID,
-        exp: now + 3600,
-        grants: {
-          identity: 'browser-user',
-          voice: {
-            outgoing: {
-              application_sid: TWILIO_TWIML_APP_SID, // TwiML App SID for outbound calls
-            }
-          }
-        }
-      }
-
-      // Base64URL encoding
-      const base64urlEncode = (str: string) => {
-        return btoa(str)
-          .replace(/\+/g, '-')
-          .replace(/\//g, '_')
-          .replace(/=/g, '')
-      }
-
-      const encodedHeader = base64urlEncode(JSON.stringify(header))
-      const encodedPayload = base64urlEncode(JSON.stringify(payload))
-
-      // HMAC-SHA256 signature
-      const keyData = new TextEncoder().encode(TWILIO_API_KEY_SECRET!)
-      const messageData = new TextEncoder().encode(`${encodedHeader}.${encodedPayload}`)
-      
-      const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        keyData,
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-      )
-
-      const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData)
-      const signatureArray = new Uint8Array(signature)
-      const encodedSignature = base64urlEncode(
-        String.fromCharCode(...signatureArray)
-      )
-
-      const token = `${encodedHeader}.${encodedPayload}.${encodedSignature}`
-      
+      const token = await generateAccessToken()
       console.log('Generated access token for browser calling')
-
       return new Response(
         JSON.stringify({ token }),
         {
@@ -168,17 +150,97 @@ serve(async (req) => {
     }
   }
 
-  // Handle call initiation request (POST /)
-  try {
-    const { phone_number, lead_id } = await req.json()
-    
-    console.log('Received call request:', { phone_number, lead_id })
+  // Handle POST requests
+  if (req.method === 'POST') {
+    try {
+      const requestBody = await req.json().catch(() => ({}))
+      const { phone_number, lead_id, action } = requestBody
+      
+      // Handle token request via POST
+      if (action === 'token') {
+        try {
+          const token = await generateAccessToken()
+          console.log('Generated access token for browser calling (POST)')
+          return new Response(
+            JSON.stringify({ token }),
+            {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+              },
+            }
+          )
+        } catch (error) {
+          console.error('Error generating token:', error)
+          return new Response(
+            JSON.stringify({ error: error.message || 'Failed to generate token' }),
+            {
+              status: 500,
+              headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+              },
+            }
+          )
+        }
+      }
+      
+      // Handle call initiation request
+      console.log('Received call request:', { phone_number, lead_id })
 
-    if (!phone_number) {
+      if (!phone_number) {
+        return new Response(
+          JSON.stringify({ error: 'Missing required field: phone_number' }),
+          { 
+            status: 400,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            },
+          }
+        )
+      }
+
+      // Format phone number to E.164 format
+      const formatPhone = (phone: string) => {
+        let formatted = phone.replace(/\D/g, '')
+        if (formatted.length === 10) {
+          formatted = `+1${formatted}`
+        } else if (!formatted.startsWith('+')) {
+          formatted = `+${formatted}`
+        }
+        return formatted
+      }
+      
+      const formattedPhone = formatPhone(phone_number)
+      console.log('Formatted phone:', { original: phone_number, formatted: formattedPhone })
+
+      // Create TwiML URL for the outbound call
+      const baseUrl = req.url.split('/functions/v1/twilio-call')[0]
+      const twimlUrl = `${baseUrl}/functions/v1/twilio-call/twiml?To=${encodeURIComponent(formattedPhone)}`
+      
       return new Response(
-        JSON.stringify({ error: 'Missing required field: phone_number' }),
-        { 
-          status: 400,
+        JSON.stringify({ 
+          success: true,
+          twimlUrl: twimlUrl,
+          phoneNumber: formattedPhone,
+          callerId: TWILIO_PHONE_NUMBER
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }
+      )
+    } catch (error) {
+      console.error('Error in twilio-call function:', error)
+      return new Response(
+        JSON.stringify({ error: error.message || 'Internal server error' }),
+        {
+          status: 500,
           headers: {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
@@ -186,51 +248,17 @@ serve(async (req) => {
         }
       )
     }
-
-    // Format phone number to E.164 format
-    const formatPhone = (phone: string) => {
-      let formatted = phone.replace(/\D/g, '')
-      if (formatted.length === 10) {
-        formatted = `+1${formatted}`
-      } else if (!formatted.startsWith('+')) {
-        formatted = `+${formatted}`
-      }
-      return formatted
-    }
-    
-    const formattedPhone = formatPhone(phone_number)
-    console.log('Formatted phone:', { original: phone_number, formatted: formattedPhone })
-
-    // Create TwiML URL for the outbound call
-    const baseUrl = req.url.split('/functions/v1/twilio-call')[0]
-    const twimlUrl = `${baseUrl}/functions/v1/twilio-call/twiml?To=${encodeURIComponent(formattedPhone)}`
-    
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        twimlUrl: twimlUrl,
-        phoneNumber: formattedPhone,
-        callerId: TWILIO_PHONE_NUMBER
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      }
-    )
-  } catch (error) {
-    console.error('Error in twilio-call function:', error)
-    return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      }
-    )
   }
+
+  // Handle unknown methods
+  return new Response(
+    JSON.stringify({ error: 'Method not allowed' }),
+    {
+      status: 405,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+    }
+  )
 })

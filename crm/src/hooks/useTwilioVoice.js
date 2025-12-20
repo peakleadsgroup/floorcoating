@@ -16,23 +16,20 @@ export function useTwilioVoice() {
 
     const initDevice = async () => {
       try {
-        // Get access token from Edge Function
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-        
-        const tokenResponse = await fetch(
-          `${supabaseUrl}/functions/v1/twilio-call?token=true`,
-          {
-            headers: {
-              'apikey': supabaseAnonKey,
-            }
+        // Get access token from Edge Function using Supabase client
+        // Use POST with action='token' since supabase.functions.invoke handles auth automatically
+        const { data: tokenData, error: tokenError } = await supabase.functions.invoke('twilio-call', {
+          body: {
+            action: 'token'
           }
-        )
+        })
         
-        const tokenData = await tokenResponse.json()
+        if (tokenError) {
+          throw new Error(tokenError.message || 'Failed to get token')
+        }
         
-        if (!tokenData.token) {
-          throw new Error(tokenData.error || 'Failed to get token')
+        if (tokenData?.error || !tokenData?.token) {
+          throw new Error(tokenData?.error || 'Failed to get token')
         }
 
         // Initialize Twilio Device

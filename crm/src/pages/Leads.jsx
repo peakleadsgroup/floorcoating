@@ -482,10 +482,32 @@ export default function Leads() {
                 {activeFilter === 'follow_up' && (
                   <button 
                     className="btn-primary"
-                    onClick={() => {
-                      // Start dialing functionality - you can implement this
-                      console.log('Start dialing for:', selectedLead.phone)
-                      // TODO: Implement dialing functionality
+                    onClick={async () => {
+                      if (!selectedLead.phone) {
+                        alert('This lead has no phone number')
+                        return
+                      }
+
+                      try {
+                        const { data, error } = await supabase.functions.invoke('twilio-call', {
+                          body: {
+                            phone_number: selectedLead.phone,
+                            lead_id: selectedLead.id,
+                          },
+                        })
+
+                        if (error) {
+                          console.error('Error calling:', error)
+                          alert('Failed to initiate call. Check console for details.')
+                          return
+                        }
+
+                        console.log('Call initiated:', data)
+                        alert(`Call initiated to ${formatPhone(selectedLead.phone)}`)
+                      } catch (err) {
+                        console.error('Error initiating call:', err)
+                        alert('Failed to initiate call. Please try again.')
+                      }
                     }}
                     style={{ whiteSpace: 'nowrap' }}
                   >

@@ -1,10 +1,56 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import './Leads.css'
+
+// Function to convert URLs to clickable links and render HTML for emails
+const renderMessageContent = (content) => {
+  if (!content) return '(No content)'
+  
+  // Check if content contains HTML (like email messages with hyperlinks)
+  if (content.includes('<a href=')) {
+    // For HTML content (emails), render as HTML
+    return <div dangerouslySetInnerHTML={{ __html: content.replace(/\n/g, '<br />') }} />
+  }
+  
+  // For plain text, convert URLs to clickable links
+  const urlRegex = /(https?:\/\/[^\s]+)/g
+  const parts = content.split(urlRegex)
+  
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (urlRegex.test(part)) {
+          return (
+            <a 
+              key={index}
+              href={part} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ color: 'inherit', textDecoration: 'underline' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {part}
+            </a>
+          )
+        }
+        return <span key={index}>{part}</span>
+      })}
+    </>
+  )
+}
 
 export default function Leads() {
   const [leads, setLeads] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [selectedLead, setSelectedLead] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [newMessage, setNewMessage] = useState({
+    message_type: 'text',
+    subject: '',
+    content: '',
+  })
+  const messagesContainerRef = useRef(null)
 
   useEffect(() => {
     fetchLeads()
@@ -74,6 +120,93 @@ export default function Leads() {
     return phone
   }
 
+  // Fetch messages for selected lead
+  async function fetchMessages(leadId) {
+    try {
+      const { data, error } = await supabase
+        .from('message_logs')
+        .select('*')
+        .eq('lead_id', leadId)
+        .order('created_at', { ascending: true }) // Oldest first, newest at bottom
+
+      if (error) throw error
+      setMessages(data || [])
+      
+      // Scroll to bottom after messages load
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
+        }
+      }, 100)
+    } catch (err) {
+      console.error('Error fetching messages:', err)
+      setMessages([])
+    }
+  }
+
+  // Handle lead click
+  function handleLeadClick(lead) {
+    setSelectedLead(lead)
+    fetchMessages(lead.id)
+  }
+
+  // Handle send message
+  async function handleSendMessage(e) {
+    e.preventDefault()
+    
+    if (!newMessage.content.trim()) {
+      alert('Please enter a message')
+      return
+    }
+
+    if (newMessage.message_type === 'email' && !newMessage.subject.trim()) {
+      alert('Please enter an email subject')
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('message_logs')
+        .insert([{
+          lead_id: selectedLead.id,
+          flow_step_id: null, // Manual message, not from flow
+          message_type: newMessage.message_type,
+          subject: newMessage.message_type === 'email' ? newMessage.subject : null,
+          content: newMessage.content.trim(),
+          status: 'pending', // Will be sent by the sending system
+          scheduled_for: new Date().toISOString(), // Send immediately
+        }])
+
+      if (error) throw error
+
+      setNewMessage({ message_type: 'text', subject: '', content: '' })
+      await fetchMessages(selectedLead.id)
+      
+      // Scroll to bottom after sending
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
+        }
+      }, 100)
+    } catch (err) {
+      console.error('Error sending message:', err)
+      alert('Error sending message')
+    }
+  }
+
+  function getMessageStatusClass(status) {
+    switch (status) {
+      case 'sent':
+        return 'outbound'
+      case 'pending':
+        return 'pending'
+      case 'failed':
+        return 'failed'
+      default:
+        return 'outbound'
+    }
+  }
+
   if (loading && leads.length === 0) {
     return (
       <div className="page-content">
@@ -116,7 +249,7 @@ export default function Leads() {
           </thead>
           <tbody>
             {leads.map((lead) => (
-              <tr key={lead.id}>
+              <tr key={lead.id} onClick={() => handleLeadClick(lead)}>
                 <td>{lead.first_name} {lead.last_name}</td>
                 <td>{formatPhone(lead.phone)}</td>
                 <td>{lead.email || 'N/A'}</td>
@@ -136,6 +269,115 @@ export default function Leads() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {/* Message Modal */}
+      {selectedLead && (
+        <div className="message-modal-overlay" onClick={() => setSelectedLead(null)}>
+          <div className="message-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="message-modal-header">
+              <h2>Messages - {selectedLead.first_name} {selectedLead.last_name}</h2>
+              <button 
+                className="btn-close-modal" 
+                onClick={() => setSelectedLead(null)}
+                title="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="message-modal-body">
+              <div className="lead-info-header">
+                <p><strong>Phone:</strong> {formatPhone(selectedLead.phone)}</p>
+                <p><strong>Email:</strong> {selectedLead.email || 'N/A'}</p>
+                {selectedLead.street_address && (
+                  <p><strong>Address:</strong> {selectedLead.street_address}, {selectedLead.city}, {selectedLead.state} {selectedLead.zip}</p>
+                )}
+              </div>
+
+              {/* Messages List */}
+              <div className="messages-list-container" ref={messagesContainerRef}>
+                {messages.length === 0 ? (
+                  <p className="no-messages">No messages yet</p>
+                ) : (
+                  <div className="messages-list">
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`message-bubble ${getMessageStatusClass(message.status)}`}
+                      >
+                        <div className="message-bubble-header">
+                          <span className="message-type-badge">
+                            {message.message_type === 'email' ? '📧 Email' : '💬 Text'}
+                          </span>
+                          <span className="message-time">
+                            {message.sent_at 
+                              ? formatDate(message.sent_at)
+                              : message.scheduled_for 
+                                ? `Scheduled: ${formatDate(message.scheduled_for)}`
+                                : formatDate(message.created_at)}
+                            {message.status === 'pending' && ' (Pending)'}
+                            {message.status === 'failed' && ' (Failed)'}
+                          </span>
+                        </div>
+                        {message.subject && (
+                          <div className="message-subject">Subject: {message.subject}</div>
+                        )}
+                        <div className="message-bubble-content">
+                          {renderMessageContent(message.content)}
+                        </div>
+                        {message.error_message && (
+                          <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#dc2626' }}>
+                            Error: {message.error_message}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* New Message Form */}
+              <form onSubmit={handleSendMessage} className="new-message-form">
+                {newMessage.message_type === 'email' && (
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <input
+                      type="text"
+                      value={newMessage.subject}
+                      onChange={(e) => setNewMessage({ ...newMessage, subject: e.target.value })}
+                      placeholder="Email subject..."
+                      className="message-subject-input"
+                      required
+                    />
+                  </div>
+                )}
+                <div className="message-form-row">
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <select
+                      value={newMessage.message_type}
+                      onChange={(e) => setNewMessage({ ...newMessage, message_type: e.target.value, subject: e.target.value === 'email' ? newMessage.subject : '' })}
+                      className="message-type-select"
+                    >
+                      <option value="text">Text</option>
+                      <option value="email">Email</option>
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ flex: 3 }}>
+                    <textarea
+                      value={newMessage.content}
+                      onChange={(e) => setNewMessage({ ...newMessage, content: e.target.value })}
+                      placeholder="Type your message..."
+                      rows="2"
+                      className="message-content-input"
+                    />
+                  </div>
+                  <button type="submit" className="btn-primary send-message-btn">
+                    Send
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

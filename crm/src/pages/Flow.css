@@ -571,3 +571,56 @@
   font-style: italic;
 }
 
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.log-table thead {
+  background: #f8f9fa;
+}
+
+.log-table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  font-size: 13px;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.log-table td {
+  padding: 12px;
+  border-bottom: 1px solid #dee2e6;
+  color: #555;
+  font-size: 13px;
+}
+
+.log-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-sent {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-failed {
+  background: #f8d7da;
+  color: #721c24;
+}
+

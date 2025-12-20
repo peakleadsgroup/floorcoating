@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import { supabase } from '../lib/supabase'
 import './Flow.css'
 
 export default function Flow() {
@@ -6,7 +7,63 @@ export default function Flow() {
   const [editingStep, setEditingStep] = useState(null)
   const [showStepTypeDropdown, setShowStepTypeDropdown] = useState(false)
   const [viewingLogsForStep, setViewingLogsForStep] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [messageLogs, setMessageLogs] = useState([])
   const dropdownRef = useRef(null)
+
+  // Load flow steps from database
+  useEffect(() => {
+    fetchFlowSteps()
+  }, [])
+
+  // Load message logs when viewing logs
+  useEffect(() => {
+    if (viewingLogsForStep) {
+      fetchMessageLogs(viewingLogsForStep)
+    }
+  }, [viewingLogsForStep])
+
+  async function fetchFlowSteps() {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('flow_steps')
+        .select('*')
+        .order('step_order', { ascending: true })
+
+      if (error) throw error
+      setSteps(data || [])
+    } catch (err) {
+      console.error('Error fetching flow steps:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function fetchMessageLogs(stepId) {
+    try {
+      const { data, error } = await supabase
+        .from('message_logs')
+        .select(`
+          *,
+          leads:lead_id (
+            id,
+            first_name,
+            last_name,
+            phone,
+            email
+          )
+        `)
+        .eq('flow_step_id', stepId)
+        .order('scheduled_for', { ascending: false })
+
+      if (error) throw error
+      setMessageLogs(data || [])
+    } catch (err) {
+      console.error('Error fetching message logs:', err)
+      setMessageLogs([])
+    }
+  }
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -24,39 +81,89 @@ export default function Flow() {
     }
   }, [showStepTypeDropdown])
 
-  function addStep(type) {
+  async function addStep(type) {
     const newStep = {
-      id: Date.now(),
       type: type, // 'email' or 'text'
       subject: type === 'email' ? '' : null,
       content: '',
       day: 0, // days after lead is created (0 = same day/immediately)
       time: '9:00 AM', // time of day
-      timeType: 'immediately', // 'immediately' or 'specific'
-      enabled: true
+      time_type: 'immediately', // 'immediately' or 'specific'
+      enabled: true,
+      step_order: steps.length // Will be recalculated on save
     }
-    const updatedSteps = [...steps, newStep]
-    setSteps(sortSteps(updatedSteps))
-    setEditingStep(newStep.id)
+    
+    // Calculate step_order based on day and time
+    const tempSteps = [...steps, newStep]
+    const sorted = sortStepsForOrder(tempSteps)
+    newStep.step_order = sorted.findIndex(s => s === newStep)
+    
+    try {
+      const { data, error } = await supabase
+        .from('flow_steps')
+        .insert([{
+          type: newStep.type,
+          subject: newStep.subject,
+          content: newStep.content,
+          day: newStep.day,
+          time: newStep.time,
+          time_type: newStep.time_type,
+          enabled: newStep.enabled,
+          step_order: newStep.step_order
+        }])
+        .select()
+        .single()
+
+      if (error) throw error
+      
+      // Refresh steps from database
+      await fetchFlowSteps()
+      setEditingStep(data.id)
+    } catch (err) {
+      console.error('Error adding step:', err)
+      alert('Failed to add step. Please try again.')
+    }
+    
     setShowStepTypeDropdown(false)
+  }
+
+  function sortStepsForOrder(stepsToSort) {
+    return [...stepsToSort].sort((a, b) => {
+      const dayA = a.time_type === 'immediately' ? 0 : a.day
+      const dayB = b.time_type === 'immediately' ? 0 : b.day
+      
+      if (dayA !== dayB) {
+        return dayA - dayB
+      }
+      
+      if (a.time_type === 'immediately' && b.time_type === 'immediately') {
+        return 0
+      }
+      if (a.time_type === 'immediately') return -1
+      if (b.time_type === 'immediately') return 1
+      
+      const timeA = parseTime(a.time)
+      const timeB = parseTime(b.time)
+      return timeA - timeB
+    })
   }
 
   function sortSteps(stepsToSort) {
     return [...stepsToSort].sort((a, b) => {
       // First sort by day (treat immediately as day 0)
-      const dayA = a.timeType === 'immediately' ? 0 : a.day
-      const dayB = b.timeType === 'immediately' ? 0 : b.day
+      const dayA = a.time_type === 'immediately' ? 0 : a.day
+      const dayB = b.time_type === 'immediately' ? 0 : b.day
       
       if (dayA !== dayB) {
         return dayA - dayB
       }
       
       // If same day, sort by time
-      if (a.timeType === 'immediately' && b.timeType === 'immediately') {
+      if (a.time_type === 'immediately' && b.time_type === 'immediately') {
         return 0
       }
-      if (a.timeType === 'immediately') return -1
-      if (b.timeType === 'immediately') return 1
+      if (a.time_type === 'immediately') return -1
+      if (b.time_type === 'immediately') return 1
       
       // Parse time for comparison
       const timeA = parseTime(a.time)
@@ -79,7 +186,7 @@ export default function Flow() {
     const groups = {}
     
     sorted.forEach(step => {
-      const day = step.timeType === 'immediately' ? 0 : step.day
+      const day = step.time_type === 'immediately' ? 0 : step.day
       if (!groups[day]) {
         groups[day] = []
       }
@@ -106,7 +213,7 @@ export default function Flow() {
     }
     
     // If specific timing, day and time must be set
-    if (step.timeType === 'specific') {
+    if (step.time_type === 'specific') {
       if (step.day === undefined || step.day === null || step.day < 0) {
         return false
       }
@@ -118,28 +225,126 @@ export default function Flow() {
     return true
   }
 
-  function handleSave() {
+  async function handleSave() {
     // Get the latest step data from the steps array
     const currentStep = editingStep ? steps.find(s => s.id === editingStep) : null
     if (currentStep && isStepValid(currentStep)) {
-      setEditingStep(null)
+      // Recalculate step_order based on updated timing
+      const allSteps = steps.map(s => 
+        s.id === currentStep.id ? currentStep : s
+      )
+      const sorted = sortStepsForOrder(allSteps)
+      
+      // Update step_order for all steps if needed
+      const orderUpdates = sorted.map((step, index) => ({
+        id: step.id,
+        step_order: index
+      }))
+
+      try {
+        // Update all step orders
+        for (const update of orderUpdates) {
+          await supabase
+            .from('flow_steps')
+            .update({ step_order: update.step_order })
+            .eq('id', update.id)
+        }
+
+        await fetchFlowSteps()
+        setEditingStep(null)
+      } catch (err) {
+        console.error('Error saving step order:', err)
+        alert('Failed to save. Please try again.')
+      }
     }
   }
 
   // Check if current step is valid for button state
   const isCurrentStepValid = editingStepObj ? isStepValid(editingStepObj) : false
 
-  function updateStep(stepId, updates) {
-    const updatedSteps = steps.map(step => 
-      step.id === stepId ? { ...step, ...updates } : step
-    )
-    setSteps(sortSteps(updatedSteps))
+  async function updateStep(stepId, updates) {
+    try {
+      // Map frontend field names to database field names
+      const dbUpdates = {}
+      if (updates.timeType !== undefined) dbUpdates.time_type = updates.timeType
+      if (updates.subject !== undefined) dbUpdates.subject = updates.subject
+      if (updates.content !== undefined) dbUpdates.content = updates.content
+      if (updates.day !== undefined) dbUpdates.day = updates.day
+      if (updates.time !== undefined) dbUpdates.time = updates.time
+      if (updates.enabled !== undefined) dbUpdates.enabled = updates.enabled
+
+      const { error } = await supabase
+        .from('flow_steps')
+        .update(dbUpdates)
+        .eq('id', stepId)
+
+      if (error) throw error
+
+      // If timing changed, we need to recalculate step_order for all steps
+      if (updates.timeType !== undefined || updates.day !== undefined || updates.time !== undefined) {
+        await recalculateStepOrders()
+      } else {
+        // Just refresh steps
+        await fetchFlowSteps()
+      }
+    } catch (err) {
+      console.error('Error updating step:', err)
+      alert('Failed to update step. Please try again.')
+    }
   }
 
-  function deleteStep(stepId) {
-    setSteps(steps.filter(step => step.id !== stepId))
-    if (editingStep === stepId) {
-      setEditingStep(null)
+  async function recalculateStepOrders() {
+    try {
+      // Get all steps
+      const { data: allSteps, error: fetchError } = await supabase
+        .from('flow_steps')
+        .select('*')
+        .order('step_order', { ascending: true })
+
+      if (fetchError) throw fetchError
+
+      // Sort by day and time
+      const sorted = sortStepsForOrder(allSteps)
+
+      // Update step_order for all steps
+      for (let i = 0; i < sorted.length; i++) {
+        await supabase
+          .from('flow_steps')
+          .update({ step_order: i })
+          .eq('id', sorted[i].id)
+      }
+
+      await fetchFlowSteps()
+    } catch (err) {
+      console.error('Error recalculating step orders:', err)
+    }
+  }
+
+  async function deleteStep(stepId) {
+    if (!confirm('Are you sure you want to delete this step? This cannot be undone.')) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('flow_steps')
+        .delete()
+        .eq('id', stepId)
+
+      if (error) throw error
+
+      if (editingStep === stepId) {
+        setEditingStep(null)
+      }
+      if (viewingLogsForStep === stepId) {
+        setViewingLogsForStep(null)
+      }
+
+      // Refresh steps from database
+      await fetchFlowSteps()
+    } catch (err) {
+      console.error('Error deleting step:', err)
+      alert('Failed to delete step. Please try again.')
     }
   }
 
@@ -204,10 +409,45 @@ export default function Flow() {
                 )}
               </div>
               <div className="log-list">
-                <div className="log-empty">
-                  <p>No logs yet. This will show which leads have received this message once database integration is complete.</p>
-                  <p className="log-note">Logs will include: lead name, contact info, send status, and timestamp.</p>
-                </div>
+                {messageLogs.length === 0 ? (
+                  <div className="log-empty">
+                    <p>No messages sent yet for this step.</p>
+                  </div>
+                ) : (
+                  <table className="log-table">
+                    <thead>
+                      <tr>
+                        <th>Lead Name</th>
+                        <th>Contact</th>
+                        <th>Status</th>
+                        <th>Scheduled For</th>
+                        <th>Sent At</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {messageLogs.map((log) => (
+                        <tr key={log.id}>
+                          <td>
+                            {log.leads ? `${log.leads.first_name} ${log.leads.last_name}` : 'Unknown'}
+                          </td>
+                          <td>
+                            {log.message_type === 'email' 
+                              ? (log.leads?.email || 'N/A')
+                              : (log.leads?.phone ? formatPhone(log.leads.phone) : 'N/A')
+                            }
+                          </td>
+                          <td>
+                            <span className={`status-badge status-${log.status}`}>
+                              {log.status}
+                            </span>
+                          </td>
+                          <td>{formatDate(log.scheduled_for)}</td>
+                          <td>{log.sent_at ? formatDate(log.sent_at) : 'Not sent'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
             <div className="modal-footer">
@@ -285,8 +525,8 @@ export default function Flow() {
                         <input
                           type="radio"
                           name={`timing-${editingStepObj.id}`}
-                          checked={editingStepObj.timeType === 'immediately'}
-                          onChange={() => updateStep(editingStepObj.id, { timeType: 'immediately' })}
+                      checked={editingStepObj.time_type === 'immediately'}
+                      onChange={() => updateStep(editingStepObj.id, { timeType: 'immediately' })}
                         />
                         <span>Immediately</span>
                       </label>
@@ -296,12 +536,12 @@ export default function Flow() {
                         <input
                           type="radio"
                           name={`timing-${editingStepObj.id}`}
-                          checked={editingStepObj.timeType === 'specific'}
-                          onChange={() => updateStep(editingStepObj.id, { timeType: 'specific' })}
+                      checked={editingStepObj.time_type === 'specific'}
+                      onChange={() => updateStep(editingStepObj.id, { timeType: 'specific' })}
                         />
                         <span>Day</span>
                       </label>
-                      {editingStepObj.timeType === 'specific' && (
+                      {editingStepObj.time_type === 'specific' && (
                         <div className="specific-timing">
                           <span className="timing-text">Day</span>
                           <input
@@ -359,7 +599,11 @@ export default function Flow() {
         </div>
       )}
 
-      {steps.length === 0 ? (
+      {loading ? (
+        <div className="empty-state">
+          <p>Loading flow steps...</p>
+        </div>
+      ) : steps.length === 0 ? (
         <div className="empty-state">
           <p>No steps yet. Click "Add Step" above to add email or text steps to your flow.</p>
         </div>
@@ -411,7 +655,7 @@ export default function Flow() {
                         </div>
                         <div className="step-preview-meta">
                           <span>
-                            {step.timeType === 'immediately' 
+                            {step.time_type === 'immediately' 
                               ? 'Immediately' 
                               : `Day ${step.day} at ${step.time}`}
                           </span>

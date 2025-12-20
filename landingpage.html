@@ -258,7 +258,7 @@
             gap: 15px;
             margin-bottom: 20px;
         }
-        #phone, #phone2, #phoneBottom, #phone2Bottom {
+        #phone, #email, #phoneBottom, #emailBottom {
             padding: 15px;
             border: 2px solid #e9ecef;
             border-radius: 8px;
@@ -266,7 +266,7 @@
             background: #f8f9fa;
             width: 100%;
         }
-        #phone:focus, #phone2:focus, #phoneBottom:focus, #phone2Bottom:focus {
+        #phone:focus, #email:focus, #phoneBottom:focus, #emailBottom:focus {
             outline: none;
             border-color: #2196f3;
             background: #fff;
@@ -1301,9 +1301,9 @@
                     <input type="hidden" id="phone_digits" name="phone_digits" value="">
                 </div>
                 <div id="phoneConfirmWrap" style="display:none">
-                    <label for="phone2">Please re-enter your phone</label>
-                    <input id="phone2" name="phone_confirm" type="tel" inputmode="tel" placeholder="(___) ___-____" autocomplete="tel" aria-describedby="phone2Help">
-                    <small id="phone2Help" class="phone-help">Must match exactly.</small>
+                    <label for="email">Email</label>
+                    <input id="email" name="email" type="email" placeholder="your@email.com" autocomplete="email" aria-describedby="emailHelp">
+                    <small id="emailHelp" class="phone-help">We'll send your quote here.</small>
                 </div>
             </div>
             <div class="nav-buttons">
@@ -1621,9 +1621,9 @@
                     <input type="hidden" id="phone_digitsBottom" name="phone_digits" value="">
                 </div>
                 <div id="phoneConfirmWrapBottom" style="display:none">
-                    <label for="phone2Bottom">Please re-enter your phone</label>
-                    <input id="phone2Bottom" name="phone_confirm" type="tel" inputmode="tel" placeholder="(___) ___-____" autocomplete="tel" aria-describedby="phone2HelpBottom">
-                    <small id="phone2HelpBottom" class="phone-help">Must match exactly.</small>
+                    <label for="emailBottom">Email</label>
+                    <input id="emailBottom" name="email" type="email" placeholder="your@email.com" autocomplete="email" aria-describedby="emailHelpBottom">
+                    <small id="emailHelpBottom" class="phone-help">We'll send your quote here.</small>
                 </div>
             </div>
             <div class="nav-buttons">
@@ -1974,7 +1974,7 @@
 
         function validatePhones() {
             const phoneInput = document.getElementById('phone');
-            const phone2Input = document.getElementById('phone2');
+            const emailInput = document.getElementById('email');
             const phoneConfirmWrap = document.getElementById('phoneConfirmWrap');
             const phoneDigits = document.getElementById('phone_digits');
             const phoneSubmitBtn = document.getElementById('phoneSubmitBtn');
@@ -2016,25 +2016,30 @@
 
             const shouldShowConfirm = p1.digits.length === 10 && validation.valid;
             phoneConfirmWrap.style.display = shouldShowConfirm ? '' : 'none';
-            if (phone2Input) phone2Input.required = shouldShowConfirm;
-            const p2 = formatPhone(phone2Input ? phone2Input.value : '');
-            if (phone2Input && phone2Input.value !== p2.formatted) phone2Input.value = p2.formatted;
-            if(shouldShowConfirm && phone2Input){
-                if(p2.digits.length === 0){
-                    phone2Input.setCustomValidity('Please re-enter your phone number.');
-                } else if(p2.digits !== p1.digits){
-                    phone2Input.setCustomValidity('Phone numbers do not match.');
+            if (emailInput) emailInput.required = shouldShowConfirm;
+            
+            // Validate email
+            let emailValid = true;
+            if (shouldShowConfirm && emailInput) {
+                const emailValue = emailInput.value.trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (emailValue.length === 0) {
+                    emailInput.setCustomValidity('Please enter your email address.');
+                    emailValid = false;
+                } else if (!emailRegex.test(emailValue)) {
+                    emailInput.setCustomValidity('Please enter a valid email address.');
+                    emailValid = false;
                 } else {
-                    phone2Input.setCustomValidity('');
+                    emailInput.setCustomValidity('');
+                    emailValid = true;
                 }
-            } else if (phone2Input) {
-                phone2Input.value = '';
-                phone2Input.setCustomValidity('');
+            } else if (emailInput) {
+                emailInput.value = '';
+                emailInput.setCustomValidity('');
             }
 
             const phoneValid = p1.digits.length === 10 && validation.valid;
-            const phone2Valid = !shouldShowConfirm || (p2.digits.length === 10 && p2.digits === p1.digits);
-            const buttonShouldEnable = phoneValid && phone2Valid;
+            const buttonShouldEnable = phoneValid && (!shouldShowConfirm || emailValid);
             
             if (phoneSubmitBtn) {
                 phoneSubmitBtn.disabled = !buttonShouldEnable;
@@ -2043,16 +2048,16 @@
 
         function setupPhoneValidation() {
             const phoneInput = document.getElementById('phone');
-            const phone2Input = document.getElementById('phone2');
+            const emailInput = document.getElementById('email');
             
             if (phoneInput) {
                 phoneInput.addEventListener('input', validatePhones);
                 phoneInput.addEventListener('blur', validatePhones);
             }
             
-            if (phone2Input) {
-                phone2Input.addEventListener('input', validatePhones);
-                phone2Input.addEventListener('blur', validatePhones);
+            if (emailInput) {
+                emailInput.addEventListener('input', validatePhones);
+                emailInput.addEventListener('blur', validatePhones);
             }
         }
 
@@ -2479,9 +2484,11 @@
         function submitFinalForm() {
             eventId = generateEventId();
             
+            const emailValue = document.getElementById('email')?.value.trim() || '';
             const finalData = {
                 ...formData,
-                phone: document.getElementById('phone_digits').value
+                phone: document.getElementById('phone_digits').value,
+                email: emailValue
             };
             
             if (typeof fbq !== 'undefined') {
@@ -2555,6 +2562,7 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                         first_name: finalData.firstName,
                         last_name: finalData.lastName,
                         phone: finalData.phone,
+                        email: finalData.email || null,
                         street_address: finalData.address.street,
                         city: finalData.address.city,
                         state: finalData.address.state,
@@ -2563,7 +2571,7 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                         floor_location: finalData.floorLocation,
                         project_timeline: finalData.projectTimeline,
                         main_goal: finalData.mainGoal,
-                        source: 'landing_page'
+                        source: 'Top Form'
                     })
                 }).then(response => {
                     if (!response.ok) {
@@ -2736,20 +2744,20 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
 
         function setupPhoneValidationBottom() {
             const phoneInput = document.getElementById('phoneBottom');
-            const phone2Input = document.getElementById('phone2Bottom');
+            const emailInput = document.getElementById('emailBottom');
             if (phoneInput) {
                 phoneInput.addEventListener('input', validatePhonesBottom);
                 phoneInput.addEventListener('blur', validatePhonesBottom);
             }
-            if (phone2Input) {
-                phone2Input.addEventListener('input', validatePhonesBottom);
-                phone2Input.addEventListener('blur', validatePhonesBottom);
+            if (emailInput) {
+                emailInput.addEventListener('input', validatePhonesBottom);
+                emailInput.addEventListener('blur', validatePhonesBottom);
             }
         }
 
         function validatePhonesBottom() {
             const phoneInput = document.getElementById('phoneBottom');
-            const phone2Input = document.getElementById('phone2Bottom');
+            const emailInput = document.getElementById('emailBottom');
             const phoneConfirmWrap = document.getElementById('phoneConfirmWrapBottom');
             const phoneDigits = document.getElementById('phone_digitsBottom');
             const phoneSubmitBtn = document.getElementById('phoneSubmitBtnBottom');
@@ -2789,27 +2797,30 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             
             const shouldShowConfirm = p1.digits.length === 10 && validation.valid;
             phoneConfirmWrap.style.display = shouldShowConfirm ? '' : 'none';
-            if (phone2Input) phone2Input.required = shouldShowConfirm;
+            if (emailInput) emailInput.required = shouldShowConfirm;
             
-            const p2 = formatPhone(phone2Input ? phone2Input.value : '');
-            if (phone2Input && phone2Input.value !== p2.formatted) phone2Input.value = p2.formatted;
-            
-            if(shouldShowConfirm && phone2Input){
-                if(p2.digits.length === 0){
-                    phone2Input.setCustomValidity('Please re-enter your phone number.');
-                } else if(p2.digits !== p1.digits){
-                    phone2Input.setCustomValidity('Phone numbers do not match.');
+            // Validate email
+            let emailValid = true;
+            if (shouldShowConfirm && emailInput) {
+                const emailValue = emailInput.value.trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (emailValue.length === 0) {
+                    emailInput.setCustomValidity('Please enter your email address.');
+                    emailValid = false;
+                } else if (!emailRegex.test(emailValue)) {
+                    emailInput.setCustomValidity('Please enter a valid email address.');
+                    emailValid = false;
                 } else {
-                    phone2Input.setCustomValidity('');
+                    emailInput.setCustomValidity('');
+                    emailValid = true;
                 }
-            } else if (phone2Input) {
-                phone2Input.value = '';
-                phone2Input.setCustomValidity('');
+            } else if (emailInput) {
+                emailInput.value = '';
+                emailInput.setCustomValidity('');
             }
             
             const phoneValid = p1.digits.length === 10 && validation.valid;
-            const phone2Valid = !shouldShowConfirm || (p2.digits.length === 10 && p2.digits === p1.digits);
-            const buttonShouldEnable = phoneValid && phone2Valid;
+            const buttonShouldEnable = phoneValid && (!shouldShowConfirm || emailValid);
             if (phoneSubmitBtn) {
                 phoneSubmitBtn.disabled = !buttonShouldEnable;
             }
@@ -2817,9 +2828,11 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
 
         function submitFinalFormBottom() {
             eventIdBottom = generateEventId();
+            const emailValue = document.getElementById('emailBottom')?.value.trim() || '';
             const finalData = {
                 ...formDataBottom,
-                phone: document.getElementById('phone_digitsBottom').value
+                phone: document.getElementById('phone_digitsBottom').value,
+                email: emailValue
             };
             
             if (typeof fbq !== 'undefined') {
@@ -2855,6 +2868,7 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                         first_name: finalData.firstName,
                         last_name: finalData.lastName,
                         phone: finalData.phone,
+                        email: finalData.email || null,
                         street_address: finalData.address.street,
                         city: finalData.address.city,
                         state: finalData.address.state,
@@ -2863,7 +2877,7 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                         floor_location: finalData.floorLocation,
                         project_timeline: finalData.projectTimeline,
                         main_goal: finalData.mainGoal,
-                        source: 'landing_page'
+                        source: 'Bottom Form'
                     })
                 }).then(response => {
                     if (!response.ok) {
@@ -4284,7 +4298,7 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                         phone: phone,
                         email: email,
                         zip: zip,
-                        source: 'zip_code_checker'
+                        source: 'Zip Code Check'
                     })
                 }).then(response => {
                     if (!response.ok) {

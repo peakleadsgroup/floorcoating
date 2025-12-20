@@ -53,6 +53,11 @@ export default function Leads() {
   })
   const [isEditingLead, setIsEditingLead] = useState(false)
   const [editedLeadData, setEditedLeadData] = useState(null)
+  const [notes, setNotes] = useState('')
+  const [isSavingNotes, setIsSavingNotes] = useState(false)
+  const [pipelineStage, setPipelineStage] = useState('')
+  const [isSavingStage, setIsSavingStage] = useState(false)
+  const [activeFilter, setActiveFilter] = useState('all')
   const messagesContainerRef = useRef(null)
 
   useEffect(() => {
@@ -151,8 +156,69 @@ export default function Leads() {
   function handleLeadClick(lead) {
     setSelectedLead(lead)
     setEditedLeadData({ ...lead })
+    setNotes(lead.notes || '')
+    setPipelineStage(lead.pipeline_stage || 'follow_up')
     setIsEditingLead(false)
     fetchMessages(lead.id)
+  }
+
+  // Get current pipeline stage for comparison
+  const currentPipelineStage = selectedLead?.pipeline_stage || 'follow_up'
+
+  // Handle save pipeline stage
+  async function handleSavePipelineStage() {
+    if (!selectedLead) return
+
+    setIsSavingStage(true)
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ pipeline_stage: pipelineStage })
+        .eq('id', selectedLead.id)
+
+      if (error) throw error
+
+      // Update the selected lead with new stage
+      setSelectedLead({ ...selectedLead, pipeline_stage: pipelineStage })
+      
+      // Refresh the leads list
+      await fetchLeads()
+      
+      console.log('Pipeline stage saved successfully')
+    } catch (err) {
+      console.error('Error saving pipeline stage:', err)
+      alert('Error saving pipeline stage. Please try again.')
+    } finally {
+      setIsSavingStage(false)
+    }
+  }
+
+  // Handle save notes
+  async function handleSaveNotes() {
+    if (!selectedLead) return
+
+    setIsSavingNotes(true)
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ notes: notes.trim() })
+        .eq('id', selectedLead.id)
+
+      if (error) throw error
+
+      // Update the selected lead with new notes
+      setSelectedLead({ ...selectedLead, notes: notes.trim() })
+      
+      // Refresh the leads list
+      await fetchLeads()
+      
+      console.log('Notes saved successfully')
+    } catch (err) {
+      console.error('Error saving notes:', err)
+      alert('Error saving notes. Please try again.')
+    } finally {
+      setIsSavingNotes(false)
+    }
   }
 
   // Handle save lead changes
@@ -314,13 +380,62 @@ export default function Leads() {
     )
   }
 
+  // Filter leads based on active tab
+  const filteredLeads = activeFilter === 'all' 
+    ? leads 
+    : leads.filter(lead => (lead.pipeline_stage || 'follow_up') === activeFilter)
+
+  const pipelineStages = [
+    { value: 'all', label: 'All Leads' },
+    { value: 'follow_up', label: 'Follow Up' },
+    { value: 'pending_response', label: 'Pending Response' },
+    { value: 'estimate_scheduled', label: 'Estimate Scheduled' },
+    { value: 'estimate_completed', label: 'Estimate Completed' },
+    { value: 'close_won', label: 'Close Won' },
+    { value: 'close_lost', label: 'Close Lost' },
+    { value: 'not_interested', label: 'Not Interested' },
+  ]
+
+  // Count leads per stage
+  const getStageCount = (stage) => {
+    if (stage === 'all') return leads.length
+    return leads.filter(lead => (lead.pipeline_stage || 'follow_up') === stage).length
+  }
+
   return (
     <div className="page-content">
       <h1>Peak Floor Coating - Leads</h1>
-      <p className="lead-count">Total Leads: {leads.length}</p>
       
-      {leads.length === 0 ? (
-        <p>No leads yet. Submit a form on the landing page to see leads here.</p>
+      {/* Pipeline Stage Tabs */}
+      <div className="pipeline-tabs">
+        {pipelineStages.map((stage) => (
+          <button
+            key={stage.value}
+            className={`pipeline-tab ${activeFilter === stage.value ? 'active' : ''}`}
+            onClick={() => setActiveFilter(stage.value)}
+          >
+            {stage.label}
+            <span className="tab-count">({getStageCount(stage.value)})</span>
+          </button>
+        ))}
+        {activeFilter === 'follow_up' && filteredLeads.length > 0 && (
+          <button
+            className="btn-primary auto-dialer-btn"
+            onClick={() => {
+              const firstLead = filteredLeads[0]
+              handleLeadClick(firstLead)
+            }}
+            style={{ marginLeft: 'auto' }}
+          >
+            Auto Dialer
+          </button>
+        )}
+      </div>
+
+      <p className="lead-count">Showing: {filteredLeads.length} lead{filteredLeads.length !== 1 ? 's' : ''} | Total: {leads.length}</p>
+      
+      {filteredLeads.length === 0 ? (
+        <p>No leads in this category. Submit a form on the landing page to see leads here.</p>
       ) : (
         <table className="leads-table">
           <thead>
@@ -334,7 +449,7 @@ export default function Leads() {
             </tr>
           </thead>
           <tbody>
-            {leads.map((lead) => (
+            {filteredLeads.map((lead) => (
               <tr key={lead.id} onClick={() => handleLeadClick(lead)}>
                 <td>{lead.first_name} {lead.last_name}</td>
                 <td>{formatPhone(lead.phone)}</td>
@@ -363,15 +478,64 @@ export default function Leads() {
           <div className="message-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="message-modal-header">
               <h2>Messages - {selectedLead.first_name} {selectedLead.last_name}</h2>
-              <button 
-                className="btn-close-modal" 
-                onClick={() => setSelectedLead(null)}
-                title="Close"
-              >
-                ×
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                {activeFilter === 'follow_up' && (
+                  <button 
+                    className="btn-primary"
+                    onClick={() => {
+                      // Start dialing functionality - you can implement this
+                      console.log('Start dialing for:', selectedLead.phone)
+                      // TODO: Implement dialing functionality
+                    }}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    Start Dialing
+                  </button>
+                )}
+                <button 
+                  className="btn-icon btn-close-modal" 
+                  onClick={() => setSelectedLead(null)}
+                  title="Close"
+                >
+                  ×
+                </button>
+              </div>
             </div>
             <div className="message-modal-body">
+              {/* Pipeline Stage Dropdown */}
+              <div className="pipeline-stage-section">
+                <label htmlFor="pipeline-stage" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#1a365d' }}>
+                  Pipeline Stage
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <select
+                    id="pipeline-stage"
+                    value={pipelineStage}
+                    onChange={(e) => setPipelineStage(e.target.value)}
+                    className="pipeline-stage-select"
+                    disabled={isSavingStage}
+                  >
+                    <option value="follow_up">Follow Up</option>
+                    <option value="pending_response">Pending Response</option>
+                    <option value="estimate_scheduled">Estimate Scheduled</option>
+                    <option value="estimate_completed">Estimate Completed</option>
+                    <option value="close_won">Close Won</option>
+                    <option value="close_lost">Close Lost</option>
+                    <option value="not_interested">Not Interested</option>
+                  </select>
+                  {pipelineStage !== currentPipelineStage && (
+                    <button 
+                      className="btn-primary" 
+                      onClick={handleSavePipelineStage}
+                      disabled={isSavingStage}
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      {isSavingStage ? 'Saving...' : 'Save'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="lead-info-header">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gridColumn: '1 / -1' }}>
                   <h3 style={{ margin: 0 }}>Lead Information</h3>
@@ -513,6 +677,15 @@ export default function Leads() {
                         onChange={(e) => setEditedLeadData({ ...editedLeadData, main_goal: e.target.value })}
                       />
                     </div>
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                      <label>Notes</label>
+                      <textarea
+                        value={editedLeadData?.notes || ''}
+                        onChange={(e) => setEditedLeadData({ ...editedLeadData, notes: e.target.value })}
+                        rows={4}
+                        style={{ width: '100%', padding: '0.5rem', fontSize: '0.875rem', fontFamily: 'inherit', resize: 'vertical' }}
+                      />
+                    </div>
                   </>
                 ) : (
                   <>
@@ -538,6 +711,48 @@ export default function Leads() {
                     )}
                   </>
                 )}
+              </div>
+
+              {/* Notes Section */}
+              <div className="notes-section">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <h3 style={{ margin: 0 }}>Notes</h3>
+                </div>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Add notes about this lead..."
+                  rows={4}
+                  className="notes-textarea"
+                />
+                <button 
+                  className="btn-primary" 
+                  onClick={handleSaveNotes}
+                  disabled={isSavingNotes}
+                  style={{ marginTop: '0.5rem' }}
+                >
+                  {isSavingNotes ? 'Saving...' : 'Save Notes'}
+                </button>
+              </div>
+              <div className="notes-section">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <h3 style={{ margin: 0 }}>Notes</h3>
+                </div>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Add notes about this lead..."
+                  rows={4}
+                  className="notes-textarea"
+                />
+                <button 
+                  className="btn-primary" 
+                  onClick={handleSaveNotes}
+                  disabled={isSavingNotes}
+                  style={{ marginTop: '0.5rem' }}
+                >
+                  {isSavingNotes ? 'Saving...' : 'Save Notes'}
+                </button>
               </div>
 
               {/* Messages List */}

@@ -1,11 +1,14 @@
-// Supabase Edge Function to make Twilio calls
-// This avoids exposing Twilio credentials in the frontend
+// Supabase Edge Function for Twilio browser-based calling
+// Generates access tokens and handles TwiML for outbound calls
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID')
 const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN')
-const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER') // Your Twilio number in E.164 format (e.g., +15551234567)
+const TWILIO_API_KEY_SID = Deno.env.get('TWILIO_API_KEY_SID')
+const TWILIO_API_KEY_SECRET = Deno.env.get('TWILIO_API_KEY_SECRET')
+const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER')
+const TWILIO_TWIML_APP_SID = Deno.env.get('TWILIO_TWIML_APP_SID') // TwiML App SID for outbound calls
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -13,19 +16,165 @@ serve(async (req) => {
     return new Response(null, {
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
         'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
       },
     })
   }
 
+  const url = new URL(req.url)
+  const pathname = url.pathname
+
+  // Handle TwiML request (GET /twiml?To=...)
+  if (req.method === 'GET' && pathname.includes('/twiml')) {
+    const toNumber = url.searchParams.get('To')
+    
+    if (!toNumber) {
+      return new Response(
+        '<?xml version="1.0" encoding="UTF-8"?><Response><Say>Error: No number provided</Say></Response>',
+        {
+          headers: { 
+            'Content-Type': 'text/xml',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }
+      )
+    }
+
+    console.log('Generating TwiML to dial:', toNumber)
+
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial callerId="${TWILIO_PHONE_NUMBER || '+19196290303'}">
+    <Number>${toNumber}</Number>
+  </Dial>
+</Response>`
+
+    return new Response(twiml, {
+      headers: {
+        'Content-Type': 'text/xml',
+        'Access-Control-Allow-Origin': '*',
+      },
+    })
+  }
+
+  // Handle token generation request (GET /token)
+  if (req.method === 'GET' && (pathname.includes('/token') || url.searchParams.has('token'))) {
+    try {
+      if (!TWILIO_ACCOUNT_SID || !TWILIO_API_KEY_SID || !TWILIO_API_KEY_SECRET) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Twilio API Key credentials not configured. Create an API Key in Twilio Console and set TWILIO_API_KEY_SID and TWILIO_API_KEY_SECRET secrets.' 
+          }),
+          { 
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            },
+          }
+        )
+      }
+
+      // Generate JWT access token for Twilio Voice SDK
+      const header = { alg: 'HS256', typ: 'JWT' }
+      const now = Math.floor(Date.now() / 1000)
+      
+      if (!TWILIO_TWIML_APP_SID) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'TWILIO_TWIML_APP_SID not configured. Please create a TwiML App in Twilio Console and set the App SID as a secret.' 
+          }),
+          { 
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            },
+          }
+        )
+      }
+      
+      const payload = {
+        jti: `${TWILIO_API_KEY_SID}-${now}`,
+        iss: TWILIO_API_KEY_SID,
+        sub: TWILIO_ACCOUNT_SID,
+        exp: now + 3600,
+        grants: {
+          identity: 'browser-user',
+          voice: {
+            outgoing: {
+              application_sid: TWILIO_TWIML_APP_SID, // TwiML App SID for outbound calls
+            }
+          }
+        }
+      }
+
+      // Base64URL encoding
+      const base64urlEncode = (str: string) => {
+        return btoa(str)
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=/g, '')
+      }
+
+      const encodedHeader = base64urlEncode(JSON.stringify(header))
+      const encodedPayload = base64urlEncode(JSON.stringify(payload))
+
+      // HMAC-SHA256 signature
+      const keyData = new TextEncoder().encode(TWILIO_API_KEY_SECRET!)
+      const messageData = new TextEncoder().encode(`${encodedHeader}.${encodedPayload}`)
+      
+      const cryptoKey = await crypto.subtle.importKey(
+        'raw',
+        keyData,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      )
+
+      const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData)
+      const signatureArray = new Uint8Array(signature)
+      const encodedSignature = base64urlEncode(
+        String.fromCharCode(...signatureArray)
+      )
+
+      const token = `${encodedHeader}.${encodedPayload}.${encodedSignature}`
+      
+      console.log('Generated access token for browser calling')
+
+      return new Response(
+        JSON.stringify({ token }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }
+      )
+    } catch (error) {
+      console.error('Error generating token:', error)
+      return new Response(
+        JSON.stringify({ error: error.message || 'Failed to generate token' }),
+        {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }
+      )
+    }
+  }
+
+  // Handle call initiation request (POST /)
   try {
     const { phone_number, lead_id } = await req.json()
     
-    console.log('Received request:', { phone_number, lead_id })
+    console.log('Received call request:', { phone_number, lead_id })
 
     if (!phone_number) {
-      console.error('Missing phone_number in request')
       return new Response(
         JSON.stringify({ error: 'Missing required field: phone_number' }),
         { 
@@ -38,132 +187,30 @@ serve(async (req) => {
       )
     }
 
-    // Check credentials
-    const missingCredentials = []
-    if (!TWILIO_ACCOUNT_SID) missingCredentials.push('TWILIO_ACCOUNT_SID')
-    if (!TWILIO_AUTH_TOKEN) missingCredentials.push('TWILIO_AUTH_TOKEN')
-    if (!TWILIO_PHONE_NUMBER) missingCredentials.push('TWILIO_PHONE_NUMBER')
-    
-    if (missingCredentials.length > 0) {
-      console.error('Missing Twilio credentials:', missingCredentials)
-      return new Response(
-        JSON.stringify({ 
-          error: 'Twilio credentials not configured',
-          missing: missingCredentials
-        }),
-        { 
-          status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-          },
-        }
-      )
-    }
-
-    // Format phone number to E.164 format (remove all non-digits, add +1 if needed)
-    let formattedPhone = phone_number.replace(/\D/g, '')
-    if (formattedPhone.length === 10) {
-      formattedPhone = `+1${formattedPhone}`
-    } else if (!formattedPhone.startsWith('+')) {
-      formattedPhone = `+${formattedPhone}`
+    // Format phone number to E.164 format
+    const formatPhone = (phone: string) => {
+      let formatted = phone.replace(/\D/g, '')
+      if (formatted.length === 10) {
+        formatted = `+1${formatted}`
+      } else if (!formatted.startsWith('+')) {
+        formatted = `+${formatted}`
+      }
+      return formatted
     }
     
+    const formattedPhone = formatPhone(phone_number)
     console.log('Formatted phone:', { original: phone_number, formatted: formattedPhone })
 
-    // Make Twilio API call to initiate the call
-    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Calls.json`
+    // Create TwiML URL for the outbound call
+    const baseUrl = req.url.split('/functions/v1/twilio-call')[0]
+    const twimlUrl = `${baseUrl}/functions/v1/twilio-call/twiml?To=${encodeURIComponent(formattedPhone)}`
     
-    // Make a direct outbound call from your Twilio number to the lead
-    // When the call connects, it will say a message and then hang up
-    // You can customize the TwiML to route to your phone, add voicemail, etc.
-    const twiml = `<Response>
-      <Say voice="alice">You have a call from Peak Floor Coating. Please hold while we connect you.</Say>
-    </Response>`
-    
-    const formData = new URLSearchParams()
-    formData.append('To', formattedPhone) // Call the lead's number
-    formData.append('From', TWILIO_PHONE_NUMBER) // From your Twilio number
-    formData.append('Twiml', twiml) // Inline TwiML for call handling
-
-    console.log('Making Twilio API call:', {
-      url: twilioUrl,
-      to: formattedPhone,
-      from: TWILIO_PHONE_NUMBER,
-      accountSid: TWILIO_ACCOUNT_SID?.substring(0, 10) + '...' // Log partial for security
-    })
-
-    const response = await fetch(twilioUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`)}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: formData.toString(),
-    })
-
-    const responseText = await response.text()
-    
-    if (!response.ok) {
-      console.error('Twilio API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: responseText,
-        to: formattedPhone,
-        from: TWILIO_PHONE_NUMBER
-      })
-      
-      // Try to parse error message from Twilio
-      let errorMessage = `Twilio API failed: ${response.status}`
-      let errorCode = null
-      try {
-        const errorJson = JSON.parse(responseText)
-        errorMessage = errorJson.message || errorMessage
-        errorCode = errorJson.code || errorJson.error_code
-        console.error('Twilio error details:', errorJson)
-        
-        // Special handling for concurrency errors
-        if (errorCode === 10004 || errorMessage.includes('concurrency')) {
-          errorMessage = 'Call concurrency limit exceeded. Please wait a few seconds before trying again.'
-        }
-      } catch (e) {
-        // Not JSON, use raw text
-        errorMessage = responseText || errorMessage
-      }
-      
-      return new Response(
-        JSON.stringify({ 
-          error: errorMessage,
-          status: response.status,
-          details: responseText
-        }),
-        {
-          status: response.status,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-          },
-        }
-      )
-    }
-
-    const callData = JSON.parse(responseText)
-    console.log('Twilio call initiated successfully:', {
-      callSid: callData.sid,
-      status: callData.status,
-      to: callData.to,
-      from: callData.from
-    })
-
-    // Optionally: Log the call to your database
-    // You could create a calls table or add to message_logs
-
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        call_sid: callData.sid,
-        status: callData.status,
-        message: 'Call initiated successfully'
+        success: true,
+        twimlUrl: twimlUrl,
+        phoneNumber: formattedPhone,
+        callerId: TWILIO_PHONE_NUMBER
       }),
       {
         status: 200,
@@ -176,9 +223,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in twilio-call function:', error)
     return new Response(
-      JSON.stringify({ 
-        error: error.message || 'Internal server error' 
-      }),
+      JSON.stringify({ error: error.message || 'Internal server error' }),
       {
         status: 500,
         headers: {
@@ -189,4 +234,3 @@ serve(async (req) => {
     )
   }
 })
-

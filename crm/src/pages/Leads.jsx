@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { sendEmailWebhook } from '../lib/webhooks'
+import { useTwilioVoice } from '../hooks/useTwilioVoice'
 import './Leads.css'
 
 // Function to convert URLs to clickable links and render HTML for emails
@@ -58,8 +59,10 @@ export default function Leads() {
   const [pipelineStage, setPipelineStage] = useState('')
   const [isSavingStage, setIsSavingStage] = useState(false)
   const [activeFilter, setActiveFilter] = useState('all')
-  const [isCalling, setIsCalling] = useState(false)
   const messagesContainerRef = useRef(null)
+  
+  // Twilio Voice SDK hook for browser-based calling
+  const { makeCall, disconnectCall, call, isCalling, error: twilioError } = useTwilioVoice()
 
   useEffect(() => {
     fetchLeads()
@@ -481,66 +484,43 @@ export default function Leads() {
               <h2>Messages - {selectedLead.first_name} {selectedLead.last_name}</h2>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 {activeFilter === 'follow_up' && (
-                  <button 
-                    className="btn-primary"
-                    disabled={isCalling}
-                    onClick={async () => {
-                      if (!selectedLead.phone) {
-                        alert('This lead has no phone number')
-                        return
-                      }
-
-                      if (isCalling) {
-                        return // Prevent multiple clicks
-                      }
-
-                      setIsCalling(true)
-                      
-                      try {
-                        const { data, error } = await supabase.functions.invoke('twilio-call', {
-                          body: {
-                            phone_number: selectedLead.phone,
-                            lead_id: selectedLead.id,
-                          },
-                        })
-
-                        if (error) {
-                          console.error('Error calling:', error)
-                          const errorMsg = error.message || JSON.stringify(error)
-                          alert(`Failed to initiate call: ${errorMsg}\n\nCheck browser console and Supabase logs for details.`)
-                          return
-                        }
-
-                        if (data?.error) {
-                          console.error('Twilio error:', data)
-                          
-                          // Check for specific concurrency error
-                          const errorLower = (data.error || '').toLowerCase()
-                          if (errorLower.includes('concurrency') || errorLower.includes('10004')) {
-                            alert(`Call failed: Too many calls at once.\n\nPlease wait a few seconds and try again. Twilio accounts have limits on concurrent calls.\n\nError: ${data.error}`)
-                          } else {
-                            alert(`Call failed: ${data.error}\n\nStatus: ${data.status || 'Unknown'}\n\nCheck Supabase Edge Function logs for details.`)
+                  <>
+                    {!call ? (
+                      <button 
+                        className="btn-primary"
+                        disabled={isCalling}
+                        onClick={async () => {
+                          if (!selectedLead.phone) {
+                            alert('This lead has no phone number')
+                            return
                           }
-                          return
-                        }
 
-                        console.log('Call initiated:', data)
-                        alert(`Call initiated to ${formatPhone(selectedLead.phone)}\n\nCall SID: ${data?.call_sid || 'N/A'}`)
-                      } catch (err) {
-                        console.error('Error initiating call:', err)
-                        alert(`Failed to initiate call: ${err.message || 'Unknown error'}\n\nCheck browser console for details.`)
-                      } finally {
-                        // Re-enable button after a delay to prevent rapid clicks
-                        // Using 5 seconds to ensure previous call attempt is fully cleared from Twilio's system
-                        setTimeout(() => {
-                          setIsCalling(false)
-                        }, 5000) // 5 second cooldown to avoid concurrency issues
-                      }
-                    }}
-                    style={{ whiteSpace: 'nowrap', opacity: isCalling ? 0.6 : 1, cursor: isCalling ? 'not-allowed' : 'pointer' }}
-                  >
-                    {isCalling ? 'Calling...' : 'Start Dialing'}
-                  </button>
+                          if (twilioError) {
+                            alert(`Twilio Error: ${twilioError}\n\nPlease check browser console and refresh the page.`)
+                            return
+                          }
+
+                          try {
+                            await makeCall(selectedLead.phone)
+                          } catch (err) {
+                            console.error('Error making call:', err)
+                            alert(`Failed to make call: ${err.message || 'Unknown error'}`)
+                          }
+                        }}
+                        style={{ whiteSpace: 'nowrap', opacity: isCalling ? 0.6 : 1, cursor: isCalling ? 'not-allowed' : 'pointer' }}
+                      >
+                        {isCalling ? 'Calling...' : 'Start Dialing'}
+                      </button>
+                    ) : (
+                      <button 
+                        className="btn-primary"
+                        onClick={() => disconnectCall()}
+                        style={{ whiteSpace: 'nowrap', backgroundColor: '#dc3545' }}
+                      >
+                        End Call
+                      </button>
+                    )}
+                  </>
                 )}
                 <button 
                   className="btn-icon btn-close-modal" 

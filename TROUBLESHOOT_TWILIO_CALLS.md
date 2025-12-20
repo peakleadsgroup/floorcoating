@@ -26,11 +26,25 @@ In the Twilio Console, click on the **failed call's Call SID** to see detailed e
 - `30008` - Unroutable destination
 
 **Error 10004 - Call Concurrency Limit Exceeded:**
-This happens when you try to make more calls than your account allows simultaneously. Solutions:
-1. Wait for existing calls to complete before making new ones
-2. Check your account's concurrent call limit in Twilio console
-3. Add rate limiting to prevent multiple rapid calls
-4. Upgrade your Twilio account for higher concurrency limits
+This happens when you try to make more calls than your account allows simultaneously. Even if calls fail immediately, Twilio counts them toward concurrency during the brief initialization phase.
+
+**Important:** Your account might have a concurrency limit of **1 call**. This means:
+- If you click the button twice quickly (even milliseconds apart)
+- Both API requests reach Twilio simultaneously
+- Even though one fails immediately, both count toward the limit during processing
+- Result: "Concurrency limit exceeded" error
+
+**Solutions:**
+1. ✅ **Rate limiting in UI** - Button is now disabled for 2 seconds after each click (already implemented)
+2. **Check your account limit:**
+   - Go to: https://console.twilio.com/us1/account/settings/limits
+   - Look for "Concurrent Calls" or "Outbound Calls" limit
+   - New/paid accounts often start with limit of 1
+3. **Request limit increase:**
+   - Contact Twilio support to increase concurrent call limit
+   - Explain your use case (CRM calling feature)
+   - They typically increase it to 10-50+ for business accounts
+4. **Wait longer between calls** if your limit is 1
 
 **Most Common for Paid Accounts:**
 - `10004` - Too many calls at once (wait between calls)

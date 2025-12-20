@@ -58,6 +58,7 @@ export default function Leads() {
   const [pipelineStage, setPipelineStage] = useState('')
   const [isSavingStage, setIsSavingStage] = useState(false)
   const [activeFilter, setActiveFilter] = useState('all')
+  const [isCalling, setIsCalling] = useState(false)
   const messagesContainerRef = useRef(null)
 
   useEffect(() => {
@@ -482,12 +483,19 @@ export default function Leads() {
                 {activeFilter === 'follow_up' && (
                   <button 
                     className="btn-primary"
+                    disabled={isCalling}
                     onClick={async () => {
                       if (!selectedLead.phone) {
                         alert('This lead has no phone number')
                         return
                       }
 
+                      if (isCalling) {
+                        return // Prevent multiple clicks
+                      }
+
+                      setIsCalling(true)
+                      
                       try {
                         const { data, error } = await supabase.functions.invoke('twilio-call', {
                           body: {
@@ -521,11 +529,17 @@ export default function Leads() {
                       } catch (err) {
                         console.error('Error initiating call:', err)
                         alert(`Failed to initiate call: ${err.message || 'Unknown error'}\n\nCheck browser console for details.`)
+                      } finally {
+                        // Re-enable button after a delay to prevent rapid clicks
+                        // Using 5 seconds to ensure previous call attempt is fully cleared from Twilio's system
+                        setTimeout(() => {
+                          setIsCalling(false)
+                        }, 5000) // 5 second cooldown to avoid concurrency issues
                       }
                     }}
-                    style={{ whiteSpace: 'nowrap' }}
+                    style={{ whiteSpace: 'nowrap', opacity: isCalling ? 0.6 : 1, cursor: isCalling ? 'not-allowed' : 'pointer' }}
                   >
-                    Start Dialing
+                    {isCalling ? 'Calling...' : 'Start Dialing'}
                   </button>
                 )}
                 <button 

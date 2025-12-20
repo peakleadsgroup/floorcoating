@@ -59,20 +59,17 @@ serve(async (req) => {
     // Make Twilio API call to initiate the call
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Calls.json`
     
-    // Use inline TwiML to connect the call
-    // This will call the lead's number and connect it to your Twilio number
-    // You can customize the TwiML to add greetings, voicemail, etc.
+    // Make a direct outbound call from your Twilio number to the lead
+    // When the call connects, it will say a message and then hang up
+    // You can customize the TwiML to route to your phone, add voicemail, etc.
     const twiml = `<Response>
-      <Say>Connecting your call now.</Say>
-      <Dial callerId="${TWILIO_PHONE_NUMBER}">
-        <Number>${formattedPhone}</Number>
-      </Dial>
+      <Say voice="alice">You have a call from Peak Floor Coating. Please hold while we connect you.</Say>
     </Response>`
     
     const formData = new URLSearchParams()
-    formData.append('To', TWILIO_PHONE_NUMBER) // Call your Twilio number first
-    formData.append('From', TWILIO_PHONE_NUMBER)
-    formData.append('Twiml', twiml) // Use inline TwiML
+    formData.append('To', formattedPhone) // Call the lead's number
+    formData.append('From', TWILIO_PHONE_NUMBER) // From your Twilio number
+    formData.append('Twiml', twiml) // Inline TwiML for call handling
 
     const response = await fetch(twilioUrl, {
       method: 'POST',

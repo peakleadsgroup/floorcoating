@@ -38,12 +38,17 @@ async function generateAccessToken(): Promise<string> {
     }
   }
 
-  // Base64URL encoding
-  const base64urlEncode = (str: string) => {
-    return btoa(str)
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '')
+  // Base64URL encoding helper
+  const base64urlEncode = (input: string | Uint8Array): string => {
+    let binary: string
+    if (input instanceof Uint8Array) {
+      // Convert Uint8Array to binary string efficiently
+      binary = Array.from(input, byte => String.fromCharCode(byte)).join('')
+    } else {
+      binary = input
+    }
+    const base64 = btoa(binary)
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
   }
 
   const encodedHeader = base64urlEncode(JSON.stringify(header))
@@ -61,13 +66,31 @@ async function generateAccessToken(): Promise<string> {
     ['sign']
   )
 
-  const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData)
-  const signatureArray = new Uint8Array(signature)
-  const encodedSignature = base64urlEncode(
-    String.fromCharCode(...signatureArray)
-  )
+      const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData)
+      const signatureArray = new Uint8Array(signature)
+      const encodedSignature = base64urlEncode(signatureArray)
 
-  return `${encodedHeader}.${encodedPayload}.${encodedSignature}`
+  const token = `${encodedHeader}.${encodedPayload}.${encodedSignature}`
+  
+  // Log token info for debugging (without exposing the full token)
+  console.log('Generated token info:', {
+    headerLength: encodedHeader.length,
+    payloadLength: encodedPayload.length,
+    signatureLength: encodedSignature.length,
+    hasAccountSid: !!TWILIO_ACCOUNT_SID,
+    hasApiKeySid: !!TWILIO_API_KEY_SID,
+    hasTwimlAppSid: !!TWILIO_TWIML_APP_SID,
+    payloadStructure: {
+      hasJti: !!payload.jti,
+      hasIss: !!payload.iss,
+      hasSub: !!payload.sub,
+      hasExp: !!payload.exp,
+      hasGrants: !!payload.grants,
+      hasVoiceGrant: !!payload.grants.voice,
+    }
+  })
+
+  return token
 }
 
 serve(async (req) => {

@@ -27,6 +27,9 @@
     -->
     <!-- End Meta Pixel Code -->
     
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         * {
             margin: 0;
@@ -258,7 +261,7 @@
             gap: 15px;
             margin-bottom: 20px;
         }
-        #phone, #phone2, #phoneBottom, #phone2Bottom {
+        #phone, #phone2, #phoneBottom, #phone2Bottom, #email, #emailBottom {
             padding: 15px;
             border: 2px solid #e9ecef;
             border-radius: 8px;
@@ -266,7 +269,7 @@
             background: #f8f9fa;
             width: 100%;
         }
-        #phone:focus, #phone2:focus, #phoneBottom:focus, #phone2Bottom:focus {
+        #phone:focus, #phone2:focus, #phoneBottom:focus, #phone2Bottom:focus, #email:focus, #emailBottom:focus {
             outline: none;
             border-color: #2196f3;
             background: #fff;
@@ -1301,9 +1304,9 @@
                     <input type="hidden" id="phone_digits" name="phone_digits" value="">
                 </div>
                 <div id="phoneConfirmWrap" style="display:none">
-                    <label for="phone2">Please re-enter your phone</label>
-                    <input id="phone2" name="phone_confirm" type="tel" inputmode="tel" placeholder="(___) ___-____" autocomplete="tel" aria-describedby="phone2Help">
-                    <small id="phone2Help" class="phone-help">Must match exactly.</small>
+                    <label for="email">Email</label>
+                    <input id="email" name="email" type="email" placeholder="your@email.com" autocomplete="email" aria-describedby="emailHelp">
+                    <small id="emailHelp" class="phone-help">We'll send your quote here.</small>
                 </div>
             </div>
             <div class="nav-buttons">
@@ -1621,9 +1624,9 @@
                     <input type="hidden" id="phone_digitsBottom" name="phone_digits" value="">
                 </div>
                 <div id="phoneConfirmWrapBottom" style="display:none">
-                    <label for="phone2Bottom">Please re-enter your phone</label>
-                    <input id="phone2Bottom" name="phone_confirm" type="tel" inputmode="tel" placeholder="(___) ___-____" autocomplete="tel" aria-describedby="phone2HelpBottom">
-                    <small id="phone2HelpBottom" class="phone-help">Must match exactly.</small>
+                    <label for="emailBottom">Email</label>
+                    <input id="emailBottom" name="email" type="email" placeholder="your@email.com" autocomplete="email" aria-describedby="emailHelpBottom">
+                    <small id="emailHelpBottom" class="phone-help">We'll send your quote here.</small>
                 </div>
             </div>
             <div class="nav-buttons">
@@ -1737,6 +1740,98 @@
         
         // Calendar Webhook URL for calendar bookings
         const CALENDAR_WEBHOOK_URL = 'YOUR_CALENDAR_WEBHOOK_URL_HERE';
+        
+        // Supabase Configuration
+        // PLACEHOLDER: Add your Supabase credentials here
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL_HERE'; // e.g., 'https://xxxxx.supabase.co'
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE'; // Your anon/public key
+        
+        // Initialize Supabase client
+        let supabaseClient = null;
+        if (SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY_HERE') {
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+        
+        // ============================================
+        // SUPABASE LEAD SAVING FUNCTION
+        // ============================================
+        /**
+         * Saves a lead to Supabase with all form data segmented for automations
+         * @param {Object} formData - The form data object containing all lead information
+         * @param {string} source - Source identifier (e.g., 'landing_page', 'calendar_booking')
+         */
+        async function saveLeadToSupabase(formData, source = 'landing_page') {
+            if (!supabaseClient) {
+                console.log('Supabase not configured, skipping database save');
+                return { success: false, error: 'Supabase not configured' };
+            }
+            
+            try {
+                // Map form data to Supabase leads table structure
+                const leadData = {
+                    first_name: formData.firstName || '',
+                    last_name: formData.lastName || '',
+                    phone: formData.phone || null,
+                    email: formData.email || null,
+                    street_address: formData.address?.street || null,
+                    city: formData.address?.city || null,
+                    state: formData.address?.state || null,
+                    zip: formData.address?.zip || null,
+                    source: source,
+                    estimated_sqft: null, // Can be added later if collected
+                    sales_stage: 'new'
+                };
+                
+                // Insert lead into Supabase
+                const { data, error } = await supabaseClient
+                    .from('leads')
+                    .insert([leadData])
+                    .select()
+                    .single();
+                
+                if (error) {
+                    console.error('Error saving lead to Supabase:', error);
+                    return { success: false, error: error.message };
+                }
+                
+                // Save additional form data as activity/note for automations
+                const additionalData = {
+                    homeowner: formData.homeowner || null,
+                    floor_location: formData.floorLocation || null,
+                    project_timeline: formData.projectTimeline || null,
+                    main_goal: formData.mainGoal || null,
+                    appointment_date: formData.appointment_date || null,
+                    appointment_time: formData.appointment_time || null
+                };
+                
+                // Create a note with all the additional data for reference
+                if (data && data.id) {
+                    const noteContent = `Form Submission Details:
+- Homeowner: ${additionalData.homeowner === 'yes' ? 'Yes' : 'No'}
+- Floor Location: ${additionalData.floor_location || 'N/A'}
+- Project Timeline: ${additionalData.project_timeline || 'N/A'}
+- Main Goal: ${additionalData.main_goal || 'N/A'}
+${additionalData.appointment_date ? `- Appointment: ${additionalData.appointment_date} at ${additionalData.appointment_time || 'N/A'}` : ''}
+- Source: ${source}
+- Submitted: ${new Date().toLocaleString()}`;
+                    
+                    await supabaseClient
+                        .from('lead_activities')
+                        .insert([{
+                            lead_id: data.id,
+                            activity_type: 'note',
+                            content: noteContent
+                        }]);
+                }
+                
+                console.log('Lead saved to Supabase successfully:', data.id);
+                return { success: true, data: data };
+                
+            } catch (error) {
+                console.error('Exception saving lead to Supabase:', error);
+                return { success: false, error: error.message };
+            }
+        }
         
         // ============================================
         let currentStep = 1;
@@ -1965,7 +2060,7 @@
 
         function validatePhones() {
             const phoneInput = document.getElementById('phone');
-            const phone2Input = document.getElementById('phone2');
+            const emailInput = document.getElementById('email');
             const phoneConfirmWrap = document.getElementById('phoneConfirmWrap');
             const phoneDigits = document.getElementById('phone_digits');
             const phoneSubmitBtn = document.getElementById('phoneSubmitBtn');
@@ -2007,25 +2102,27 @@
 
             const shouldShowConfirm = p1.digits.length === 10 && validation.valid;
             phoneConfirmWrap.style.display = shouldShowConfirm ? '' : 'none';
-            if (phone2Input) phone2Input.required = shouldShowConfirm;
-            const p2 = formatPhone(phone2Input ? phone2Input.value : '');
-            if (phone2Input && phone2Input.value !== p2.formatted) phone2Input.value = p2.formatted;
-            if(shouldShowConfirm && phone2Input){
-                if(p2.digits.length === 0){
-                    phone2Input.setCustomValidity('Please re-enter your phone number.');
-                } else if(p2.digits !== p1.digits){
-                    phone2Input.setCustomValidity('Phone numbers do not match.');
+            if (emailInput) emailInput.required = shouldShowConfirm;
+            
+            // Validate email
+            if(shouldShowConfirm && emailInput){
+                const emailValue = emailInput.value.trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if(emailValue.length === 0){
+                    emailInput.setCustomValidity('Please enter your email address.');
+                } else if(!emailRegex.test(emailValue)){
+                    emailInput.setCustomValidity('Please enter a valid email address.');
                 } else {
-                    phone2Input.setCustomValidity('');
+                    emailInput.setCustomValidity('');
                 }
-            } else if (phone2Input) {
-                phone2Input.value = '';
-                phone2Input.setCustomValidity('');
+            } else if (emailInput) {
+                emailInput.value = '';
+                emailInput.setCustomValidity('');
             }
 
             const phoneValid = p1.digits.length === 10 && validation.valid;
-            const phone2Valid = !shouldShowConfirm || (p2.digits.length === 10 && p2.digits === p1.digits);
-            const buttonShouldEnable = phoneValid && phone2Valid;
+            const emailValid = !shouldShowConfirm || (emailInput && emailInput.value.trim().length > 0 && emailInput.validity.valid);
+            const buttonShouldEnable = phoneValid && emailValid;
             
             if (phoneSubmitBtn) {
                 phoneSubmitBtn.disabled = !buttonShouldEnable;
@@ -2034,16 +2131,16 @@
 
         function setupPhoneValidation() {
             const phoneInput = document.getElementById('phone');
-            const phone2Input = document.getElementById('phone2');
+            const emailInput = document.getElementById('email');
             
             if (phoneInput) {
                 phoneInput.addEventListener('input', validatePhones);
                 phoneInput.addEventListener('blur', validatePhones);
             }
             
-            if (phone2Input) {
-                phone2Input.addEventListener('input', validatePhones);
-                phone2Input.addEventListener('blur', validatePhones);
+            if (emailInput) {
+                emailInput.addEventListener('input', validatePhones);
+                emailInput.addEventListener('blur', validatePhones);
             }
         }
 
@@ -2329,7 +2426,7 @@
             });
         }
         
-        function selectCalendarTime(slot) {
+        async function selectCalendarTime(slot) {
             selectedTime = slot;
             
             const formatted = formatDate(selectedDate);
@@ -2341,6 +2438,9 @@
                 appointment_datetime: slot.isoString,
                 appointment_full_text: `${formatted.fullDate} at ${slot.display}`
             };
+            
+            // Save to Supabase with appointment data
+            await saveLeadToSupabase(appointmentData, 'calendar_booking');
             
             // Send webhook with appointment data
             if (CALENDAR_WEBHOOK_URL !== 'YOUR_CALENDAR_WEBHOOK_URL_HERE') {
@@ -2467,12 +2567,16 @@
             return phoneNumber;
         }
 
-        function submitFinalForm() {
+        async function submitFinalForm() {
             eventId = generateEventId();
+            
+            const emailInput = document.getElementById('email');
+            const emailValue = emailInput ? emailInput.value.trim() : '';
             
             const finalData = {
                 ...formData,
-                phone: document.getElementById('phone_digits').value
+                phone: document.getElementById('phone_digits').value,
+                email: emailValue
             };
             
             if (typeof fbq !== 'undefined') {
@@ -2495,6 +2599,8 @@
 Name: ${finalData.firstName} ${finalData.lastName}
 
 Phone: ${formatPhoneForDisplay(finalData.phone)}
+
+${emailValue ? `Email: ${emailValue}` : ''}
 
 Homeowner: ${finalData.homeowner === 'yes' ? 'Yes' : 'No'}
 
@@ -2521,7 +2627,7 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
     timeZone: 'America/New_York'
 })} EST`.trim();
 
-            const fullSummaryHTML = `Floor Coating Lead Information:<BR><BR>Name: ${finalData.firstName} ${finalData.lastName}<BR>Phone: ${formatPhoneForDisplay(finalData.phone)}<BR><BR>Homeowner: ${finalData.homeowner === 'yes' ? 'Yes' : 'No'}<BR>Floor Location: ${getFloorLocationDisplay(finalData.floorLocation)}<BR>Project Timeline: ${getProjectTimelineDisplay(finalData.projectTimeline)}<BR>Main Goal: ${getMainGoalDisplay(finalData.mainGoal)}<BR><BR>Address:<BR>${finalData.address.street}<BR>${finalData.address.city}, ${finalData.address.state} ${finalData.address.zip}<BR><BR>Lead generated on: ${new Date().toLocaleDateString('en-US', { 
+            const fullSummaryHTML = `Floor Coating Lead Information:<BR><BR>Name: ${finalData.firstName} ${finalData.lastName}<BR>Phone: ${formatPhoneForDisplay(finalData.phone)}${emailValue ? `<BR>Email: ${emailValue}` : ''}<BR><BR>Homeowner: ${finalData.homeowner === 'yes' ? 'Yes' : 'No'}<BR>Floor Location: ${getFloorLocationDisplay(finalData.floorLocation)}<BR>Project Timeline: ${getProjectTimelineDisplay(finalData.projectTimeline)}<BR>Main Goal: ${getMainGoalDisplay(finalData.mainGoal)}<BR><BR>Address:<BR>${finalData.address.street}<BR>${finalData.address.city}, ${finalData.address.state} ${finalData.address.zip}<BR><BR>Lead generated on: ${new Date().toLocaleDateString('en-US', { 
     weekday: 'long', 
     year: 'numeric', 
     month: 'long', 
@@ -2542,6 +2648,7 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                 state: finalData.address.state,
                 zip: finalData.address.zip,
                 phone: finalData.phone,
+                email: emailValue,
                 first_name: finalData.firstName,
                 last_name: finalData.lastName,
                 full_name: `${finalData.firstName} ${finalData.lastName}`,
@@ -2553,6 +2660,9 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                 adATID: new URLSearchParams(window.location.search).get('adATID'),
                 event_id: eventId
             };
+            
+            // Save to Supabase
+            await saveLeadToSupabase(finalData, 'landing_page_main');
             
             if (WEBHOOK_URL !== 'YOUR_WEBHOOK_URL_HERE') {
                 fetch(WEBHOOK_URL, {
@@ -2727,20 +2837,20 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
 
         function setupPhoneValidationBottom() {
             const phoneInput = document.getElementById('phoneBottom');
-            const phone2Input = document.getElementById('phone2Bottom');
+            const emailInput = document.getElementById('emailBottom');
             if (phoneInput) {
                 phoneInput.addEventListener('input', validatePhonesBottom);
                 phoneInput.addEventListener('blur', validatePhonesBottom);
             }
-            if (phone2Input) {
-                phone2Input.addEventListener('input', validatePhonesBottom);
-                phone2Input.addEventListener('blur', validatePhonesBottom);
+            if (emailInput) {
+                emailInput.addEventListener('input', validatePhonesBottom);
+                emailInput.addEventListener('blur', validatePhonesBottom);
             }
         }
 
         function validatePhonesBottom() {
             const phoneInput = document.getElementById('phoneBottom');
-            const phone2Input = document.getElementById('phone2Bottom');
+            const emailInput = document.getElementById('emailBottom');
             const phoneConfirmWrap = document.getElementById('phoneConfirmWrapBottom');
             const phoneDigits = document.getElementById('phone_digitsBottom');
             const phoneSubmitBtn = document.getElementById('phoneSubmitBtnBottom');
@@ -2780,37 +2890,42 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             
             const shouldShowConfirm = p1.digits.length === 10 && validation.valid;
             phoneConfirmWrap.style.display = shouldShowConfirm ? '' : 'none';
-            if (phone2Input) phone2Input.required = shouldShowConfirm;
+            if (emailInput) emailInput.required = shouldShowConfirm;
             
-            const p2 = formatPhone(phone2Input ? phone2Input.value : '');
-            if (phone2Input && phone2Input.value !== p2.formatted) phone2Input.value = p2.formatted;
-            
-            if(shouldShowConfirm && phone2Input){
-                if(p2.digits.length === 0){
-                    phone2Input.setCustomValidity('Please re-enter your phone number.');
-                } else if(p2.digits !== p1.digits){
-                    phone2Input.setCustomValidity('Phone numbers do not match.');
+            // Validate email
+            if(shouldShowConfirm && emailInput){
+                const emailValue = emailInput.value.trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if(emailValue.length === 0){
+                    emailInput.setCustomValidity('Please enter your email address.');
+                } else if(!emailRegex.test(emailValue)){
+                    emailInput.setCustomValidity('Please enter a valid email address.');
                 } else {
-                    phone2Input.setCustomValidity('');
+                    emailInput.setCustomValidity('');
                 }
-            } else if (phone2Input) {
-                phone2Input.value = '';
-                phone2Input.setCustomValidity('');
+            } else if (emailInput) {
+                emailInput.value = '';
+                emailInput.setCustomValidity('');
             }
             
             const phoneValid = p1.digits.length === 10 && validation.valid;
-            const phone2Valid = !shouldShowConfirm || (p2.digits.length === 10 && p2.digits === p1.digits);
-            const buttonShouldEnable = phoneValid && phone2Valid;
+            const emailValid = !shouldShowConfirm || (emailInput && emailInput.value.trim().length > 0 && emailInput.validity.valid);
+            const buttonShouldEnable = phoneValid && emailValid;
             if (phoneSubmitBtn) {
                 phoneSubmitBtn.disabled = !buttonShouldEnable;
             }
         }
 
-        function submitFinalFormBottom() {
+        async function submitFinalFormBottom() {
             eventIdBottom = generateEventId();
+            
+            const emailInput = document.getElementById('emailBottom');
+            const emailValue = emailInput ? emailInput.value.trim() : '';
+            
             const finalData = {
                 ...formDataBottom,
-                phone: document.getElementById('phone_digitsBottom').value
+                phone: document.getElementById('phone_digitsBottom').value,
+                email: emailValue
             };
             
             if (typeof fbq !== 'undefined') {
@@ -2828,9 +2943,9 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                 });
             }
             
-            const fullSummary = `Floor Coating Lead Information: Name: ${finalData.firstName} ${finalData.lastName} Phone: ${formatPhoneForDisplay(finalData.phone)} Homeowner: ${finalData.homeowner === 'yes' ? 'Yes' : 'No'} Floor Location: ${getFloorLocationDisplay(finalData.floorLocation)} Project Timeline: ${getProjectTimelineDisplay(finalData.projectTimeline)} Main Goal: ${getMainGoalDisplay(finalData.mainGoal)} Address: ${finalData.address.street} ${finalData.address.city}, ${finalData.address.state} ${finalData.address.zip} Lead generated on: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York' })} EST`.trim();
+            const fullSummary = `Floor Coating Lead Information: Name: ${finalData.firstName} ${finalData.lastName} Phone: ${formatPhoneForDisplay(finalData.phone)}${emailValue ? ` Email: ${emailValue}` : ''} Homeowner: ${finalData.homeowner === 'yes' ? 'Yes' : 'No'} Floor Location: ${getFloorLocationDisplay(finalData.floorLocation)} Project Timeline: ${getProjectTimelineDisplay(finalData.projectTimeline)} Main Goal: ${getMainGoalDisplay(finalData.mainGoal)} Address: ${finalData.address.street} ${finalData.address.city}, ${finalData.address.state} ${finalData.address.zip} Lead generated on: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York' })} EST`.trim();
             
-            const fullSummaryHTML = `Floor Coating Lead Information:<BR><BR>Name: ${finalData.firstName} ${finalData.lastName}<BR>Phone: ${formatPhoneForDisplay(finalData.phone)}<BR><BR>Homeowner: ${finalData.homeowner === 'yes' ? 'Yes' : 'No'}<BR>Floor Location: ${getFloorLocationDisplay(finalData.floorLocation)}<BR>Project Timeline: ${getProjectTimelineDisplay(finalData.projectTimeline)}<BR>Main Goal: ${getMainGoalDisplay(finalData.mainGoal)}<BR><BR>Address:<BR>${finalData.address.street}<BR>${finalData.address.city}, ${finalData.address.state} ${finalData.address.zip}<BR><BR>Lead generated on: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York' })} EST`;
+            const fullSummaryHTML = `Floor Coating Lead Information:<BR><BR>Name: ${finalData.firstName} ${finalData.lastName}<BR>Phone: ${formatPhoneForDisplay(finalData.phone)}${emailValue ? `<BR>Email: ${emailValue}` : ''}<BR><BR>Homeowner: ${finalData.homeowner === 'yes' ? 'Yes' : 'No'}<BR>Floor Location: ${getFloorLocationDisplay(finalData.floorLocation)}<BR>Project Timeline: ${getProjectTimelineDisplay(finalData.projectTimeline)}<BR>Main Goal: ${getMainGoalDisplay(finalData.mainGoal)}<BR><BR>Address:<BR>${finalData.address.street}<BR>${finalData.address.city}, ${finalData.address.state} ${finalData.address.zip}<BR><BR>Lead generated on: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York' })} EST`;
             
             const webhookData = {
                 homeowner: finalData.homeowner,
@@ -2842,6 +2957,7 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                 state: finalData.address.state,
                 zip: finalData.address.zip,
                 phone: finalData.phone,
+                email: emailValue,
                 first_name: finalData.firstName,
                 last_name: finalData.lastName,
                 full_name: `${finalData.firstName} ${finalData.lastName}`,
@@ -2853,6 +2969,9 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                 adATID: new URLSearchParams(window.location.search).get('adATID'),
                 event_id: eventIdBottom
             };
+            
+            // Save to Supabase
+            await saveLeadToSupabase(finalData, 'landing_page_bottom');
             
             if (WEBHOOK_URL !== 'YOUR_WEBHOOK_URL_HERE') {
                 fetch(WEBHOOK_URL, {
@@ -3078,7 +3197,7 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             });
         }
 
-        function selectCalendarTimeBottom(slot) {
+        async function selectCalendarTimeBottom(slot) {
             selectedTimeBottom = slot;
             const formatted = formatDate(selectedDateBottom);
             const appointmentData = {
@@ -3089,6 +3208,10 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                 appointment_datetime: slot.isoString,
                 appointment_full_text: `${formatted.fullDate} at ${slot.display}`
             };
+            
+            // Save to Supabase with appointment data
+            await saveLeadToSupabase(appointmentData, 'calendar_booking_bottom');
+            
             if (CALENDAR_WEBHOOK_URL !== 'YOUR_CALENDAR_WEBHOOK_URL_HERE') {
                 fetch(CALENDAR_WEBHOOK_URL, {
                     method: 'POST',
@@ -4100,7 +4223,7 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
             }
         }
 
-        function submitFinalForm2() {
+        async function submitFinalForm2() {
             const finalData = {
                 ...formData2,
                 phone: document.getElementById('phone_digits2').value
@@ -4123,6 +4246,10 @@ Lead generated on: ${new Date().toLocaleDateString('en-US', {
                 timestamp: new Date().toISOString(),
                 form_type: 'floor_coating_qualification_duplicate'
             };
+            
+            // Save to Supabase
+            await saveLeadToSupabase(finalData, 'landing_page_duplicate');
+            
             if (WEBHOOK_URL !== 'YOUR_WEBHOOK_URL_HERE') {
                 fetch(WEBHOOK_URL, {
                     method: 'POST',

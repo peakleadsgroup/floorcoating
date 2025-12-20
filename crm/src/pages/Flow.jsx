@@ -74,17 +74,10 @@ export default function Flow() {
   }
 
   const groupedSteps = useMemo(() => {
-    // If editing, show editing step at top, then sorted rest
     const sorted = sortSteps(steps)
     const groups = {}
-    const editingStepObj = editingStep ? steps.find(s => s.id === editingStep) : null
     
-    // If editing, separate the editing step
-    const stepsToGroup = editingStepObj 
-      ? sorted.filter(s => s.id !== editingStep) 
-      : sorted
-    
-    stepsToGroup.forEach(step => {
+    sorted.forEach(step => {
       const day = step.timeType === 'immediately' ? 0 : step.day
       if (!groups[day]) {
         groups[day] = []
@@ -92,8 +85,10 @@ export default function Flow() {
       groups[day].push(step)
     })
     
-    return { groups, editingStep: editingStepObj }
-  }, [steps, editingStep])
+    return groups
+  }, [steps])
+
+  const editingStepObj = editingStep ? steps.find(s => s.id === editingStep) : null
 
   function updateStep(stepId, updates) {
     const updatedSteps = steps.map(step => 
@@ -146,121 +141,142 @@ export default function Flow() {
         </div>
       </div>
 
-      {/* Show editing step at top if editing */}
-      {groupedSteps.editingStep && (
-        <div className="flow-steps editing-step-top">
-          <div className="flow-step editing">
-            <div className="step-header">
-              <div className="step-type-badge">
-                {groupedSteps.editingStep.type === 'email' ? '📧 Email' : '💬 Text'}
-              </div>
-              <div className="step-actions">
-                <button 
-                  className="btn-icon btn-danger" 
-                  onClick={() => {
-                    deleteStep(groupedSteps.editingStep.id)
-                    setEditingStep(null)
-                  }}
-                  title="Delete"
-                >
-                  ×
-                </button>
+      {/* Modal for editing/adding steps */}
+      {editingStepObj && (
+        <div className="modal-overlay" onClick={() => setEditingStep(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{editingStepObj.id ? 'Edit Step' : 'Add New Step'}</h2>
+              <button 
+                className="btn-icon btn-close" 
+                onClick={() => setEditingStep(null)}
+                title="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="step-editor">
+                <div className="step-type-indicator">
+                  <div className="step-type-badge">
+                    {editingStepObj.type === 'email' ? '📧 Email' : '💬 Text'}
+                  </div>
+                </div>
+
+                {editingStepObj.type === 'email' && (
+                  <div className="form-group">
+                    <label>Email Subject</label>
+                    <input
+                      type="text"
+                      value={editingStepObj.subject || ''}
+                      onChange={(e) => updateStep(editingStepObj.id, { subject: e.target.value })}
+                      placeholder="Subject line"
+                    />
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label>Message Content</label>
+                  <textarea
+                    value={editingStepObj.content}
+                    onChange={(e) => updateStep(editingStepObj.id, { content: e.target.value })}
+                    placeholder={editingStepObj.type === 'email' ? 'Email body...' : 'Text message...'}
+                    rows={10}
+                  />
+                  <small className="form-hint">
+                    You can use variables: {'{FIRST NAME}'}, {'{LAST NAME}'}, {'{PHONE NUMBER}'}, {'{EMAIL}'}, {'{FLOOR TYPE}'}, {'{CALENDAR LINK}'}
+                  </small>
+                </div>
+
+                <div className="form-group">
+                  <label>Send Timing</label>
+                  <div className="timing-controls">
+                    <div className="timing-option">
+                      <label className="radio-label">
+                        <input
+                          type="radio"
+                          name={`timing-${editingStepObj.id}`}
+                          checked={editingStepObj.timeType === 'immediately'}
+                          onChange={() => updateStep(editingStepObj.id, { timeType: 'immediately' })}
+                        />
+                        <span>Immediately</span>
+                      </label>
+                    </div>
+                    <div className="timing-option">
+                      <label className="radio-label">
+                        <input
+                          type="radio"
+                          name={`timing-${editingStepObj.id}`}
+                          checked={editingStepObj.timeType === 'specific'}
+                          onChange={() => updateStep(editingStepObj.id, { timeType: 'specific' })}
+                        />
+                        <span>Day</span>
+                      </label>
+                      {editingStepObj.timeType === 'specific' && (
+                        <div className="specific-timing">
+                          <span className="timing-text">Day</span>
+                          <input
+                            type="number"
+                            value={editingStepObj.day}
+                            onChange={(e) => updateStep(editingStepObj.id, { day: parseInt(e.target.value) || 0 })}
+                            min="0"
+                            className="day-input"
+                          />
+                          <span className="timing-text">at</span>
+                          <input
+                            type="text"
+                            value={editingStepObj.time}
+                            onChange={(e) => updateStep(editingStepObj.id, { time: e.target.value })}
+                            placeholder="9:00 AM"
+                            className="time-input"
+                          />
+                          <span className="timing-hint">after lead is created</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="step-editor">
-              {groupedSteps.editingStep.type === 'email' && (
-                <div className="form-group">
-                  <label>Email Subject</label>
-                  <input
-                    type="text"
-                    value={groupedSteps.editingStep.subject || ''}
-                    onChange={(e) => updateStep(groupedSteps.editingStep.id, { subject: e.target.value })}
-                    placeholder="Subject line"
-                  />
-                </div>
+            <div className="modal-footer">
+              {editingStepObj.id && (
+                <button 
+                  className="btn-danger btn-footer" 
+                  onClick={() => {
+                    deleteStep(editingStepObj.id)
+                    setEditingStep(null)
+                  }}
+                >
+                  Delete Step
+                </button>
               )}
-
-              <div className="form-group">
-                <label>Message Content</label>
-                <textarea
-                  value={groupedSteps.editingStep.content}
-                  onChange={(e) => updateStep(groupedSteps.editingStep.id, { content: e.target.value })}
-                  placeholder={groupedSteps.editingStep.type === 'email' ? 'Email body...' : 'Text message...'}
-                  rows={8}
-                />
-                <small className="form-hint">
-                  You can use variables: {'{FIRST NAME}'}, {'{LAST NAME}'}, {'{PHONE NUMBER}'}, {'{EMAIL}'}, {'{FLOOR TYPE}'}, {'{CALENDAR LINK}'}
-                </small>
+              <div className="modal-footer-right">
+                <button 
+                  className="btn-secondary" 
+                  onClick={() => setEditingStep(null)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="btn-primary" 
+                  onClick={() => setEditingStep(null)}
+                >
+                  Save
+                </button>
               </div>
-
-              <div className="form-group">
-                <label>Send Timing</label>
-                <div className="timing-controls">
-                  <div className="timing-option">
-                    <label className="radio-label">
-                      <input
-                        type="radio"
-                        name={`timing-${groupedSteps.editingStep.id}`}
-                        checked={groupedSteps.editingStep.timeType === 'immediately'}
-                        onChange={() => updateStep(groupedSteps.editingStep.id, { timeType: 'immediately' })}
-                      />
-                      <span>Immediately</span>
-                    </label>
-                  </div>
-                  <div className="timing-option">
-                    <label className="radio-label">
-                      <input
-                        type="radio"
-                        name={`timing-${groupedSteps.editingStep.id}`}
-                        checked={groupedSteps.editingStep.timeType === 'specific'}
-                        onChange={() => updateStep(groupedSteps.editingStep.id, { timeType: 'specific' })}
-                      />
-                      <span>Day</span>
-                    </label>
-                    {groupedSteps.editingStep.timeType === 'specific' && (
-                      <div className="specific-timing">
-                        <span className="timing-text">Day</span>
-                        <input
-                          type="number"
-                          value={groupedSteps.editingStep.day}
-                          onChange={(e) => updateStep(groupedSteps.editingStep.id, { day: parseInt(e.target.value) || 0 })}
-                          min="0"
-                          className="day-input"
-                        />
-                        <span className="timing-text">at</span>
-                        <input
-                          type="text"
-                          value={groupedSteps.editingStep.time}
-                          onChange={(e) => updateStep(groupedSteps.editingStep.id, { time: e.target.value })}
-                          placeholder="9:00 AM"
-                          className="time-input"
-                        />
-                        <span className="timing-hint">after lead is created</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <button 
-                className="btn-secondary" 
-                onClick={() => setEditingStep(null)}
-              >
-                Done Editing
-              </button>
             </div>
           </div>
         </div>
       )}
 
-      {steps.length === 0 && !groupedSteps.editingStep ? (
+      {steps.length === 0 ? (
         <div className="empty-state">
           <p>No steps yet. Click "Add Step" above to add email or text steps to your flow.</p>
         </div>
-      ) : steps.length > 0 || groupedSteps.editingStep ? (
+      ) : (
         <div className="flow-steps">
-          {Object.keys(groupedSteps.groups).sort((a, b) => parseInt(a) - parseInt(b)).map(day => {
-            const daySteps = groupedSteps.groups[day]
+          {Object.keys(groupedSteps).sort((a, b) => parseInt(a) - parseInt(b)).map(day => {
+            const daySteps = groupedSteps[day]
             const dayLabel = day === '0' ? 'Day 0 (Immediately/Same Day)' : `Day ${day}`
             
             return (

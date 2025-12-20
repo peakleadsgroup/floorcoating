@@ -61,9 +61,26 @@ When a new lead is created:
 ### 4. Automatic Sending
 You'll need to create an Edge Function or scheduled job that:
 - Queries `message_logs` for `status = 'pending'` and `scheduled_for <= NOW()`
-- Sends the message via Twilio (text) or email service
-- Updates `message_logs` with `status = 'sent'` and `sent_at` timestamp
-- Handles errors by updating `status = 'failed'` and `error_message`
+- For emails: Send webhook to Make.com (see webhook details below)
+- For texts: Send via Twilio or your text service
+- Update `message_logs` with `status = 'sent'` and `sent_at` timestamp
+- Handle errors by updating `status = 'failed'` and `error_message`
+
+#### Email Webhook Integration
+When sending emails (manual or automatic), send a webhook to Make.com:
+- **URL:** `https://hook.us2.make.com/nb1oe4o6wv3pzt8k2ly568hc2a4d3rkq`
+- **Method:** POST
+- **Body (JSON):**
+  ```json
+  {
+    "email": "recipient@example.com",
+    "subject": "Email Subject",
+    "body": "<p>Email body in HTML format</p>"
+  }
+  ```
+- The webhook utility function is in `crm/src/lib/webhooks.js`
+- Manual emails already send the webhook from the Leads page
+- For automatic emails, call `sendEmailWebhook()` in your Edge Function or scheduled job
 
 ## Next Steps
 

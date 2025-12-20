@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { sendEmailWebhook } from '../lib/webhooks'
 import './Leads.css'
 
 // Function to convert URLs to clickable links and render HTML for emails
@@ -165,19 +166,46 @@ export default function Leads() {
     }
 
     try {
-      const { error } = await supabase
+      const messageData = {
+        lead_id: selectedLead.id,
+        flow_step_id: null, // Manual message, not from flow
+        message_type: newMessage.message_type,
+        subject: newMessage.message_type === 'email' ? newMessage.subject : null,
+        content: newMessage.content.trim(),
+        status: 'pending', // Will be sent by the sending system
+        scheduled_for: new Date().toISOString(), // Send immediately
+      }
+
+      const { data: insertedData, error } = await supabase
         .from('message_logs')
-        .insert([{
-          lead_id: selectedLead.id,
-          flow_step_id: null, // Manual message, not from flow
-          message_type: newMessage.message_type,
-          subject: newMessage.message_type === 'email' ? newMessage.subject : null,
-          content: newMessage.content.trim(),
-          status: 'pending', // Will be sent by the sending system
-          scheduled_for: new Date().toISOString(), // Send immediately
-        }])
+        .insert([messageData])
+        .select()
+        .single()
 
       if (error) throw error
+
+      // If it's an email, send webhook to Make.com
+      if (newMessage.message_type === 'email' && selectedLead.email) {
+        // Convert content to HTML format (preserve line breaks)
+        const htmlBody = newMessage.content.trim().replace(/\n/g, '<br />')
+        
+        await sendEmailWebhook({
+          email: selectedLead.email,
+          subject: newMessage.subject.trim(),
+          body: htmlBody,
+        })
+
+        // Update message status to 'sent' after webhook is sent
+        if (insertedData) {
+          await supabase
+            .from('message_logs')
+            .update({ 
+              status: 'sent',
+              sent_at: new Date().toISOString()
+            })
+            .eq('id', insertedData.id)
+        }
+      }
 
       setNewMessage({ message_type: 'text', subject: '', content: '' })
       await fetchMessages(selectedLead.id)

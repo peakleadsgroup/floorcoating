@@ -16,10 +16,11 @@ export default {
 
     try {
       // Get Twilio credentials from environment variables
-      const accountSid = env.TWILIO_ACCOUNT_SID
-      const apiKeySid = env.TWILIO_API_KEY_SID
-      const apiKeySecret = env.TWILIO_API_KEY_SECRET
-      const twimlAppSid = env.TWILIO_TWIML_APP_SID
+      // Trim all values to remove any accidental whitespace/newlines
+      const accountSid = (env.TWILIO_ACCOUNT_SID || '').trim()
+      const apiKeySid = (env.TWILIO_API_KEY_SID || '').trim()
+      const apiKeySecret = (env.TWILIO_API_KEY_SECRET || '').trim()
+      const twimlAppSid = (env.TWILIO_TWIML_APP_SID || '').trim()
 
       if (!accountSid || !apiKeySid || !apiKeySecret || !twimlAppSid) {
         return new Response(
@@ -38,6 +39,14 @@ export default {
       if (apiKeySecret.length < 20) {
         console.warn('API Key Secret seems too short:', apiKeySecret.length)
       }
+      
+      // Log first/last few chars of secret for debugging (without exposing full secret)
+      console.log('Secret info:', {
+        length: apiKeySecret.length,
+        firstChar: apiKeySecret.charAt(0),
+        lastChar: apiKeySecret.charAt(apiKeySecret.length - 1),
+        hasWhitespace: /\s/.test(apiKeySecret)
+      })
 
       // Generate JWT token
       const now = Math.floor(Date.now() / 1000)
@@ -47,6 +56,7 @@ export default {
         typ: 'JWT'
       }
 
+      // Build payload - ensure JSON is compact (no spaces) for consistent encoding
       const payload = {
         jti: `${apiKeySid}-${now}`,
         iss: apiKeySid,
@@ -62,31 +72,46 @@ export default {
           }
         }
       }
+      
+      // Use JSON.stringify with no spaces to ensure consistent encoding
+      const payloadJson = JSON.stringify(payload)
 
       // Base64URL encode function (proper implementation)
+      // This ensures proper UTF-8 to base64url conversion
       const base64urlEncode = (str) => {
+        // Use TextEncoder to get UTF-8 bytes
         const utf8Bytes = new TextEncoder().encode(str)
-        // Convert to base64
-        let binary = ''
+        
+        // Convert Uint8Array to base64 using btoa with proper binary string conversion
+        let binaryString = ''
         for (let i = 0; i < utf8Bytes.length; i++) {
-          binary += String.fromCharCode(utf8Bytes[i])
+          binaryString += String.fromCharCode(utf8Bytes[i])
         }
-        const base64 = btoa(binary)
-        // Convert to base64url (replace + with -, / with _, remove padding)
+        
+        // Convert to base64
+        const base64 = btoa(binaryString)
+        
+        // Convert to base64url: replace + with -, / with _, and remove padding =
         return base64
           .replace(/\+/g, '-')
           .replace(/\//g, '_')
           .replace(/=/g, '')
       }
 
-      // Base64URL encode for ArrayBuffer/Uint8Array
+      // Base64URL encode for ArrayBuffer/Uint8Array (signature)
       const base64urlEncodeBytes = (bytes) => {
         const uint8Array = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)
-        let binary = ''
+        
+        // Convert to binary string
+        let binaryString = ''
         for (let i = 0; i < uint8Array.length; i++) {
-          binary += String.fromCharCode(uint8Array[i])
+          binaryString += String.fromCharCode(uint8Array[i])
         }
-        const base64 = btoa(binary)
+        
+        // Convert to base64
+        const base64 = btoa(binaryString)
+        
+        // Convert to base64url: replace + with -, / with _, and remove padding =
         return base64
           .replace(/\+/g, '-')
           .replace(/\//g, '_')
@@ -94,8 +119,10 @@ export default {
       }
 
       // Encode header and payload
-      const encodedHeader = base64urlEncode(JSON.stringify(header))
-      const encodedPayload = base64urlEncode(JSON.stringify(payload))
+      // Use compact JSON (no spaces) for consistent encoding
+      const headerJson = JSON.stringify(header)
+      const encodedHeader = base64urlEncode(headerJson)
+      const encodedPayload = base64urlEncode(payloadJson)
       const message = `${encodedHeader}.${encodedPayload}`
 
       // Sign with HMAC-SHA256

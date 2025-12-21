@@ -34,6 +34,11 @@ export default {
         )
       }
 
+      // Verify secret format (for debugging - check if it looks correct)
+      if (apiKeySecret.length < 20) {
+        console.warn('API Key Secret seems too short:', apiKeySecret.length)
+      }
+
       // Generate JWT token
       const now = Math.floor(Date.now() / 1000)
       
@@ -110,6 +115,18 @@ export default {
 
       // Construct final JWT token
       const token = `${encodedHeader}.${encodedPayload}.${encodedSignature}`
+
+      // Debug logging (remove in production)
+      console.log('Generated JWT token:', {
+        headerLength: encodedHeader.length,
+        payloadLength: encodedPayload.length,
+        signatureLength: encodedSignature.length,
+        tokenLength: token.length,
+        accountSidPrefix: accountSid.substring(0, 2),
+        apiKeySidPrefix: apiKeySid.substring(0, 2),
+        twimlAppSidPrefix: twimlAppSid.substring(0, 2),
+        apiKeySecretLength: apiKeySecret.length
+      })
 
       return new Response(
         JSON.stringify({ token }),

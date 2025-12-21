@@ -46,6 +46,26 @@ export function useTwilioVoice() {
           throw new Error('Token not found in response. Response: ' + JSON.stringify(tokenData))
         }
 
+        // Decode and log token payload for debugging
+        try {
+          const parts = tokenData.token.split('.')
+          if (parts.length === 3) {
+            const payloadBase64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+            const payloadJson = atob(payloadBase64)
+            const payload = JSON.parse(payloadJson)
+            console.log('Decoded token payload:', {
+              iss: payload.iss?.substring(0, 10) + '...',
+              sub: payload.sub?.substring(0, 10) + '...',
+              hasGrants: !!payload.grants,
+              hasVoice: !!payload.grants?.voice,
+              appSid: payload.grants?.voice?.outgoing?.application_sid?.substring(0, 10) + '...',
+              expiresIn: payload.exp ? Math.floor((payload.exp - Math.floor(Date.now() / 1000)) / 60) + ' minutes' : 'unknown'
+            })
+          }
+        } catch (e) {
+          console.warn('Could not decode token payload:', e)
+        }
+
         // Initialize Twilio Device
         const newDevice = new Device(tokenData.token, {
           logLevel: 1,

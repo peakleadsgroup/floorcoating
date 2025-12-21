@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twilio Call Tester - Proof of Concept</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .help-text {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .status.show {
+            display: block;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            border: 2px solid #17a2b8;
+            color: #0c5460;
+        }
+        
+        .call-controls {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .call-controls.show {
+            display: block;
+        }
+        
+        .call-status {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .log {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 4px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📞 Twilio Call Tester</h1>
+        <p class="subtitle">Enter your Twilio credentials and make a test call</p>
+        
+        <form id="callForm">
+            <div class="form-group">
+                <label for="accountSid">Account SID</label>
+                <input type="text" id="accountSid" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" required>
+                <div class="help-text">Should start with "AC"</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="apiKeySid">API Key SID</label>
+                <input type="text" id="apiKeySid" placeholder="SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" required>
+                <div class="help-text">Should start with "SK"</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="apiKeySecret">API Key Secret</label>
+                <input type="password" id="apiKeySecret" placeholder="Your API Key Secret" required>
+                <div class="help-text">The secret associated with your API Key</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="twimlAppSid">TwiML App SID</label>
+                <input type="text" id="twimlAppSid" placeholder="APxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" required>
+                <div class="help-text">Should start with "AP"</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="phoneNumber">Phone Number to Call</label>
+                <input type="tel" id="phoneNumber" placeholder="+19191234567" required>
+                <div class="help-text">Include country code (e.g., +1 for US)</div>
+            </div>
+            
+            <button type="submit" id="callBtn">Make Test Call</button>
+        </form>
+        
+        <div class="status" id="status"></div>
+        
+        <div class="call-controls" id="callControls">
+            <button id="hangupBtn">Hang Up</button>
+            <div class="call-status" id="callStatus">Initializing...</div>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <!-- Load Twilio Voice SDK -->
+    <script src="https://sdk.twilio.com/js/client/releases/2.0.0/twilio.min.js"></script>
+
+    <script>
+        let device = null;
+        let activeCall = null;
+        const logEl = document.getElementById('log');
+        
+        function log(message) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(message);
+        }
+        
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type} show`;
+        }
+        
+        function hideStatus() {
+            document.getElementById('status').classList.remove('show');
+        }
+        
+        // Base64URL encode functions (from working test page)
+        function base64urlEncode(str) {
+            const utf8Bytes = new TextEncoder().encode(str);
+            let binary = '';
+            for (let i = 0; i < utf8Bytes.length; i++) {
+                binary += String.fromCharCode(utf8Bytes[i]);
+            }
+            return btoa(binary)
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
+        }
+
+        function base64urlEncodeBytes(bytes) {
+            const uint8Array = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+            let binary = '';
+            for (let i = 0; i < uint8Array.length; i++) {
+                binary += String.fromCharCode(uint8Array[i]);
+            }
+            return btoa(binary)
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
+        }
+
+        async function generateJWT(accountSid, apiKeySid, apiKeySecret, twimlAppSid) {
+            const now = Math.floor(Date.now() / 1000);
+            
+            const header = {
+                alg: 'HS256',
+                typ: 'JWT'
+            };
+
+            const payload = {
+                jti: `${apiKeySid}-${now}`,
+                iss: apiKeySid,
+                sub: accountSid,
+                iat: now,
+                exp: now + 3600,
+                grants: {
+                    identity: 'browser-user',
+                    voice: {
+                        outgoing: {
+                            application_sid: twimlAppSid
+                        }
+                    }
+                }
+            };
+
+            const encodedHeader = base64urlEncode(JSON.stringify(header));
+            const encodedPayload = base64urlEncode(JSON.stringify(payload));
+            const message = `${encodedHeader}.${encodedPayload}`;
+
+            // Sign with HMAC-SHA256
+            const key = await crypto.subtle.importKey(
+                'raw',
+                new TextEncoder().encode(apiKeySecret),
+                { name: 'HMAC', hash: 'SHA-256' },
+                false,
+                ['sign']
+            );
+
+            const messageBytes = new TextEncoder().encode(message);
+            const signature = await crypto.subtle.sign('HMAC', key, messageBytes);
+            const signatureArray = new Uint8Array(signature);
+            const encodedSignature = base64urlEncodeBytes(signatureArray);
+
+            return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
+        }
+        
+        async function makeCall() {
+            const accountSid = document.getElementById('accountSid').value.trim();
+            const apiKeySid = document.getElementById('apiKeySid').value.trim();
+            const apiKeySecret = document.getElementById('apiKeySecret').value.trim();
+            const twimlAppSid = document.getElementById('twimlAppSid').value.trim();
+            const phoneNumber = document.getElementById('phoneNumber').value.trim();
+            
+            const callBtn = document.getElementById('callBtn');
+            const callControls = document.getElementById('callControls');
+            const callStatus = document.getElementById('callStatus');
+            
+            try {
+                callBtn.disabled = true;
+                hideStatus();
+                log('Starting call process...');
+                
+                // Step 1: Generate JWT token
+                log('Generating JWT token...');
+                const token = await generateJWT(accountSid, apiKeySid, apiKeySecret, twimlAppSid);
+                log('JWT token generated successfully');
+                
+                // Step 2: Initialize Twilio Device
+                log('Initializing Twilio Device...');
+                if (device) {
+                    device.destroy();
+                }
+                
+                device = new Twilio.Device(token, {
+                    logLevel: 1,
+                });
+                
+                // Set up device event listeners
+                device.on('registered', () => {
+                    log('✓ Device registered successfully');
+                    callStatus.textContent = 'Device registered - Ready to call';
+                });
+                
+                device.on('error', (error) => {
+                    log(`✗ Device error: ${error.message}`);
+                    showStatus(`Device Error: ${error.message}`, 'error');
+                    callBtn.disabled = false;
+                });
+                
+                device.on('incoming', (call) => {
+                    log('Incoming call received');
+                });
+                
+                // Register the device
+                device.register();
+                
+                // Wait a moment for device to register
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Step 3: Make the call
+                log(`Calling ${phoneNumber}...`);
+                callStatus.textContent = `Calling ${phoneNumber}...`;
+                
+                // Format phone number (ensure it starts with +)
+                let formattedNumber = phoneNumber;
+                if (!formattedNumber.startsWith('+')) {
+                    if (formattedNumber.length === 10) {
+                        formattedNumber = `+1${formattedNumber}`;
+                    } else {
+                        formattedNumber = `+${formattedNumber}`;
+                    }
+                }
+                
+                activeCall = await device.connect({
+                    params: {
+                        To: formattedNumber
+                    }
+                });
+                
+                log(`Call initiated to ${formattedNumber}`);
+                
+                // Set up call event listeners
+                activeCall.on('accept', () => {
+                    log('✓ Call accepted!');
+                    callStatus.textContent = `Connected to ${formattedNumber}`;
+                    showStatus('Call connected!', 'success');
+                });
+                
+                activeCall.on('disconnect', () => {
+                    log('Call disconnected');
+                    callStatus.textContent = 'Call ended';
+                    activeCall = null;
+                    callControls.classList.remove('show');
+                    callBtn.disabled = false;
+                });
+                
+                activeCall.on('cancel', () => {
+                    log('Call cancelled');
+                    callStatus.textContent = 'Call cancelled';
+                    activeCall = null;
+                    callControls.classList.remove('show');
+                    callBtn.disabled = false;
+                });
+                
+                activeCall.on('error', (error) => {
+                    log(`✗ Call error: ${error.message}`);
+                    showStatus(`Call Error: ${error.message}`, 'error');
+                    callStatus.textContent = `Error: ${error.message}`;
+                    activeCall = null;
+                    callControls.classList.remove('show');
+                    callBtn.disabled = false;
+                });
+                
+                // Show call controls
+                callControls.classList.add('show');
+                
+            } catch (error) {
+                log(`✗ Error: ${error.message}`);
+                showStatus(`Error: ${error.message}`, 'error');
+                callBtn.disabled = false;
+                if (device) {
+                    device.destroy();
+                    device = null;
+                }
+            }
+        }
+        
+        function hangup() {
+            if (activeCall) {
+                log('Hanging up call...');
+                activeCall.disconnect();
+                activeCall = null;
+            }
+            if (device) {
+                device.destroy();
+                device = null;
+            }
+            document.getElementById('callControls').classList.remove('show');
+            document.getElementById('callBtn').disabled = false;
+        }
+        
+        // Form submission
+        document.getElementById('callForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            makeCall();
+        });
+        
+        // Hangup button
+        document.getElementById('hangupBtn').addEventListener('click', hangup);
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (activeCall) {
+                activeCall.disconnect();
+            }
+            if (device) {
+                device.destroy();
+            }
+        });
+    </script>
+</body>
+</html>
+

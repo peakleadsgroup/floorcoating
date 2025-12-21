@@ -46,6 +46,7 @@ export default {
         jti: `${apiKeySid}-${now}`,
         iss: apiKeySid,
         sub: accountSid,
+        iat: now, // Issued at time (required by Twilio)
         exp: now + 3600, // 1 hour expiration
         grants: {
           identity: 'browser-user',
@@ -57,14 +58,17 @@ export default {
         }
       }
 
-      // Base64URL encode for strings
+      // Base64URL encode function (proper implementation)
       const base64urlEncode = (str) => {
         const utf8Bytes = new TextEncoder().encode(str)
+        // Convert to base64
         let binary = ''
         for (let i = 0; i < utf8Bytes.length; i++) {
           binary += String.fromCharCode(utf8Bytes[i])
         }
-        return btoa(binary)
+        const base64 = btoa(binary)
+        // Convert to base64url (replace + with -, / with _, remove padding)
+        return base64
           .replace(/\+/g, '-')
           .replace(/\//g, '_')
           .replace(/=/g, '')
@@ -72,17 +76,19 @@ export default {
 
       // Base64URL encode for ArrayBuffer/Uint8Array
       const base64urlEncodeBytes = (bytes) => {
+        const uint8Array = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)
         let binary = ''
-        const len = bytes.byteLength || bytes.length
-        for (let i = 0; i < len; i++) {
-          binary += String.fromCharCode(bytes[i])
+        for (let i = 0; i < uint8Array.length; i++) {
+          binary += String.fromCharCode(uint8Array[i])
         }
-        return btoa(binary)
+        const base64 = btoa(binary)
+        return base64
           .replace(/\+/g, '-')
           .replace(/\//g, '_')
           .replace(/=/g, '')
       }
 
+      // Encode header and payload
       const encodedHeader = base64urlEncode(JSON.stringify(header))
       const encodedPayload = base64urlEncode(JSON.stringify(payload))
       const message = `${encodedHeader}.${encodedPayload}`
@@ -96,10 +102,13 @@ export default {
         ['sign']
       )
 
-      const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message))
+      // Sign the message
+      const messageBytes = new TextEncoder().encode(message)
+      const signature = await crypto.subtle.sign('HMAC', key, messageBytes)
       const signatureArray = new Uint8Array(signature)
       const encodedSignature = base64urlEncodeBytes(signatureArray)
 
+      // Construct final JWT token
       const token = `${encodedHeader}.${encodedPayload}.${encodedSignature}`
 
       return new Response(
@@ -127,4 +136,3 @@ export default {
     }
   },
 }
-

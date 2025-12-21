@@ -16,28 +16,25 @@ export function useTwilioVoice() {
 
     const initDevice = async () => {
       try {
-        // Get access token from Edge Function using Supabase client
-        // Use POST with action='token' since supabase.functions.invoke handles auth automatically
-        const { data: tokenData, error: tokenError } = await supabase.functions.invoke('twilio-call', {
-          body: {
-            action: 'token'
-          }
+        // Use Cloudflare Worker for token generation (recommended)
+        const cloudflareWorkerUrl = 'https://twilio-token.peakleadsgroup.workers.dev'
+        
+        console.log('Fetching token from Cloudflare Worker:', cloudflareWorkerUrl)
+        const tokenResponse = await fetch(cloudflareWorkerUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
         })
         
-        console.log('Token request response:', { tokenData, tokenError })
-        
-        // Supabase functions.invoke puts errors in the error field
-        if (tokenError) {
-          console.error('Token error details:', tokenError)
-          // Error might be a Response object or error message
-          const errorMsg = tokenError.message || tokenError.error || JSON.stringify(tokenError)
-          throw new Error(`Failed to get token: ${errorMsg}`)
+        if (!tokenResponse.ok) {
+          const errorText = await tokenResponse.text()
+          console.error('Token fetch error:', { status: tokenResponse.status, error: errorText })
+          throw new Error(`Failed to get token: ${tokenResponse.status} - ${errorText}`)
         }
         
-        // Also check if data contains an error
-        if (!tokenData) {
-          throw new Error('No data received from token endpoint')
-        }
+        const tokenData = await tokenResponse.json()
+        console.log('Token response received:', { hasToken: !!tokenData.token, hasError: !!tokenData.error })
         
         if (tokenData.error) {
           console.error('Error in token data:', tokenData.error)
@@ -73,13 +70,6 @@ export function useTwilioVoice() {
         // Register the device
         newDevice.register()
         deviceRef.current = newDevice
-
-        return () => {
-          isMounted = false
-          if (deviceRef.current) {
-            deviceRef.current.destroy()
-          }
-        }
       } catch (err) {
         console.error('Error initializing Twilio device:', err)
         if (isMounted) {

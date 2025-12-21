@@ -1,0 +1,13 @@
+name = "twilio-token"
+main = "twilio-token.js"
+compatibility_date = "2024-01-01"
+
+# Secrets are set via CLI: wrangler secret put SECRET_NAME
+# Or via Cloudflare Dashboard: Workers & Pages -> twilio-token -> Settings -> Variables and Secrets
+#
+# Required secrets:
+# - TWILIO_ACCOUNT_SID
+# - TWILIO_API_KEY_SID  
+# - TWILIO_API_KEY_SECRET
+# - TWILIO_TWIML_APP_SID
+

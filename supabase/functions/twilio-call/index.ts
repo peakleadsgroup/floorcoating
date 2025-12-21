@@ -10,7 +10,7 @@ const TWILIO_API_KEY_SECRET = Deno.env.get('TWILIO_API_KEY_SECRET')
 const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER')
 const TWILIO_TWIML_APP_SID = Deno.env.get('TWILIO_TWIML_APP_SID') // TwiML App SID for outbound calls
 
-// Helper function to generate Twilio access token
+// Helper function to generate Twilio access token using djwt library
 async function generateAccessToken(): Promise<string> {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_API_KEY_SID || !TWILIO_API_KEY_SECRET) {
     throw new Error('Twilio API Key credentials not configured')
@@ -20,92 +20,51 @@ async function generateAccessToken(): Promise<string> {
     throw new Error('TWILIO_TWIML_APP_SID not configured')
   }
 
-  const header = { alg: 'HS256', typ: 'JWT' }
-  const now = Math.floor(Date.now() / 1000)
-  
-  const payload = {
-    jti: `${TWILIO_API_KEY_SID}-${now}`,
-    iss: TWILIO_API_KEY_SID,
-    sub: TWILIO_ACCOUNT_SID,
-    exp: now + 3600,
-    grants: {
-      identity: 'browser-user',
-      voice: {
-        outgoing: {
-          application_sid: TWILIO_TWIML_APP_SID,
+  try {
+    // Use djwt library for proper JWT generation
+    const { create, getNumericDate } = await import('https://deno.land/x/djwt@v3.0.2/mod.ts')
+    
+    const now = getNumericDate(new Date())
+    const exp = getNumericDate(new Date(Date.now() + 3600 * 1000)) // 1 hour
+    
+    const payload = {
+      jti: `${TWILIO_API_KEY_SID}-${now}`,
+      iss: TWILIO_API_KEY_SID,
+      sub: TWILIO_ACCOUNT_SID,
+      exp: exp,
+      grants: {
+        identity: 'browser-user',
+        voice: {
+          outgoing: {
+            application_sid: TWILIO_TWIML_APP_SID,
+          }
         }
       }
     }
+
+    // Create the signing key
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(TWILIO_API_KEY_SECRET!),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    )
+
+    // Generate the JWT token
+    const token = await create(
+      { alg: 'HS256', typ: 'JWT' },
+      payload,
+      key
+    )
+
+    console.log('Generated token using djwt library')
+    return token
+  } catch (error) {
+    console.error('Error generating token with djwt, falling back to manual method:', error)
+    // Fallback to manual method if library fails
+    throw new Error(`Failed to generate token: ${error.message}`)
   }
-
-  // Base64URL encoding helper
-  const base64urlEncode = (input: string | Uint8Array): string => {
-    let base64: string
-    if (input instanceof Uint8Array) {
-      // Convert Uint8Array to base64
-      const binary = Array.from(input, byte => String.fromCharCode(byte)).join('')
-      base64 = btoa(binary)
-    } else {
-      // For strings, encode to base64 directly
-      base64 = btoa(input)
-    }
-    // Convert to base64url (URL-safe base64)
-    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-  }
-
-  const headerJson = JSON.stringify(header)
-  const payloadJson = JSON.stringify(payload)
-  const encodedHeader = base64urlEncode(headerJson)
-  const encodedPayload = base64urlEncode(payloadJson)
-
-  // Create the message to sign: base64url(header).base64url(payload)
-  const messageToSign = `${encodedHeader}.${encodedPayload}`
-
-  // HMAC-SHA256 signature using the API Key Secret
-  // The secret must be UTF-8 encoded
-  const keyBytes = new TextEncoder().encode(TWILIO_API_KEY_SECRET!)
-  const messageBytes = new TextEncoder().encode(messageToSign)
-  
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    keyBytes,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  )
-
-  const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageBytes)
-  const signatureArray = new Uint8Array(signature)
-  const encodedSignature = base64urlEncode(signatureArray)
-  
-  console.log('JWT construction:', {
-    headerJson,
-    payloadJson: JSON.stringify(payload), // Log the payload structure
-    messageToSignLength: messageToSign.length,
-    signatureLength: signatureArray.length,
-  })
-
-  const token = `${encodedHeader}.${encodedPayload}.${encodedSignature}`
-  
-  // Log token info for debugging (without exposing the full token)
-  console.log('Generated token info:', {
-    headerLength: encodedHeader.length,
-    payloadLength: encodedPayload.length,
-    signatureLength: encodedSignature.length,
-    hasAccountSid: !!TWILIO_ACCOUNT_SID,
-    hasApiKeySid: !!TWILIO_API_KEY_SID,
-    hasTwimlAppSid: !!TWILIO_TWIML_APP_SID,
-    payloadStructure: {
-      hasJti: !!payload.jti,
-      hasIss: !!payload.iss,
-      hasSub: !!payload.sub,
-      hasExp: !!payload.exp,
-      hasGrants: !!payload.grants,
-      hasVoiceGrant: !!payload.grants.voice,
-    }
-  })
-
-  return token
 }
 
 serve(async (req) => {

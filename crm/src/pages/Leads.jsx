@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { sendEmailWebhook } from '../lib/webhooks'
-import { useTwilioVoice } from '../hooks/useTwilioVoice'
 import './Leads.css'
 
 // Function to convert URLs to clickable links and render HTML for emails
@@ -60,9 +59,6 @@ export default function Leads() {
   const [isSavingStage, setIsSavingStage] = useState(false)
   const [activeFilter, setActiveFilter] = useState('all')
   const messagesContainerRef = useRef(null)
-  
-  // Twilio Voice SDK hook for browser-based calling
-  const { makeCall, disconnectCall, call, isCalling, error: twilioError } = useTwilioVoice()
 
   useEffect(() => {
     fetchLeads()
@@ -483,45 +479,6 @@ export default function Leads() {
             <div className="message-modal-header">
               <h2>Messages - {selectedLead.first_name} {selectedLead.last_name}</h2>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                {activeFilter === 'follow_up' && (
-                  <>
-                    {!call ? (
-                      <button 
-                        className="btn-primary"
-                        disabled={isCalling}
-                        onClick={async () => {
-                          if (!selectedLead.phone) {
-                            alert('This lead has no phone number')
-                            return
-                          }
-
-                          if (twilioError) {
-                            alert(`Twilio Error: ${twilioError}\n\nPlease check browser console and refresh the page.`)
-                            return
-                          }
-
-                          try {
-                            await makeCall(selectedLead.phone)
-                          } catch (err) {
-                            console.error('Error making call:', err)
-                            alert(`Failed to make call: ${err.message || 'Unknown error'}`)
-                          }
-                        }}
-                        style={{ whiteSpace: 'nowrap', opacity: isCalling ? 0.6 : 1, cursor: isCalling ? 'not-allowed' : 'pointer' }}
-                      >
-                        {isCalling ? 'Calling...' : 'Start Dialing'}
-                      </button>
-                    ) : (
-                      <button 
-                        className="btn-primary"
-                        onClick={() => disconnectCall()}
-                        style={{ whiteSpace: 'nowrap', backgroundColor: '#dc3545' }}
-                      >
-                        End Call
-                      </button>
-                    )}
-                  </>
-                )}
                 <button 
                   className="btn-icon btn-close-modal" 
                   onClick={() => setSelectedLead(null)}

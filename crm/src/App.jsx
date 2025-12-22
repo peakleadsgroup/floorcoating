@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Leads from './pages/Leads'
 import Flow from './pages/Flow'
+import Call from './pages/Call'
 import './App.css'
 
 function App() {
@@ -22,11 +23,18 @@ function App() {
           >
             Flow
           </button>
+          <button 
+            className={`tab ${activeTab === 'call' ? 'active' : ''}`}
+            onClick={() => setActiveTab('call')}
+          >
+            Call
+          </button>
         </div>
 
         <div className="page-content-wrapper">
           {activeTab === 'leads' && <Leads />}
           {activeTab === 'flow' && <Flow />}
+          {activeTab === 'call' && <Call />}
         </div>
       </div>
     </div>

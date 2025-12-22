@@ -383,6 +383,25 @@
                 const token = await generateJWT(accountSid, apiKeySid, apiKeySecret, twimlAppSid);
                 log('JWT token generated successfully');
                 
+                // Decode and log token for debugging
+                try {
+                    const parts = token.split('.');
+                    if (parts.length === 3) {
+                        const payloadBase64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+                        const padding = payloadBase64.length % 4;
+                        const paddedPayload = padding ? payloadBase64 + '='.repeat(4 - padding) : payloadBase64;
+                        const payloadJson = atob(paddedPayload);
+                        const payload = JSON.parse(payloadJson);
+                        log('Token payload:');
+                        log(`  iss (API Key SID): ${payload.iss}`);
+                        log(`  sub (Account SID): ${payload.sub}`);
+                        log(`  app_sid: ${payload.grants?.voice?.outgoing?.application_sid}`);
+                        log(`  expires in: ${Math.floor((payload.exp - Math.floor(Date.now() / 1000)) / 60)} minutes`);
+                    }
+                } catch (e) {
+                    log('Could not decode token: ' + e.message);
+                }
+                
                 // Step 2: Initialize Twilio Device
                 log('Initializing Twilio Device...');
                 if (device) {
@@ -415,8 +434,20 @@
                 });
                 
                 device.on('error', (error) => {
-                    log(`✗ Device error: ${error.message}`);
-                    showStatus(`Device Error: ${error.message}`, 'error');
+                    const errorMsg = error.message || 'Unknown error';
+                    const errorCode = error.code || 'Unknown';
+                    log(`✗ Device error: ${errorMsg} (Code: ${errorCode})`);
+                    
+                    // Provide specific guidance based on error
+                    if (errorMsg.includes('invalid') || errorMsg.includes('Invalid') || errorCode === 31204 || errorCode === 20101) {
+                        log('⚠️ JWT Validation Failed - This usually means:');
+                        log('  1. API Key Secret is incorrect');
+                        log('  2. API Key SID doesn\'t match Account SID');
+                        log('  3. TwiML App SID is wrong');
+                        log('  Check the token payload above to verify the values match your Twilio Console');
+                    }
+                    
+                    showStatus(`Device Error: ${errorMsg}`, 'error');
                     callBtn.disabled = false;
                 });
                 

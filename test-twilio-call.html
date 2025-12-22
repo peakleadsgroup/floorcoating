@@ -191,6 +191,12 @@
             </div>
             
             <div class="form-group">
+                <label for="authToken">Account Auth Token (Alternative)</label>
+                <input type="password" id="authToken" placeholder="Optional: Your Account Auth Token">
+                <div class="help-text">Optional: Use this instead of API Key for verification</div>
+            </div>
+            
+            <div class="form-group">
                 <label for="twimlAppSid">TwiML App SID</label>
                 <input type="text" id="twimlAppSid" placeholder="APxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" required>
                 <div class="help-text">Should start with "AP"</div>
@@ -608,18 +614,38 @@
                     log('⚠️ WARNING: Secret had whitespace - using trimmed version');
                 }
                 
-                // Make a simple API call to verify credentials
-                // Using Basic Auth with API Key SID and Secret
-                const auth = btoa(`${apiKeySid}:${trimmedSecret}`);
+                // Try using Auth Token first if provided, otherwise use API Key
+                const authToken = document.getElementById('authToken').value.trim();
+                let auth;
+                let authMethod;
+                
+                if (authToken) {
+                    auth = btoa(`${accountSid}:${authToken}`);
+                    authMethod = 'Account SID + Auth Token';
+                    log('Using Account SID + Auth Token for verification');
+                } else {
+                    auth = btoa(`${apiKeySid}:${trimmedSecret}`);
+                    authMethod = 'API Key SID + Secret';
+                    log('Using API Key SID + Secret for verification');
+                }
+                
+                // Debug: Show first few chars of auth string (without exposing full secret)
+                const authPreview = auth.substring(0, 20) + '...';
+                log(`Auth string preview: ${authPreview}`);
+                log(`Auth method: ${authMethod}`);
                 
                 log('Making API request to Twilio...');
+                log(`Request URL: https://api.twilio.com/2010-04-01/Accounts/${accountSid}.json`);
+                
                 const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}.json`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Basic ${auth}`,
-                        'Content-Type': 'application/x-www-form-urlencoded'
+                        'Accept': 'application/json'
                     }
                 });
+                
+                log(`Response status: ${response.status} ${response.statusText}`);
                 
                 if (response.ok) {
                     const data = await response.json();
@@ -642,13 +668,22 @@
                     log(`Error Message: ${errorData.message || errorText}`);
                     
                     if (response.status === 401) {
-                        showStatus('✗ Invalid credentials - API Key SID or Secret is incorrect. Double-check in Twilio Console.', 'error');
+                        showStatus('✗ Invalid credentials - Authentication failed. Double-check in Twilio Console.', 'error');
                         log('⚠️ TROUBLESHOOTING:');
-                        log('1. Go to: https://console.twilio.com/us1/develop/api-keys');
-                        log('2. Find your API Key (should match the SID above)');
-                        log('3. Click "Show" to reveal the secret');
-                        log('4. Copy it EXACTLY (no spaces before/after)');
-                        log('5. Make sure the API Key belongs to Account: ' + accountSid);
+                        if (authToken) {
+                            log('Using Auth Token method:');
+                            log('1. Go to: https://console.twilio.com/us1/account/keys-credentials/api-keys');
+                            log('2. Check your Account Auth Token (not API Key Secret)');
+                            log('3. Make sure Account SID matches: ' + accountSid);
+                        } else {
+                            log('Using API Key method:');
+                            log('1. Go to: https://console.twilio.com/us1/develop/api-keys');
+                            log('2. Find your API Key: ' + apiKeySid);
+                            log('3. Click "Show" to reveal the secret');
+                            log('4. Copy it EXACTLY (no spaces before/after)');
+                            log('5. Make sure the API Key belongs to Account: ' + accountSid);
+                            log('6. Try using Account Auth Token instead (see optional field above)');
+                        }
                     } else if (response.status === 404) {
                         showStatus('✗ Account SID not found - Check if it\'s correct', 'error');
                     } else {

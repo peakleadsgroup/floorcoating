@@ -215,8 +215,8 @@
         <div class="log" id="log"></div>
     </div>
 
-    <!-- Load Twilio Voice SDK in head -->
-    <script src="https://sdk.twilio.com/js/client/releases/2.0.0/twilio.min.js"></script>
+    <!-- Load Twilio Voice SDK - using jsDelivr CDN as alternative -->
+    <script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2.17.0/dist/twilio.min.js"></script>
 
     <script>
         let device = null;
@@ -321,6 +321,13 @@
                     return;
                 }
                 
+                // Also check for Device as a global (some CDN versions expose it differently)
+                if (window.Device) {
+                    log('✓ Twilio Device found (global)');
+                    resolve();
+                    return;
+                }
+                
                 // Check if script is loading
                 log('Waiting for Twilio SDK to load...');
                 let attempts = 0;
@@ -329,18 +336,24 @@
                 const checkInterval = setInterval(() => {
                     attempts++;
                     
+                    // Try multiple ways to access the SDK
                     if (window.Twilio && window.Twilio.Device) {
                         clearInterval(checkInterval);
-                        log('✓ Twilio SDK is now available');
+                        log('✓ Twilio SDK is now available (window.Twilio.Device)');
                         resolve();
                     } else if (window.Device) {
                         clearInterval(checkInterval);
-                        log('✓ Twilio Device found (alternative access)');
+                        log('✓ Twilio Device found (window.Device)');
+                        resolve();
+                    } else if (typeof Device !== 'undefined') {
+                        clearInterval(checkInterval);
+                        log('✓ Twilio Device found (global Device)');
                         resolve();
                     } else if (attempts >= maxAttempts) {
                         clearInterval(checkInterval);
                         log('✗ Twilio SDK not available after waiting');
-                        reject(new Error('Twilio SDK failed to load. Please:\n1. Check browser console (F12) for errors\n2. Check Network tab to see if script loaded\n3. Try refreshing the page\n4. Make sure you have internet connection'));
+                        log('Available globals: ' + Object.keys(window).filter(k => k.toLowerCase().includes('twilio') || k.toLowerCase().includes('device')).join(', ') || 'none');
+                        reject(new Error('Twilio SDK failed to load. The CDN may be blocked. Try:\n1. Using a different browser\n2. Checking if your network blocks CDN requests\n3. Using the npm package version instead'));
                     }
                 }, 500);
             });
@@ -376,12 +389,22 @@
                     device.destroy();
                 }
                 
-                // Check if Twilio is available
-                if (!window.Twilio || !window.Twilio.Device) {
+                // Check if Twilio is available - try multiple access methods
+                let DeviceClass = null;
+                if (window.Twilio && window.Twilio.Device) {
+                    DeviceClass = window.Twilio.Device;
+                    log('Using window.Twilio.Device');
+                } else if (window.Device) {
+                    DeviceClass = window.Device;
+                    log('Using window.Device');
+                } else if (typeof Device !== 'undefined') {
+                    DeviceClass = Device;
+                    log('Using global Device');
+                } else {
                     throw new Error('Twilio SDK not loaded. Please refresh the page.');
                 }
                 
-                device = new Twilio.Device(token, {
+                device = new DeviceClass(token, {
                     logLevel: 1,
                 });
                 

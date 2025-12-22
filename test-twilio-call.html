@@ -202,7 +202,14 @@
                 <div class="help-text">Include country code (e.g., +1 for US)</div>
             </div>
             
+            <div class="form-group">
+                <label for="twilioPhoneNumber">Your Twilio Phone Number</label>
+                <input type="tel" id="twilioPhoneNumber" placeholder="+19196290303" required>
+                <div class="help-text">Your Twilio phone number (caller ID)</div>
+            </div>
+            
             <button type="submit" id="callBtn">Make Test Call</button>
+            <button type="button" id="verifyBtn" style="margin-top: 10px; background: #17a2b8;">Verify Credentials First</button>
         </form>
         
         <div class="status" id="status"></div>
@@ -383,6 +390,7 @@
             const apiKeySecret = document.getElementById('apiKeySecret').value.trim();
             const twimlAppSid = document.getElementById('twimlAppSid').value.trim();
             const phoneNumber = document.getElementById('phoneNumber').value.trim();
+            const twilioPhoneNumber = document.getElementById('twilioPhoneNumber').value.trim();
             
             const callBtn = document.getElementById('callBtn');
             const callControls = document.getElementById('callControls');
@@ -561,10 +569,68 @@
             document.getElementById('callBtn').disabled = false;
         }
         
+        // Verify credentials by making a test API call
+        async function verifyCredentials() {
+            const accountSid = document.getElementById('accountSid').value.trim();
+            const apiKeySid = document.getElementById('apiKeySid').value.trim();
+            const apiKeySecret = document.getElementById('apiKeySecret').value.trim();
+            
+            const verifyBtn = document.getElementById('verifyBtn');
+            
+            try {
+                verifyBtn.disabled = true;
+                hideStatus();
+                log('Verifying credentials with Twilio API...');
+                
+                // Make a simple API call to verify credentials
+                // Using Basic Auth with API Key SID and Secret
+                const auth = btoa(`${apiKeySid}:${apiKeySecret}`);
+                
+                const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}.json`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Basic ${auth}`,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✓ Credentials verified!');
+                    log(`Account Name: ${data.friendly_name || 'N/A'}`);
+                    log(`Account Status: ${data.status || 'N/A'}`);
+                    showStatus('✓ Credentials are valid! You can proceed with the call.', 'success');
+                } else {
+                    const errorText = await response.text();
+                    log(`✗ Credential verification failed: ${response.status}`);
+                    log(`Error: ${errorText}`);
+                    
+                    if (response.status === 401) {
+                        showStatus('✗ Invalid credentials - API Key SID or Secret is incorrect', 'error');
+                    } else if (response.status === 404) {
+                        showStatus('✗ Account SID not found - Check if it\'s correct', 'error');
+                    } else {
+                        showStatus(`✗ Verification failed: ${response.status}`, 'error');
+                    }
+                }
+            } catch (error) {
+                log(`✗ Error verifying credentials: ${error.message}`);
+                showStatus(`Error: ${error.message}`, 'error');
+            } finally {
+                verifyBtn.disabled = false;
+            }
+        }
+        
         // Form submission
         document.getElementById('callForm').addEventListener('submit', (e) => {
             e.preventDefault();
             makeCall();
+        });
+        
+        // Verify button
+        document.getElementById('verifyBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            verifyCredentials();
         });
         
         // Hangup button

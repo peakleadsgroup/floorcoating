@@ -270,6 +270,18 @@
         async function generateJWT(accountSid, apiKeySid, apiKeySecret, twimlAppSid) {
             const now = Math.floor(Date.now() / 1000);
             
+            // Log secret info for debugging (without exposing the actual secret)
+            log(`Secret length: ${apiKeySecret.length} characters`);
+            log(`Secret has whitespace: ${/\s/.test(apiKeySecret)}`);
+            log(`Secret first char: ${apiKeySecret.charAt(0)}`);
+            log(`Secret last char: ${apiKeySecret.charAt(apiKeySecret.length - 1)}`);
+            
+            // Trim secret to remove any hidden whitespace
+            const trimmedSecret = apiKeySecret.trim();
+            if (trimmedSecret.length !== apiKeySecret.length) {
+                log('⚠️ WARNING: Secret had leading/trailing whitespace - using trimmed version');
+            }
+            
             const header = {
                 alg: 'HS256',
                 typ: 'JWT'
@@ -295,10 +307,10 @@
             const encodedPayload = base64urlEncode(JSON.stringify(payload));
             const message = `${encodedHeader}.${encodedPayload}`;
 
-            // Sign with HMAC-SHA256
+            // Sign with HMAC-SHA256 - use trimmed secret
             const key = await crypto.subtle.importKey(
                 'raw',
-                new TextEncoder().encode(apiKeySecret),
+                new TextEncoder().encode(trimmedSecret),
                 { name: 'HMAC', hash: 'SHA-256' },
                 false,
                 ['sign']
@@ -309,7 +321,13 @@
             const signatureArray = new Uint8Array(signature);
             const encodedSignature = base64urlEncodeBytes(signatureArray);
 
-            return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
+            const token = `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
+            
+            // Log token info
+            log(`Token length: ${token.length}`);
+            log(`Token parts: ${token.split('.').length}`);
+            
+            return token;
         }
         
         async function loadTwilioSDK() {

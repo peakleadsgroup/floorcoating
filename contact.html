@@ -373,13 +373,67 @@
     }
 
     /**
+     * Format lead data as plain text summary
+     */
+    function formatLeadAsText(leadData) {
+      const timestamp = new Date().toLocaleString('en-US', {
+        dateStyle: 'full',
+        timeStyle: 'long'
+      });
+      
+      let text = 'New Lead Submission\n\n';
+      
+      if (leadData.first_name || leadData.firstName) {
+        text += `First Name: ${leadData.first_name || leadData.firstName || 'N/A'}\n`;
+      }
+      if (leadData.last_name || leadData.lastName) {
+        text += `Last Name: ${leadData.last_name || leadData.lastName || 'N/A'}\n`;
+      }
+      if (leadData.email) {
+        text += `Email: ${leadData.email}\n`;
+      }
+      if (leadData.phone) {
+        const formattedPhone = formatPhoneForDisplay(leadData.phone);
+        text += `Phone: ${formattedPhone}\n`;
+      }
+      if (leadData.zip || leadData.zipCode) {
+        text += `Zip Code: ${leadData.zip || leadData.zipCode || 'N/A'}\n`;
+      }
+      if (leadData.project_type || leadData.projectType) {
+        text += `Project Type: ${leadData.project_type || leadData.projectType || 'N/A'}\n`;
+      }
+      if (leadData.details || leadData.projectDetails) {
+        text += `Project Details: ${leadData.details || leadData.projectDetails || 'N/A'}\n`;
+      }
+      if (leadData.source) {
+        text += `Source: ${leadData.source}\n`;
+      }
+      if (leadData.form_type) {
+        text += `Form Type: ${leadData.form_type}\n`;
+      }
+      
+      text += `\nSubmitted: ${timestamp}`;
+      
+      return text;
+    }
+
+    /**
      * Send lead webhook to Make.com
      */
     async function sendLeadWebhook(leadData) {
       try {
+        // Get full name
+        const firstName = leadData.first_name || leadData.firstName || '';
+        const lastName = leadData.last_name || leadData.lastName || '';
+        const leadName = `${firstName} ${lastName}`.trim() || 'N/A';
+        
         const htmlSummary = formatLeadAsHTML(leadData);
+        const textSummary = formatLeadAsText(leadData);
+        
         const payload = {
+          lead_name: leadName,
           html: htmlSummary,
+          text: textSummary,
           lead_data: leadData,
           timestamp: new Date().toISOString()
         };

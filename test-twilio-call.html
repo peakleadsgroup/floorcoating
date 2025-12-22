@@ -215,9 +215,6 @@
         <div class="log" id="log"></div>
     </div>
 
-    <!-- Load Twilio Voice SDK -->
-    <script src="https://sdk.twilio.com/js/client/releases/2.0.0/twilio.min.js"></script>
-
     <script>
         let device = null;
         let activeCall = null;
@@ -312,6 +309,39 @@
             return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
         }
         
+        async function loadTwilioSDK() {
+            return new Promise((resolve, reject) => {
+                if (window.Twilio && window.Twilio.Device) {
+                    log('Twilio SDK already loaded');
+                    resolve();
+                    return;
+                }
+                
+                log('Loading Twilio SDK...');
+                const script = document.createElement('script');
+                script.src = 'https://sdk.twilio.com/js/client/releases/2.0.0/twilio.min.js';
+                script.async = true;
+                
+                script.onload = () => {
+                    log('Twilio SDK loaded successfully');
+                    // Wait a moment for SDK to initialize
+                    setTimeout(() => {
+                        if (window.Twilio && window.Twilio.Device) {
+                            resolve();
+                        } else {
+                            reject(new Error('Twilio SDK loaded but Device not found'));
+                        }
+                    }, 500);
+                };
+                
+                script.onerror = () => {
+                    reject(new Error('Failed to load Twilio SDK'));
+                };
+                
+                document.head.appendChild(script);
+            });
+        }
+        
         async function makeCall() {
             const accountSid = document.getElementById('accountSid').value.trim();
             const apiKeySid = document.getElementById('apiKeySid').value.trim();
@@ -328,6 +358,9 @@
                 hideStatus();
                 log('Starting call process...');
                 
+                // Step 0: Load Twilio SDK if not already loaded
+                await loadTwilioSDK();
+                
                 // Step 1: Generate JWT token
                 log('Generating JWT token...');
                 const token = await generateJWT(accountSid, apiKeySid, apiKeySecret, twimlAppSid);
@@ -337,6 +370,11 @@
                 log('Initializing Twilio Device...');
                 if (device) {
                     device.destroy();
+                }
+                
+                // Check if Twilio is available
+                if (!window.Twilio || !window.Twilio.Device) {
+                    throw new Error('Twilio SDK not loaded. Please refresh the page.');
                 }
                 
                 device = new Twilio.Device(token, {

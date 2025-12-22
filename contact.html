@@ -286,6 +286,154 @@
   <div class="footer-note">
     © 2025 Peak Floor Coating. All rights reserved.
   </div>
+
+  <script>
+    // Lead Webhook URL for Make.com
+    const LEAD_WEBHOOK_URL = 'https://hook.us2.make.com/wthekedj3kpv92we2utevbn114114mct';
+
+    /**
+     * Format phone number for display
+     */
+    function formatPhoneForDisplay(phone) {
+      if (!phone) return '';
+      const digits = phone.replace(/\D/g, '');
+      if (digits.length === 10) {
+        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+      }
+      return phone;
+    }
+
+    /**
+     * Format lead data as HTML summary
+     */
+    function formatLeadAsHTML(leadData) {
+      const timestamp = new Date().toLocaleString('en-US', {
+        dateStyle: 'full',
+        timeStyle: 'long'
+      });
+      
+      let html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+            h1 { color: #1a365d; border-bottom: 3px solid #f97316; padding-bottom: 10px; }
+            .lead-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .info-row { margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #e0e0e0; }
+            .info-label { font-weight: bold; color: #1a365d; display: inline-block; min-width: 150px; }
+            .info-value { color: #666; }
+            .timestamp { color: #999; font-size: 0.9em; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <h1>New Lead Submission</h1>
+          <div class="lead-info">
+      `;
+      
+      // Add all available fields
+      if (leadData.first_name || leadData.firstName) {
+        html += `<div class="info-row"><span class="info-label">First Name:</span><span class="info-value">${leadData.first_name || leadData.firstName || 'N/A'}</span></div>`;
+      }
+      if (leadData.last_name || leadData.lastName) {
+        html += `<div class="info-row"><span class="info-label">Last Name:</span><span class="info-value">${leadData.last_name || leadData.lastName || 'N/A'}</span></div>`;
+      }
+      if (leadData.email) {
+        html += `<div class="info-row"><span class="info-label">Email:</span><span class="info-value"><a href="mailto:${leadData.email}">${leadData.email}</a></span></div>`;
+      }
+      if (leadData.phone) {
+        const formattedPhone = formatPhoneForDisplay(leadData.phone);
+        html += `<div class="info-row"><span class="info-label">Phone:</span><span class="info-value"><a href="tel:${leadData.phone}">${formattedPhone}</a></span></div>`;
+      }
+      if (leadData.zip || leadData.zipCode) {
+        html += `<div class="info-row"><span class="info-label">Zip Code:</span><span class="info-value">${leadData.zip || leadData.zipCode || 'N/A'}</span></div>`;
+      }
+      if (leadData.project_type || leadData.projectType) {
+        html += `<div class="info-row"><span class="info-label">Project Type:</span><span class="info-value">${leadData.project_type || leadData.projectType || 'N/A'}</span></div>`;
+      }
+      if (leadData.details || leadData.projectDetails) {
+        html += `<div class="info-row"><span class="info-label">Project Details:</span><span class="info-value">${leadData.details || leadData.projectDetails || 'N/A'}</span></div>`;
+      }
+      if (leadData.source) {
+        html += `<div class="info-row"><span class="info-label">Source:</span><span class="info-value">${leadData.source}</span></div>`;
+      }
+      if (leadData.form_type) {
+        html += `<div class="info-row"><span class="info-label">Form Type:</span><span class="info-value">${leadData.form_type}</span></div>`;
+      }
+      
+      html += `
+          </div>
+          <div class="timestamp">Submitted: ${timestamp}</div>
+        </body>
+        </html>
+      `;
+      
+      return html;
+    }
+
+    /**
+     * Send lead webhook to Make.com
+     */
+    async function sendLeadWebhook(leadData) {
+      try {
+        const htmlSummary = formatLeadAsHTML(leadData);
+        const payload = {
+          html: htmlSummary,
+          lead_data: leadData,
+          timestamp: new Date().toISOString()
+        };
+        
+        console.log('Sending lead webhook to:', LEAD_WEBHOOK_URL);
+        
+        await fetch(LEAD_WEBHOOK_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          mode: 'no-cors'
+        });
+        
+        console.log('Lead webhook sent successfully');
+      } catch (error) {
+        console.error('Error sending lead webhook:', error);
+      }
+    }
+
+    // Handle form submission
+    document.querySelector('form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      // Get form values
+      const firstName = document.getElementById('first-name').value.trim();
+      const lastName = document.getElementById('last-name').value.trim();
+      const phone = document.getElementById('phone').value.replace(/\D/g, '');
+      const email = document.getElementById('email').value.trim();
+      const zip = document.getElementById('zip').value.trim();
+      const projectType = document.getElementById('project-type').value;
+      const details = document.getElementById('details').value.trim();
+      
+      // Prepare lead data
+      const leadData = {
+        first_name: firstName,
+        last_name: lastName,
+        phone: phone,
+        email: email,
+        zip: zip,
+        project_type: projectType,
+        details: details,
+        source: 'Contact Form',
+        form_type: 'contact_form'
+      };
+      
+      // Send webhook
+      sendLeadWebhook(leadData);
+      
+      // Redirect to post-submit page
+      window.location.href = 'post-submit.html';
+    });
+  </script>
 </body>
 </html>
 

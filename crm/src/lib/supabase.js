@@ -8,12 +8,32 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 console.log('Supabase URL:', supabaseUrl ? '✓ Set' : '✗ Missing')
 console.log('Supabase Key:', supabaseAnonKey ? '✓ Set (length: ' + supabaseAnonKey.length + ')' : '✗ Missing')
 
-// Validate environment variables
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables!')
-  console.error('VITE_SUPABASE_URL:', supabaseUrl || 'NOT SET')
-  console.error('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Set' : 'NOT SET')
+// Only create client if credentials are available, otherwise create a mock client
+let supabase
+
+if (supabaseUrl && supabaseAnonKey) {
+  try {
+    supabase = createClient(supabaseUrl, supabaseAnonKey)
+  } catch (error) {
+    console.error('Failed to create Supabase client:', error)
+    supabase = null
+  }
+} else {
+  console.warn('Supabase not configured - some features may not work')
+  // Create a mock client that won't crash but will return errors when used
+  supabase = {
+    from: () => ({
+      select: () => ({ data: null, error: { message: 'Supabase not configured' } }),
+      insert: () => ({ data: null, error: { message: 'Supabase not configured' } }),
+      update: () => ({ eq: () => ({ data: null, error: { message: 'Supabase not configured' } }) }),
+      delete: () => ({ eq: () => ({ data: null, error: { message: 'Supabase not configured' } }) }),
+    }),
+    channel: () => ({
+      on: () => ({ subscribe: () => {} }),
+    }),
+    removeChannel: () => {},
+  }
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export { supabase }
 

@@ -1946,12 +1946,29 @@
                 const htmlSummary = formatLeadAsHTML(leadData);
                 const textSummary = formatLeadAsText(leadData);
                 
+                // Flatten the payload so all fields are at the top level for Make.com
                 const payload = {
                     lead_name: leadName,
                     html: htmlSummary,
                     text: textSummary,
-                    lead_data: leadData,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    // Flatten lead data fields to top level
+                    first_name: leadData.first_name || leadData.firstName || '',
+                    last_name: leadData.last_name || leadData.lastName || '',
+                    email: leadData.email || '',
+                    phone: leadData.phone || '',
+                    zip: leadData.zip || leadData.zipCode || '',
+                    street_address: leadData.street_address || (leadData.address && leadData.address.street) || '',
+                    city: leadData.city || (leadData.address && leadData.address.city) || '',
+                    state: leadData.state || (leadData.address && leadData.address.state) || '',
+                    project_type: leadData.project_type || leadData.projectType || '',
+                    details: leadData.details || leadData.projectDetails || '',
+                    homeowner: leadData.homeowner || '',
+                    floor_location: leadData.floor_location || leadData.floorLocation || '',
+                    project_timeline: leadData.project_timeline || leadData.projectTimeline || '',
+                    main_goal: leadData.main_goal || leadData.mainGoal || '',
+                    source: leadData.source || '',
+                    form_type: leadData.form_type || ''
                 };
                 
                 console.log('Sending lead webhook to:', LEAD_WEBHOOK_URL);

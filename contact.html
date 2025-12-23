@@ -287,7 +287,20 @@
     © 2025 Peak Floor Coating. All rights reserved.
   </div>
 
+  <!-- Load Supabase config before main script -->
+  <script src="supabase-config.js"></script>
+  
   <script>
+    // Supabase Configuration
+    // Load from external config file (supabase-config.js)
+    // If config file doesn't exist or values aren't set, these will be used as fallback
+    const SUPABASE_URL = (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.url !== 'YOUR_SUPABASE_URL_HERE') 
+        ? SUPABASE_CONFIG.url 
+        : 'YOUR_SUPABASE_URL_HERE';
+    const SUPABASE_ANON_KEY = (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.anonKey !== 'YOUR_SUPABASE_ANON_KEY_HERE') 
+        ? SUPABASE_CONFIG.anonKey 
+        : 'YOUR_SUPABASE_ANON_KEY_HERE';
+    
     // Lead Webhook URL for Make.com
     const LEAD_WEBHOOK_URL = 'https://hook.us2.make.com/wthekedj3kpv92we2utevbn114114mct';
 
@@ -465,6 +478,47 @@
       }
     }
 
+    /**
+     * Save lead to Supabase database
+     */
+    async function saveLeadToSupabase(leadData) {
+      // Only save if Supabase is configured
+      if (SUPABASE_URL === 'YOUR_SUPABASE_URL_HERE' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY_HERE') {
+        console.log('Supabase not configured, skipping database save');
+        return Promise.resolve();
+      }
+
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/leads`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({
+            first_name: leadData.first_name || leadData.firstName || '',
+            last_name: leadData.last_name || leadData.lastName || '',
+            phone: leadData.phone || null,
+            email: leadData.email || null,
+            zip: leadData.zip || leadData.zipCode || null,
+            source: leadData.source || 'Contact Form'
+          })
+        });
+
+        if (!response.ok) {
+          console.error('Error saving lead to Supabase:', response.statusText);
+          throw new Error(`Supabase save failed: ${response.statusText}`);
+        }
+
+        console.log('Lead saved to Supabase successfully');
+      } catch (error) {
+        console.error('Error saving lead to Supabase:', error);
+        // Don't throw - we still want to redirect even if Supabase save fails
+      }
+    }
+
     // Handle form submission
     document.querySelector('form').addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -491,11 +545,14 @@
         form_type: 'contact_form'
       };
       
-      // Send webhook
+      // Send webhook (non-blocking)
       sendLeadWebhook(leadData);
       
-      // Redirect to post-submit page
-      window.location.href = 'post-submit.html';
+      // Save to Supabase database
+      await saveLeadToSupabase(leadData).finally(() => {
+        // Redirect to post-submit page after Supabase save attempt (whether successful or not)
+        window.location.href = 'post-submit.html';
+      });
     });
   </script>
 </body>

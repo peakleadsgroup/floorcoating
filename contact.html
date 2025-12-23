@@ -223,7 +223,7 @@
             name="phone"
             required
             inputmode="numeric"
-            pattern="\\d{10}"
+            pattern="[0-9]{10}"
             placeholder="10-digit phone number"
           />
           <div class="help-text">Enter numbers only, no dashes or spaces.</div>
@@ -250,7 +250,7 @@
             name="zip"
             required
             inputmode="numeric"
-            pattern="\\d{5}"
+            pattern="[0-9]{5}"
             placeholder="5-digit ZIP"
           />
         </div>
@@ -352,6 +352,9 @@
       if (leadData.last_name || leadData.lastName) {
         html += `<div class="info-row"><span class="info-label">Last Name:</span><span class="info-value">${leadData.last_name || leadData.lastName || 'N/A'}</span></div>`;
       }
+      if (leadData.full_name) {
+        html += `<div class="info-row"><span class="info-label">Full Name:</span><span class="info-value">${leadData.full_name}</span></div>`;
+      }
       if (leadData.email) {
         html += `<div class="info-row"><span class="info-label">Email:</span><span class="info-value"><a href="mailto:${leadData.email}">${leadData.email}</a></span></div>`;
       }
@@ -362,11 +365,33 @@
       if (leadData.zip || leadData.zipCode) {
         html += `<div class="info-row"><span class="info-label">Zip Code:</span><span class="info-value">${leadData.zip || leadData.zipCode || 'N/A'}</span></div>`;
       }
+      if (leadData.street_address || leadData.address) {
+        const address = leadData.street_address || (leadData.address && leadData.address.street) || 'N/A';
+        html += `<div class="info-row"><span class="info-label">Street Address:</span><span class="info-value">${address}</span></div>`;
+      }
+      if (leadData.city || (leadData.address && leadData.address.city)) {
+        html += `<div class="info-row"><span class="info-label">City:</span><span class="info-value">${leadData.city || (leadData.address && leadData.address.city) || 'N/A'}</span></div>`;
+      }
+      if (leadData.state || (leadData.address && leadData.address.state)) {
+        html += `<div class="info-row"><span class="info-label">State:</span><span class="info-value">${leadData.state || (leadData.address && leadData.address.state) || 'N/A'}</span></div>`;
+      }
       if (leadData.project_type || leadData.projectType) {
         html += `<div class="info-row"><span class="info-label">Project Type:</span><span class="info-value">${leadData.project_type || leadData.projectType || 'N/A'}</span></div>`;
       }
       if (leadData.details || leadData.projectDetails) {
         html += `<div class="info-row"><span class="info-label">Project Details:</span><span class="info-value">${leadData.details || leadData.projectDetails || 'N/A'}</span></div>`;
+      }
+      if (leadData.homeowner) {
+        html += `<div class="info-row"><span class="info-label">Homeowner:</span><span class="info-value">${leadData.homeowner === 'yes' ? 'Yes' : 'No'}</span></div>`;
+      }
+      if (leadData.floor_location || leadData.floorLocation) {
+        html += `<div class="info-row"><span class="info-label">Floor Location:</span><span class="info-value">${leadData.floor_location || leadData.floorLocation || 'N/A'}</span></div>`;
+      }
+      if (leadData.project_timeline || leadData.projectTimeline) {
+        html += `<div class="info-row"><span class="info-label">Project Timeline:</span><span class="info-value">${leadData.project_timeline || leadData.projectTimeline || 'N/A'}</span></div>`;
+      }
+      if (leadData.main_goal || leadData.mainGoal) {
+        html += `<div class="info-row"><span class="info-label">Main Goal:</span><span class="info-value">${leadData.main_goal || leadData.mainGoal || 'N/A'}</span></div>`;
       }
       if (leadData.source) {
         html += `<div class="info-row"><span class="info-label">Source:</span><span class="info-value">${leadData.source}</span></div>`;
@@ -412,11 +437,33 @@
       if (leadData.zip || leadData.zipCode) {
         text += `Zip Code: ${leadData.zip || leadData.zipCode || 'N/A'}\n`;
       }
+      if (leadData.street_address || leadData.address) {
+        const address = leadData.street_address || (leadData.address && leadData.address.street) || 'N/A';
+        text += `Street Address: ${address}\n`;
+      }
+      if (leadData.city || (leadData.address && leadData.address.city)) {
+        text += `City: ${leadData.city || (leadData.address && leadData.address.city) || 'N/A'}\n`;
+      }
+      if (leadData.state || (leadData.address && leadData.address.state)) {
+        text += `State: ${leadData.state || (leadData.address && leadData.address.state) || 'N/A'}\n`;
+      }
       if (leadData.project_type || leadData.projectType) {
         text += `Project Type: ${leadData.project_type || leadData.projectType || 'N/A'}\n`;
       }
       if (leadData.details || leadData.projectDetails) {
         text += `Project Details: ${leadData.details || leadData.projectDetails || 'N/A'}\n`;
+      }
+      if (leadData.homeowner) {
+        text += `Homeowner: ${leadData.homeowner === 'yes' ? 'Yes' : 'No'}\n`;
+      }
+      if (leadData.floor_location || leadData.floorLocation) {
+        text += `Floor Location: ${leadData.floor_location || leadData.floorLocation || 'N/A'}\n`;
+      }
+      if (leadData.project_timeline || leadData.projectTimeline) {
+        text += `Project Timeline: ${leadData.project_timeline || leadData.projectTimeline || 'N/A'}\n`;
+      }
+      if (leadData.main_goal || leadData.mainGoal) {
+        text += `Main Goal: ${leadData.main_goal || leadData.mainGoal || 'N/A'}\n`;
       }
       if (leadData.source) {
         text += `Source: ${leadData.source}\n`;
@@ -455,8 +502,15 @@
           email: leadData.email || '',
           phone: leadData.phone || '',
           zip: leadData.zip || leadData.zipCode || '',
+          street_address: leadData.street_address || (leadData.address && leadData.address.street) || '',
+          city: leadData.city || (leadData.address && leadData.address.city) || '',
+          state: leadData.state || (leadData.address && leadData.address.state) || '',
           project_type: leadData.project_type || leadData.projectType || '',
           details: leadData.details || leadData.projectDetails || '',
+          homeowner: leadData.homeowner || '',
+          floor_location: leadData.floor_location || leadData.floorLocation || '',
+          project_timeline: leadData.project_timeline || leadData.projectTimeline || '',
+          main_goal: leadData.main_goal || leadData.mainGoal || '',
           source: leadData.source || '',
           form_type: leadData.form_type || ''
         };

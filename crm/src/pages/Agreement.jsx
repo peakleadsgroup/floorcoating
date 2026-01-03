@@ -40,6 +40,7 @@ export default function Agreement() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedColor, setSelectedColor] = useState('')
+  const [contractText, setContractText] = useState('')
   const [signature, setSignature] = useState('')
   const [signatureName, setSignatureName] = useState('')
   const [isSigning, setIsSigning] = useState(false)

@@ -118,7 +118,7 @@ Address: ${leadData.street_address || 'N/A'}, ${leadData.city || 'N/A'}, ${leadD
 Square Footage: ${leadData.square_footage || leadData.estimated_sqft || 'N/A'} sq ft
 Total Price: $${leadData.total_price ? parseFloat(leadData.total_price).toFixed(2) : '0.00'}
 Color Choice: ${colorChoice || 'Not selected'}
-
+${leadData.special_notes ? `\nSPECIAL NOTES:\n${leadData.special_notes}\n` : ''}
 1) ESTIMATE / SITE VISIT
 
 PEAK FLOOR COATING conducts site surveys for every job. During the visit, an PEAK FLOOR COATING representative will test the moisture on the intended floor, test the hardness, and evaluate the site conditions. This is a required visit payable, unless prior arrangements are made with PEAK FLOOR COATING, at the time of service on all projects and shall be deducted from the final bill once the contract is complete. Prepayment is required for the site visit. Any estimate given by an PEAK FLOOR COATING representative is valid for 30 days. PEAK FLOOR COATING reserves the right to revise any and all estimates after 30 days due to the volatility in the current market.
@@ -896,16 +896,6 @@ This Agreement contains the entire agreement and understanding among the Parties
             </div>
           </div>
         </div>
-
-        {/* Special Notes Section */}
-        {lead.special_notes && (
-          <div className="special-notes-section">
-            <h2>Special Notes</h2>
-            <div className="special-notes-content">
-              <p>{lead.special_notes}</p>
-            </div>
-          </div>
-        )}
 
         {/* Color Selection Section */}
         <div className="color-selection-section">

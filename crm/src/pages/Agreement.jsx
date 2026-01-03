@@ -664,11 +664,6 @@ This Agreement contains the entire agreement and understanding among the Parties
       return
     }
 
-    if (!signature) {
-      alert('Please provide your signature')
-      return
-    }
-
     if (!selectedColor) {
       alert('Please select a color')
       return
@@ -707,7 +702,7 @@ This Agreement contains the entire agreement and understanding among the Parties
           .from('agreements')
           .update({
             contract_content: finalContractContent,
-            signature_data: signature,
+            signature_data: signature || null, // Optional - using typed name only for now
             signed_name: signatureName.trim(),
             signed_at: new Date().toISOString(),
             signed_ip_address: ipAddress,
@@ -728,7 +723,7 @@ This Agreement contains the entire agreement and understanding among the Parties
           .insert({
             lead_id: leadId,
             contract_content: finalContractContent,
-            signature_data: signature,
+            signature_data: signature || null, // Optional - using typed name only for now
             signed_name: signatureName.trim(),
             signed_at: new Date().toISOString(),
             signed_ip_address: ipAddress,
@@ -959,39 +954,13 @@ This Agreement contains the entire agreement and understanding among the Parties
               />
             </div>
 
-            <div className="signature-canvas-container">
-              <label>Signature:</label>
-              <div className="canvas-wrapper">
-                <canvas
-                  ref={setCanvasRef}
-                  width={600}
-                  height={200}
-                  className="signature-canvas"
-                  onMouseDown={handleCanvasMouseDown}
-                  onMouseMove={handleCanvasMouseMove}
-                  onMouseUp={handleCanvasMouseUp}
-                  onMouseLeave={handleCanvasMouseUp}
-                  onTouchStart={handleCanvasTouchStart}
-                  onTouchMove={handleCanvasTouchMove}
-                  onTouchEnd={handleCanvasTouchEnd}
-                />
-                <button
-                  type="button"
-                  className="btn-clear-signature"
-                  onClick={clearSignature}
-                >
-                  Clear
-                </button>
-              </div>
-              <p className="signature-instructions">Please sign above using your mouse or touch screen</p>
-            </div>
 
             <div className="form-actions">
               <div className="submit-wrapper">
                 <button
                   type="submit"
                   className="btn-submit-agreement"
-                  disabled={!signature || !signatureName.trim() || !selectedColor || isSigning}
+                  disabled={!signatureName.trim() || !selectedColor || isSigning}
                 >
                 {isSigning ? 'Submitting...' : 'Sign Agreement'}
               </button>

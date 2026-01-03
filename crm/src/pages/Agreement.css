@@ -76,6 +76,7 @@
   padding-bottom: 1rem;
   font-size: 2.5rem;
   font-weight: 700;
+  text-align: center;
 }
 
 .error-message {
@@ -90,6 +91,7 @@
   padding: 1.5rem;
   background-color: #f9fafb;
   border-radius: 6px;
+  text-align: center;
 }
 
 .project-info-section h2 {
@@ -97,18 +99,22 @@
   margin-bottom: 1.5rem;
   font-size: 1.8rem;
   font-weight: 700;
+  text-align: center;
 }
 
 .info-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1rem;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .info-item {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  text-align: center;
 }
 
 .info-item label {
@@ -128,6 +134,7 @@
   padding: 1.5rem;
   background-color: #f9fafb;
   border-radius: 6px;
+  text-align: center;
 }
 
 .color-selection-section h2 {
@@ -135,11 +142,13 @@
   margin-bottom: 1rem;
   font-size: 1.8rem;
   font-weight: 700;
+  text-align: center;
 }
 
 .color-instructions {
   color: #64748b;
   margin-bottom: 1.5rem;
+  text-align: center;
 }
 
 .color-grid {
@@ -147,6 +156,9 @@
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .color-option {
@@ -226,6 +238,7 @@
   padding: 1.5rem;
   background-color: #f9fafb;
   border-radius: 6px;
+  text-align: center;
 }
 
 .contract-section h2 {
@@ -233,6 +246,7 @@
   margin-bottom: 1rem;
   font-size: 1.8rem;
   font-weight: 700;
+  text-align: center;
 }
 
 .contract-content {
@@ -242,6 +256,9 @@
   border: 1px solid #e5e7eb;
   line-height: 1.6;
   color: #475569;
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 /* Signature Section */
@@ -250,6 +267,7 @@
   padding: 1.5rem;
   background-color: #f9fafb;
   border-radius: 6px;
+  text-align: center;
 }
 
 .signature-section h2 {
@@ -257,10 +275,14 @@
   margin-bottom: 1.5rem;
   font-size: 1.8rem;
   font-weight: 700;
+  text-align: center;
 }
 
 .signature-name-input {
   margin-bottom: 1.5rem;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .signature-name-input label {
@@ -268,6 +290,7 @@
   margin-bottom: 0.5rem;
   font-weight: 600;
   color: #1a365d;
+  text-align: center;
 }
 
 .signature-name-input input {
@@ -277,6 +300,7 @@
   border-radius: 6px;
   font-size: 1rem;
   transition: border-color 0.3s;
+  text-align: center;
 }
 
 .signature-name-input input:focus {
@@ -286,6 +310,9 @@
 
 .signature-canvas-container {
   margin-bottom: 1.5rem;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .signature-canvas-container label {
@@ -293,6 +320,7 @@
   margin-bottom: 0.5rem;
   font-weight: 600;
   color: #1a365d;
+  text-align: center;
 }
 
 .canvas-wrapper {
@@ -302,6 +330,9 @@
   background: white;
   padding: 1rem;
   margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .signature-canvas {
@@ -313,6 +344,7 @@
   border-radius: 4px;
   cursor: crosshair;
   background: white;
+  margin: 0 auto;
 }
 
 .btn-clear-signature {
@@ -335,12 +367,13 @@
   color: #64748b;
   font-size: 0.875rem;
   margin-top: 0.5rem;
+  text-align: center;
 }
 
 .form-actions {
   display: flex;
   gap: 1rem;
-  justify-content: flex-end;
+  justify-content: center;
   margin-top: 1.5rem;
 }
 

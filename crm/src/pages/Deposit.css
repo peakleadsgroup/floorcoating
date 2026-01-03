@@ -83,6 +83,7 @@
   padding: 1.5rem;
   background-color: #f9fafb;
   border-radius: 6px;
+  text-align: center;
 }
 
 .deposit-info-section h2 {
@@ -90,6 +91,7 @@
   margin-bottom: 1.5rem;
   font-size: 1.8rem;
   font-weight: 700;
+  text-align: center;
 }
 
 .info-card {
@@ -97,6 +99,8 @@
   padding: 1.5rem;
   border-radius: 6px;
   border: 1px solid #e5e7eb;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .info-row {
@@ -104,6 +108,7 @@
   justify-content: space-between;
   padding: 0.75rem 0;
   border-bottom: 1px solid #f1f5f9;
+  text-align: center;
 }
 
 .info-row:last-child {
@@ -131,6 +136,7 @@
   padding: 1.5rem;
   background-color: #f9fafb;
   border-radius: 6px;
+  text-align: center;
 }
 
 .payment-section h2 {
@@ -138,12 +144,14 @@
   margin-bottom: 1rem;
   font-size: 1.8rem;
   font-weight: 700;
+  text-align: center;
 }
 
 .payment-description {
   color: #64748b;
   margin-bottom: 1.5rem;
   line-height: 1.6;
+  text-align: center;
 }
 
 .stripe-placeholder {
@@ -152,17 +160,24 @@
   border-radius: 6px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
+  text-align: center;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .stripe-placeholder p {
   margin: 0.5rem 0;
   color: #856404;
+  text-align: center;
 }
 
 .stripe-placeholder ol {
   margin: 1rem 0;
   padding-left: 1.5rem;
   color: #856404;
+  text-align: left;
+  display: inline-block;
 }
 
 .stripe-placeholder li {
@@ -171,6 +186,7 @@
 
 .btn-stripe-checkout {
   width: 100%;
+  max-width: 500px;
   padding: 1rem 2rem;
   background: #f97316;
   color: white;
@@ -180,6 +196,8 @@
   font-weight: 700;
   cursor: pointer;
   transition: background 0.3s;
+  margin: 0 auto;
+  display: block;
 }
 
 .btn-stripe-checkout:hover:not(:disabled) {
@@ -197,6 +215,7 @@
   background-color: #f9fafb;
   border-radius: 6px;
   border-top: 3px solid #f97316;
+  text-align: center;
 }
 
 .agreement-summary h3 {
@@ -204,6 +223,7 @@
   margin-bottom: 1rem;
   font-size: 1.5rem;
   font-weight: 700;
+  text-align: center;
 }
 
 .summary-content {
@@ -211,12 +231,16 @@
   padding: 1rem;
   border-radius: 6px;
   border: 1px solid #e5e7eb;
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
 }
 
 .summary-content p {
   margin: 0.5rem 0;
   color: #475569;
   line-height: 1.6;
+  text-align: center;
 }
 
 .summary-content strong {

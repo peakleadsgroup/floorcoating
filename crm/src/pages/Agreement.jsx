@@ -51,6 +51,7 @@ export default function Agreement() {
   const [savingStatus, setSavingStatus] = useState('')
   const [draftAgreementId, setDraftAgreementId] = useState(null)
   const signatureSaveTimeoutRef = useRef(null)
+  const [agreementSigned, setAgreementSigned] = useState(false)
 
   useEffect(() => {
     if (!leadId) {
@@ -754,8 +755,9 @@ This Agreement contains the entire agreement and understanding among the Parties
 
       if (updateError) throw updateError
 
-      // Navigate to deposit page
-      navigate(`/agreements/deposit?agreementId=${agreement.id}&leadId=${leadId}`)
+      // Show confirmation message instead of navigating
+      setAgreementSigned(true)
+      setIsSigning(false)
     } catch (err) {
       console.error('Error submitting agreement:', err)
       alert('Error submitting agreement. Please try again.')
@@ -768,6 +770,41 @@ This Agreement contains the entire agreement and understanding among the Parties
       <div className="agreement-page">
         <div className="agreement-container">
           <p>Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show confirmation message after signing
+  if (agreementSigned) {
+    return (
+      <div className="agreement-page">
+        <header className="agreement-header">
+          <div className="header-container">
+            <a href="/" className="logo-link">
+              <img 
+                src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/PeakFloorCoating-1000x250-NoBack.png?raw=true" 
+                alt="Peak Floor Coating" 
+                className="logo"
+              />
+            </a>
+          </div>
+        </header>
+        <div className="agreement-container">
+          <div className="signature-confirmation">
+            <div className="confirmation-icon">✓</div>
+            <h1>Agreement Signed Successfully!</h1>
+            <p className="confirmation-message">
+              Thank you for signing your service agreement. We'll send the deposit payment information to you by text or email shortly to make it official.
+            </p>
+            {lead && (
+              <div className="confirmation-details">
+                <p><strong>Customer:</strong> {lead.first_name} {lead.last_name}</p>
+                {lead.email && <p><strong>Email:</strong> {lead.email}</p>}
+                {lead.phone && <p><strong>Phone:</strong> {lead.phone}</p>}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     )
@@ -859,6 +896,16 @@ This Agreement contains the entire agreement and understanding among the Parties
             </div>
           </div>
         </div>
+
+        {/* Special Notes Section */}
+        {lead.special_notes && (
+          <div className="special-notes-section">
+            <h2>Special Notes</h2>
+            <div className="special-notes-content">
+              <p>{lead.special_notes}</p>
+            </div>
+          </div>
+        )}
 
         {/* Color Selection Section */}
         <div className="color-selection-section">
@@ -956,11 +1003,11 @@ This Agreement contains the entire agreement and understanding among the Parties
                   className="btn-submit-agreement"
                   disabled={!signature || !signatureName.trim() || !selectedColor || isSigning}
                 >
-                  {isSigning ? 'Submitting...' : 'Sign and Continue to Deposit'}
-                </button>
-                <p className="agreement-consent-text">
-                  By clicking "Sign and Continue to Deposit", you acknowledge that you have read, understood, and agree to be bound by all terms and conditions of this Service Agreement.
-                </p>
+                {isSigning ? 'Submitting...' : 'Sign Agreement'}
+              </button>
+              <p className="agreement-consent-text">
+                By clicking "Sign Agreement", you acknowledge that you have read, understood, and agree to be bound by all terms and conditions of this Service Agreement.
+              </p>
               </div>
             </div>
           </form>

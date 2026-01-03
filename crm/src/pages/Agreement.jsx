@@ -47,6 +47,7 @@ export default function Agreement() {
   const [isDrawing, setIsDrawing] = useState(false)
   const [lastX, setLastX] = useState(0)
   const [lastY, setLastY] = useState(0)
+  const [savingStatus, setSavingStatus] = useState('')
 
   useEffect(() => {
     if (!leadId) {
@@ -64,8 +65,22 @@ export default function Agreement() {
       ctx.lineWidth = 2
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
+      
+      // Load saved signature from localStorage if available
+      if (leadId) {
+        const savedSignature = localStorage.getItem(`signature_${leadId}`)
+        if (savedSignature) {
+          const img = new Image()
+          img.onload = () => {
+            ctx.clearRect(0, 0, canvasRef.width, canvasRef.height)
+            ctx.drawImage(img, 0, 0)
+            setSignature(savedSignature)
+          }
+          img.src = savedSignature
+        }
+      }
     }
-  }, [canvasRef])
+  }, [canvasRef, leadId])
 
   async function fetchLead() {
     try {
@@ -88,8 +103,23 @@ export default function Agreement() {
     }
   }
 
-  function handleColorSelect(colorName) {
+  async function handleColorSelect(colorName) {
     setSelectedColor(colorName)
+    // Auto-save color choice
+    if (leadId) {
+      try {
+        const { error } = await supabase
+          .from('leads')
+          .update({ color_choice: colorName })
+          .eq('id', leadId)
+        
+        if (error) throw error
+        setSavingStatus('Color choice saved')
+        setTimeout(() => setSavingStatus(''), 2000)
+      } catch (err) {
+        console.error('Error saving color choice:', err)
+      }
+    }
   }
 
   function handleCanvasMouseDown(e) {
@@ -121,10 +151,25 @@ export default function Agreement() {
     
     setLastX(x)
     setLastY(y)
+    
+    // Auto-save signature while drawing (debounced)
+    if (canvasRef) {
+      const signatureData = canvasRef.toDataURL('image/png')
+      setSignature(signatureData)
+      // Save to localStorage every stroke
+      if (leadId) {
+        try {
+          localStorage.setItem(`signature_${leadId}`, signatureData)
+        } catch (err) {
+          console.error('Error saving signature:', err)
+        }
+      }
+    }
   }
 
   function handleCanvasMouseUp() {
     if (isDrawing && canvasRef) {
+      // Auto-save signature on mouse up
       captureSignature()
     }
     setIsDrawing(false)
@@ -163,11 +208,26 @@ export default function Agreement() {
     
     setLastX(x)
     setLastY(y)
+    
+    // Auto-save signature while drawing (for touch)
+    if (canvasRef) {
+      const signatureData = canvasRef.toDataURL('image/png')
+      setSignature(signatureData)
+      // Save to localStorage every stroke
+      if (leadId) {
+        try {
+          localStorage.setItem(`signature_${leadId}`, signatureData)
+        } catch (err) {
+          console.error('Error saving signature:', err)
+        }
+      }
+    }
   }
 
   function handleCanvasTouchEnd(e) {
     e.preventDefault()
     if (isDrawing && canvasRef) {
+      // Auto-save signature on touch end
       captureSignature()
     }
     setIsDrawing(false)
@@ -180,10 +240,21 @@ export default function Agreement() {
     setSignature('')
   }
 
-  function captureSignature() {
+  async function captureSignature() {
     if (!canvasRef) return
     const signatureData = canvasRef.toDataURL('image/png')
     setSignature(signatureData)
+    
+    // Auto-save signature to local storage as backup
+    if (leadId) {
+      try {
+        localStorage.setItem(`signature_${leadId}`, signatureData)
+        setSavingStatus('Signature saved')
+        setTimeout(() => setSavingStatus(''), 2000)
+      } catch (err) {
+        console.error('Error saving signature to localStorage:', err)
+      }
+    }
   }
 
   async function handleSubmit(e) {
@@ -309,7 +380,21 @@ export default function Agreement() {
 
   return (
     <div className="agreement-page">
+      <header className="agreement-header">
+        <div className="header-container">
+          <a href="/" className="logo-link">
+            <img 
+              src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/PeakFloorCoating-1000x250-NoBack.png?raw=true" 
+              alt="Peak Floor Coating" 
+              className="logo"
+            />
+          </a>
+        </div>
+      </header>
       <div className="agreement-container">
+        {savingStatus && (
+          <div className="save-status">{savingStatus}</div>
+        )}
         <h1>Service Agreement</h1>
         
         {/* Project Information Section */}

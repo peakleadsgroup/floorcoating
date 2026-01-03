@@ -141,6 +141,17 @@ export default function Deposit() {
 
   return (
     <div className="deposit-page">
+      <header className="deposit-header">
+        <div className="header-container">
+          <a href="/" className="logo-link">
+            <img 
+              src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/PeakFloorCoating-1000x250-NoBack.png?raw=true" 
+              alt="Peak Floor Coating" 
+              className="logo"
+            />
+          </a>
+        </div>
+      </header>
       <div className="deposit-container">
         <div className="success-badge">
           <span className="checkmark-icon">✓</span>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import './Agreement.css'
@@ -49,6 +49,8 @@ export default function Agreement() {
   const [lastX, setLastX] = useState(0)
   const [lastY, setLastY] = useState(0)
   const [savingStatus, setSavingStatus] = useState('')
+  const [draftAgreementId, setDraftAgreementId] = useState(null)
+  const signatureSaveTimeoutRef = useRef(null)
 
   useEffect(() => {
     if (!leadId) {
@@ -69,6 +71,15 @@ export default function Agreement() {
       }
     }
   }, [selectedColor, leadId])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (signatureSaveTimeoutRef.current) {
+        clearTimeout(signatureSaveTimeoutRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (canvasRef) {
@@ -357,6 +368,32 @@ This Agreement contains the entire agreement and understanding among the Parties
       const contractContent = generateContractContent(data, colorChoice)
       setContractText(contractContent)
       
+      // Check for existing draft agreement
+      const { data: existingDraft } = await supabase
+        .from('agreements')
+        .select('id, signature_data')
+        .eq('lead_id', leadId)
+        .eq('status', 'draft')
+        .maybeSingle()
+      
+      if (existingDraft) {
+        setDraftAgreementId(existingDraft.id)
+        if (existingDraft.signature_data) {
+          setSignature(existingDraft.signature_data)
+          // Load signature into canvas if it exists
+          setTimeout(() => {
+            if (canvasRef && existingDraft.signature_data) {
+              const img = new Image()
+              img.onload = () => {
+                const ctx = canvasRef.getContext('2d')
+                ctx.drawImage(img, 0, 0)
+              }
+              img.src = existingDraft.signature_data
+            }
+          }, 100)
+        }
+      }
+      
       setLoading(false)
     } catch (err) {
       console.error('Error fetching lead:', err)
@@ -366,82 +403,41 @@ This Agreement contains the entire agreement and understanding among the Parties
   }
 
   async function handleColorSelect(colorName) {
-    console.log('=== handleColorSelect START ===')
-    console.log('Color name:', colorName)
-    console.log('leadId:', leadId)
-    console.log('Current lead:', lead)
-    console.log('Current selectedColor:', selectedColor)
-    
     // Update state immediately for UI responsiveness
     setSelectedColor(colorName)
     
-    // Auto-save color choice to database
+    // Auto-save color choice to database immediately
     if (!leadId) {
-      console.error('❌ No leadId available for saving color choice')
-      alert('Error: No lead ID found. Please refresh the page.')
+      console.error('No leadId available for saving color choice')
       return
     }
     
     try {
-      console.log('📤 Sending update to Supabase...')
-      console.log('Table: leads')
-      console.log('Update: { color_choice: "' + colorName + '" }')
-      console.log('Where: id = ' + leadId)
-      
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('leads')
         .update({ color_choice: colorName })
         .eq('id', leadId)
-        .select()
-      
-      console.log('📥 Supabase response received')
-      console.log('Response data:', data)
-      console.log('Response error:', error)
       
       if (error) {
-        console.error('❌ SUPABASE ERROR:', error)
-        console.error('Error code:', error.code)
-        console.error('Error message:', error.message)
-        console.error('Error hint:', error.hint)
-        console.error('Error details:', JSON.stringify(error, null, 2))
-        setSavingStatus('Error: ' + (error.message || 'Failed to save'))
+        console.error('Error saving color choice:', error)
+        setSavingStatus('Error saving color choice')
         setTimeout(() => setSavingStatus(''), 3000)
-        alert('Error saving color choice: ' + (error.message || 'Unknown error'))
         return
       }
       
-      if (data && data.length > 0) {
-        console.log('✅ Color choice saved successfully!')
-        console.log('Updated lead data:', data[0])
-        // Update local lead state with the updated data
-        setLead(prevLead => {
-          const updated = { ...prevLead, color_choice: colorName }
-          console.log('Updated lead state:', updated)
-          return updated
-        })
-      } else {
-        console.warn('⚠️ Update succeeded but no data returned')
-        // Update local state anyway
-        setLead(prevLead => ({ ...prevLead, color_choice: colorName }))
-      }
+      // Update local lead state
+      setLead(prevLead => ({ ...prevLead, color_choice: colorName }))
       
       // Update contract text with new color
       const updatedContract = generateContractContent(lead, colorName)
       setContractText(updatedContract)
-      console.log('Contract text updated with new color')
       
       setSavingStatus('Color choice saved ✓')
       setTimeout(() => setSavingStatus(''), 2000)
-      console.log('=== handleColorSelect END (SUCCESS) ===')
     } catch (err) {
-      console.error('❌ EXCEPTION in handleColorSelect:', err)
-      console.error('Exception type:', err.constructor.name)
-      console.error('Exception message:', err.message)
-      console.error('Exception stack:', err.stack)
+      console.error('Exception saving color choice:', err)
       setSavingStatus('Error saving color choice')
       setTimeout(() => setSavingStatus(''), 3000)
-      alert('Exception saving color choice: ' + err.message)
-      console.log('=== handleColorSelect END (ERROR) ===')
     }
   }
 
@@ -572,11 +568,81 @@ This Agreement contains the entire agreement and understanding among the Parties
     if (leadId) {
       try {
         localStorage.setItem(`signature_${leadId}`, signatureData)
-        setSavingStatus('Signature saved')
-        setTimeout(() => setSavingStatus(''), 2000)
       } catch (err) {
         console.error('Error saving signature to localStorage:', err)
       }
+    }
+    
+    // Debounced auto-save to database (5 seconds after last update)
+    if (signatureSaveTimeoutRef.current) {
+      clearTimeout(signatureSaveTimeoutRef.current)
+    }
+    
+    signatureSaveTimeoutRef.current = setTimeout(async () => {
+      await saveSignatureToDatabase(signatureData)
+    }, 5000) // 5 seconds delay
+  }
+
+  async function saveSignatureToDatabase(signatureData) {
+    if (!leadId || !signatureData) return
+    
+    try {
+      // Check if draft agreement exists, if not create one
+      let agreementId = draftAgreementId
+      
+      if (!agreementId) {
+        // Check for existing draft agreement
+        const { data: existingAgreement } = await supabase
+          .from('agreements')
+          .select('id')
+          .eq('lead_id', leadId)
+          .eq('status', 'draft')
+          .maybeSingle()
+        
+        if (existingAgreement) {
+          agreementId = existingAgreement.id
+          setDraftAgreementId(agreementId)
+        } else {
+          // Create new draft agreement
+          const contractContent = contractText || generateContractContent(lead, selectedColor)
+          const { data: newAgreement, error: createError } = await supabase
+            .from('agreements')
+            .insert({
+              lead_id: leadId,
+              contract_content: contractContent,
+              signature_data: signatureData,
+              status: 'draft'
+            })
+            .select()
+            .single()
+          
+          if (createError) {
+            console.error('Error creating draft agreement:', createError)
+            return
+          }
+          
+          agreementId = newAgreement.id
+          setDraftAgreementId(agreementId)
+        }
+      }
+      
+      // Update existing draft agreement with signature
+      if (agreementId) {
+        const { error: updateError } = await supabase
+          .from('agreements')
+          .update({ signature_data: signatureData })
+          .eq('id', agreementId)
+        
+        if (updateError) {
+          console.error('Error updating signature in database:', updateError)
+          return
+        }
+        
+        setSavingStatus('Signature auto-saved ✓')
+        setTimeout(() => setSavingStatus(''), 2000)
+      }
+    } catch (err) {
+      console.error('Exception saving signature to database:', err)
     }
   }
 
@@ -623,24 +689,49 @@ This Agreement contains the entire agreement and understanding among the Parties
       // Use the current contract text (which includes the selected color)
       const finalContractContent = contractText || generateContractContent(lead, selectedColor)
       
-      // Create agreement record
-      const { data: agreement, error: agreementError } = await supabase
-        .from('agreements')
-        .insert({
-          lead_id: leadId,
-          contract_content: finalContractContent,
-          signature_data: signature,
-          signed_name: signatureName.trim(),
-          signed_at: new Date().toISOString(),
-          signed_ip_address: ipAddress,
-          signed_user_agent: userAgent,
-          signed_location: location,
-          status: 'signed'
-        })
-        .select()
-        .single()
+      // Use existing draft agreement or create new one
+      let agreement
+      if (draftAgreementId) {
+        // Update existing draft agreement
+        const { data: updatedAgreement, error: updateError } = await supabase
+          .from('agreements')
+          .update({
+            contract_content: finalContractContent,
+            signature_data: signature,
+            signed_name: signatureName.trim(),
+            signed_at: new Date().toISOString(),
+            signed_ip_address: ipAddress,
+            signed_user_agent: userAgent,
+            signed_location: location,
+            status: 'signed'
+          })
+          .eq('id', draftAgreementId)
+          .select()
+          .single()
+        
+        if (updateError) throw updateError
+        agreement = updatedAgreement
+      } else {
+        // Create new agreement record
+        const { data: newAgreement, error: agreementError } = await supabase
+          .from('agreements')
+          .insert({
+            lead_id: leadId,
+            contract_content: finalContractContent,
+            signature_data: signature,
+            signed_name: signatureName.trim(),
+            signed_at: new Date().toISOString(),
+            signed_ip_address: ipAddress,
+            signed_user_agent: userAgent,
+            signed_location: location,
+            status: 'signed'
+          })
+          .select()
+          .single()
 
-      if (agreementError) throw agreementError
+        if (agreementError) throw agreementError
+        agreement = newAgreement
+      }
 
       // Update lead with color choice
       const { error: updateError } = await supabase

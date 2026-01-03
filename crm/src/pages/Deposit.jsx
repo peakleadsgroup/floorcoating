@@ -25,15 +25,29 @@ export default function Deposit() {
 
   async function fetchData() {
     try {
-      // Fetch agreement
+      // Fetch agreement (use maybeSingle since it might not exist)
       const { data: agreementData, error: agreementError } = await supabase
         .from('agreements')
         .select('*')
         .eq('id', agreementId)
-        .single()
+        .maybeSingle()
 
-      if (agreementError) throw agreementError
-      if (!agreementData) throw new Error('Agreement not found')
+      if (agreementError) {
+        // Check if it's the "no rows" error
+        if (agreementError.code === 'PGRST116') {
+          setError('Agreement not found. It may have been deleted. Please return to the agreement page to sign again.')
+        } else {
+          throw agreementError
+        }
+        setLoading(false)
+        return
+      }
+
+      if (!agreementData) {
+        setError('Agreement not found. It may have been deleted. Please return to the agreement page to sign again.')
+        setLoading(false)
+        return
+      }
 
       setAgreement(agreementData)
 
@@ -42,16 +56,29 @@ export default function Deposit() {
         .from('leads')
         .select('*')
         .eq('id', leadId)
-        .single()
+        .maybeSingle()
 
-      if (leadError) throw leadError
-      if (!leadData) throw new Error('Lead not found')
+      if (leadError) {
+        if (leadError.code === 'PGRST116') {
+          setError('Lead not found.')
+        } else {
+          throw leadError
+        }
+        setLoading(false)
+        return
+      }
+
+      if (!leadData) {
+        setError('Lead not found.')
+        setLoading(false)
+        return
+      }
 
       setLead(leadData)
       setLoading(false)
     } catch (err) {
       console.error('Error fetching data:', err)
-      setError(err.message)
+      setError(err.message || 'An error occurred while loading the deposit page.')
       setLoading(false)
     }
   }
@@ -126,10 +153,40 @@ export default function Deposit() {
   if (error || !agreement || !lead) {
     return (
       <div className="deposit-page">
+        <header className="deposit-header">
+          <div className="header-container">
+            <a href="/" className="logo-link">
+              <img 
+                src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/PeakFloorCoating-1000x250-NoBack.png?raw=true" 
+                alt="Peak Floor Coating" 
+                className="logo"
+              />
+            </a>
+          </div>
+        </header>
         <div className="deposit-container">
           <div className="error-message">
             <h2>Error</h2>
             <p>{error || 'Agreement or lead not found'}</p>
+            {leadId && !agreement && (
+              <div style={{ marginTop: '1.5rem' }}>
+                <a 
+                  href={`/agreements?leadId=${leadId}`}
+                  style={{
+                    display: 'inline-block',
+                    padding: '0.75rem 1.5rem',
+                    background: '#1a365d',
+                    color: 'white',
+                    textDecoration: 'none',
+                    borderRadius: '6px',
+                    fontWeight: '600',
+                    marginTop: '1rem'
+                  }}
+                >
+                  Return to Agreement Page
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </div>

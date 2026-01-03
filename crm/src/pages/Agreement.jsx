@@ -54,7 +54,7 @@ export default function Agreement() {
 
   useEffect(() => {
     if (!leadId) {
-      setError('No lead ID provided')
+      setError('No lead ID provided in URL. Please include ?leadId=YOUR_LEAD_ID in the URL.')
       setLoading(false)
       return
     }
@@ -326,10 +326,19 @@ This Agreement contains the entire agreement and understanding among the Parties
         .from('leads')
         .select('*')
         .eq('id', leadId)
-        .single()
+        .maybeSingle()
 
-      if (fetchError) throw fetchError
-      if (!data) throw new Error('Lead not found')
+      if (fetchError) {
+        // Check for specific error codes
+        if (fetchError.code === 'PGRST116') {
+          throw new Error(`Lead with ID ${leadId} not found. Please check the lead ID and try again.`)
+        }
+        throw fetchError
+      }
+      
+      if (!data) {
+        throw new Error(`Lead with ID ${leadId} not found. Please check the lead ID and try again.`)
+      }
 
       setLead(data)
       
@@ -767,10 +776,29 @@ This Agreement contains the entire agreement and understanding among the Parties
   if (error || !lead) {
     return (
       <div className="agreement-page">
+        <header className="agreement-header">
+          <div className="header-container">
+            <a href="/" className="logo-link">
+              <img 
+                src="https://github.com/peakleadsgroup/floorcoating/blob/main/images/PeakFloorCoating-1000x250-NoBack.png?raw=true" 
+                alt="Peak Floor Coating" 
+                className="logo"
+              />
+            </a>
+          </div>
+        </header>
         <div className="agreement-container">
           <div className="error-message">
             <h2>Error</h2>
             <p>{error || 'Lead not found'}</p>
+            {!leadId && (
+              <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
+                To access the agreement page, include the lead ID in the URL:<br />
+                <code style={{ background: '#f0f0f0', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
+                  /agreements?leadId=YOUR_LEAD_ID
+                </code>
+              </p>
+            )}
           </div>
         </div>
       </div>

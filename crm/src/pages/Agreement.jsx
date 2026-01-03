@@ -58,6 +58,17 @@ export default function Agreement() {
     fetchLead()
   }, [leadId])
 
+  // Also save color choice to localStorage as backup
+  useEffect(() => {
+    if (leadId && selectedColor) {
+      try {
+        localStorage.setItem(`color_choice_${leadId}`, selectedColor)
+      } catch (err) {
+        console.error('Error saving color to localStorage:', err)
+      }
+    }
+  }, [selectedColor, leadId])
+
   useEffect(() => {
     if (canvasRef) {
       const ctx = canvasRef.getContext('2d')
@@ -309,10 +320,40 @@ This Agreement contains the entire agreement and understanding among the Parties
       if (!data) throw new Error('Lead not found')
 
       setLead(data)
-      setSelectedColor(data.color_choice || '')
+      
+      // Check localStorage first, then database, then default to empty
+      const savedColor = localStorage.getItem(`color_choice_${leadId}`)
+      const colorChoice = savedColor || data.color_choice || ''
+      
+      console.log('Loading color choice:', {
+        fromLocalStorage: savedColor,
+        fromDatabase: data.color_choice,
+        finalChoice: colorChoice
+      })
+      
+      setSelectedColor(colorChoice)
+      
+      // If we have a saved color in localStorage but not in database, save it
+      if (savedColor && savedColor !== data.color_choice) {
+        try {
+          console.log('Syncing color from localStorage to database:', savedColor)
+          const { error: syncError } = await supabase
+            .from('leads')
+            .update({ color_choice: savedColor })
+            .eq('id', leadId)
+          
+          if (syncError) {
+            console.error('Error syncing color from localStorage:', syncError)
+          } else {
+            console.log('Color synced successfully to database')
+          }
+        } catch (err) {
+          console.error('Exception syncing color from localStorage:', err)
+        }
+      }
       
       // Generate contract text
-      const contractContent = generateContractContent(data, data.color_choice || selectedColor)
+      const contractContent = generateContractContent(data, colorChoice)
       setContractText(contractContent)
       
       setLoading(false)
@@ -326,24 +367,45 @@ This Agreement contains the entire agreement and understanding among the Parties
   async function handleColorSelect(colorName) {
     setSelectedColor(colorName)
     // Auto-save color choice
-    if (leadId && lead) {
+    if (leadId) {
       try {
-        const { error } = await supabase
+        console.log('Saving color choice:', colorName, 'for leadId:', leadId)
+        
+        const { data, error } = await supabase
           .from('leads')
           .update({ color_choice: colorName })
           .eq('id', leadId)
+          .select()
+          .single()
         
-        if (error) throw error
+        if (error) {
+          console.error('Supabase error saving color choice:', error)
+          console.error('Error details:', JSON.stringify(error, null, 2))
+          setSavingStatus('Error saving color choice')
+          setTimeout(() => setSavingStatus(''), 3000)
+          return
+        }
+        
+        console.log('Color choice saved successfully:', data)
+        
+        // Update local lead state with the updated data
+        if (data) {
+          setLead(prevLead => ({ ...prevLead, ...data }))
+        }
         
         // Update contract text with new color
-        const updatedContract = generateContractContent(lead, colorName)
+        const updatedContract = generateContractContent(lead || data, colorName)
         setContractText(updatedContract)
         
         setSavingStatus('Color choice saved')
         setTimeout(() => setSavingStatus(''), 2000)
       } catch (err) {
-        console.error('Error saving color choice:', err)
+        console.error('Exception saving color choice:', err)
+        setSavingStatus('Error saving color choice')
+        setTimeout(() => setSavingStatus(''), 3000)
       }
+    } else {
+      console.error('No leadId available for saving color choice')
     }
   }
 

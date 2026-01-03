@@ -365,47 +365,82 @@ This Agreement contains the entire agreement and understanding among the Parties
   }
 
   async function handleColorSelect(colorName) {
+    console.log('=== handleColorSelect START ===')
+    console.log('Color name:', colorName)
+    console.log('leadId:', leadId)
+    console.log('Current lead:', lead)
+    console.log('Current selectedColor:', selectedColor)
+    
+    // Update state immediately for UI responsiveness
     setSelectedColor(colorName)
-    // Auto-save color choice
-    if (leadId) {
-      try {
-        console.log('Saving color choice:', colorName, 'for leadId:', leadId)
-        
-        const { data, error } = await supabase
-          .from('leads')
-          .update({ color_choice: colorName })
-          .eq('id', leadId)
-          .select()
-          .single()
-        
-        if (error) {
-          console.error('Supabase error saving color choice:', error)
-          console.error('Error details:', JSON.stringify(error, null, 2))
-          setSavingStatus('Error saving color choice')
-          setTimeout(() => setSavingStatus(''), 3000)
-          return
-        }
-        
-        console.log('Color choice saved successfully:', data)
-        
-        // Update local lead state with the updated data
-        if (data) {
-          setLead(prevLead => ({ ...prevLead, ...data }))
-        }
-        
-        // Update contract text with new color
-        const updatedContract = generateContractContent(lead || data, colorName)
-        setContractText(updatedContract)
-        
-        setSavingStatus('Color choice saved')
-        setTimeout(() => setSavingStatus(''), 2000)
-      } catch (err) {
-        console.error('Exception saving color choice:', err)
-        setSavingStatus('Error saving color choice')
+    
+    // Auto-save color choice to database
+    if (!leadId) {
+      console.error('❌ No leadId available for saving color choice')
+      alert('Error: No lead ID found. Please refresh the page.')
+      return
+    }
+    
+    try {
+      console.log('📤 Sending update to Supabase...')
+      console.log('Table: leads')
+      console.log('Update: { color_choice: "' + colorName + '" }')
+      console.log('Where: id = ' + leadId)
+      
+      const { data, error } = await supabase
+        .from('leads')
+        .update({ color_choice: colorName })
+        .eq('id', leadId)
+        .select()
+      
+      console.log('📥 Supabase response received')
+      console.log('Response data:', data)
+      console.log('Response error:', error)
+      
+      if (error) {
+        console.error('❌ SUPABASE ERROR:', error)
+        console.error('Error code:', error.code)
+        console.error('Error message:', error.message)
+        console.error('Error hint:', error.hint)
+        console.error('Error details:', JSON.stringify(error, null, 2))
+        setSavingStatus('Error: ' + (error.message || 'Failed to save'))
         setTimeout(() => setSavingStatus(''), 3000)
+        alert('Error saving color choice: ' + (error.message || 'Unknown error'))
+        return
       }
-    } else {
-      console.error('No leadId available for saving color choice')
+      
+      if (data && data.length > 0) {
+        console.log('✅ Color choice saved successfully!')
+        console.log('Updated lead data:', data[0])
+        // Update local lead state with the updated data
+        setLead(prevLead => {
+          const updated = { ...prevLead, color_choice: colorName }
+          console.log('Updated lead state:', updated)
+          return updated
+        })
+      } else {
+        console.warn('⚠️ Update succeeded but no data returned')
+        // Update local state anyway
+        setLead(prevLead => ({ ...prevLead, color_choice: colorName }))
+      }
+      
+      // Update contract text with new color
+      const updatedContract = generateContractContent(lead, colorName)
+      setContractText(updatedContract)
+      console.log('Contract text updated with new color')
+      
+      setSavingStatus('Color choice saved ✓')
+      setTimeout(() => setSavingStatus(''), 2000)
+      console.log('=== handleColorSelect END (SUCCESS) ===')
+    } catch (err) {
+      console.error('❌ EXCEPTION in handleColorSelect:', err)
+      console.error('Exception type:', err.constructor.name)
+      console.error('Exception message:', err.message)
+      console.error('Exception stack:', err.stack)
+      setSavingStatus('Error saving color choice')
+      setTimeout(() => setSavingStatus(''), 3000)
+      alert('Exception saving color choice: ' + err.message)
+      console.log('=== handleColorSelect END (ERROR) ===')
     }
   }
 
@@ -714,7 +749,12 @@ This Agreement contains the entire agreement and understanding among the Parties
               <div
                 key={color.name}
                 className={`color-option ${selectedColor === color.name ? 'selected' : ''}`}
-                onClick={() => handleColorSelect(color.name)}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  console.log('Color clicked:', color.name)
+                  handleColorSelect(color.name)
+                }}
               >
                 <img src={color.url} alt={color.name} />
                 <div className="color-checkbox">

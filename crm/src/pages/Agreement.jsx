@@ -950,21 +950,18 @@ This Agreement contains the entire agreement and understanding among the Parties
             </div>
 
             <div className="form-actions">
-              <button
-                type="button"
-                className="btn-capture-signature"
-                onClick={captureSignature}
-                disabled={!signatureName.trim()}
-              >
-                Capture Signature
-              </button>
-              <button
-                type="submit"
-                className="btn-submit-agreement"
-                disabled={!signature || !signatureName.trim() || !selectedColor || isSigning}
-              >
-                {isSigning ? 'Submitting...' : 'Sign and Continue to Deposit'}
-              </button>
+              <div className="submit-wrapper">
+                <button
+                  type="submit"
+                  className="btn-submit-agreement"
+                  disabled={!signature || !signatureName.trim() || !selectedColor || isSigning}
+                >
+                  {isSigning ? 'Submitting...' : 'Sign and Continue to Deposit'}
+                </button>
+                <p className="agreement-consent-text">
+                  By clicking "Sign and Continue to Deposit", you acknowledge that you have read, understood, and agree to be bound by all terms and conditions of this Service Agreement.
+                </p>
+              </div>
             </div>
           </form>
         </div>

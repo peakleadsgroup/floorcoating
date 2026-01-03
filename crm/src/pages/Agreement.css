@@ -88,44 +88,82 @@
 /* Project Information Section */
 .project-info-section {
   margin-bottom: 3rem;
-  padding: 1.5rem;
-  background-color: #f9fafb;
-  border-radius: 6px;
-  text-align: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .project-info-section h2 {
   color: #1a365d;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
   font-size: 1.8rem;
   font-weight: 700;
   text-align: center;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f97316;
 }
 
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
-  max-width: 800px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  max-width: 900px;
   margin: 0 auto;
 }
 
 .info-item {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  text-align: center;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  border-left: 4px solid #f97316;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.info-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .info-item label {
   font-weight: 600;
   color: #64748b;
   font-size: 0.875rem;
+  min-width: 140px;
+  text-align: left;
+  flex-shrink: 0;
 }
 
 .info-item span {
   color: #1a365d;
   font-size: 1rem;
+  font-weight: 500;
+  text-align: left;
+  flex: 1;
+  word-break: break-word;
+}
+
+/* Responsive adjustments for info grid */
+@media (max-width: 768px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .info-item {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .info-item label {
+    min-width: auto;
+  }
 }
 
 /* Color Selection Section */
@@ -399,24 +437,22 @@
   margin-top: 1.5rem;
 }
 
-.btn-capture-signature {
-  padding: 0.75rem 1.5rem;
-  background: #64748b;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background 0.3s;
+.submit-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 500px;
 }
 
-.btn-capture-signature:hover:not(:disabled) {
-  background: #475569;
-}
-
-.btn-capture-signature:disabled {
-  background: #cbd5e1;
-  cursor: not-allowed;
+.agreement-consent-text {
+  color: #64748b;
+  font-size: 0.875rem;
+  text-align: center;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0 1rem;
 }
 
 .btn-submit-agreement {
@@ -458,8 +494,11 @@
     flex-direction: column;
   }
 
-  .btn-submit-agreement,
-  .btn-capture-signature {
+  .submit-wrapper {
+    width: 100%;
+  }
+
+  .btn-submit-agreement {
     width: 100%;
   }
 }

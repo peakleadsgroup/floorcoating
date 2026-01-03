@@ -1,12 +1,30 @@
 import { useState } from 'react'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import Leads from './pages/Leads'
 import Flow from './pages/Flow'
 import Call from './pages/Call'
+import Agreement from './pages/Agreement'
+import Deposit from './pages/Deposit'
 import './App.css'
 
 function App() {
+  const location = useLocation()
   const [activeTab, setActiveTab] = useState('leads')
 
+  // Check if we're on an agreements route
+  const isAgreementsRoute = location.pathname.startsWith('/agreements')
+
+  // If on agreements route, show only the route content
+  if (isAgreementsRoute) {
+    return (
+      <Routes>
+        <Route path="/agreements" element={<Agreement />} />
+        <Route path="/agreements/deposit" element={<Deposit />} />
+      </Routes>
+    )
+  }
+
+  // Otherwise, show the CRM interface
   return (
     <div className="app">
       <div className="container">
